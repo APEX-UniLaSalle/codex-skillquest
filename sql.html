@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — SQL (démonstration)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/runmode/runmode.min.js"></script>
+<style>
+:root{
+  /* SkillQuest — Gruvbox Material (light). Palette commune au Codex Python :
+     toute retouche ici doit être reportée dans index.html, et réciproquement. */
+  --bg:#F9F5D7;          /* crème, fond principal      */
+  --panel:#EFE6CE;       /* fond secondaire, encarts   */
+  --panel2:#EDEED2;      /* variante d'encart          */
+  --code:#EBDBB2;        /* fond tertiaire, chips      */
+  --sunk:#D0C2A9;        /* sidebar, éléments enfoncés */
+  --ink:#654735;         /* texte courant, brun encre  */
+  --muted:#8A6B52;       /* texte secondaire           */
+  --line:#D0C2A9;        /* filets ton sur ton         */
+  --accent:#C14A4A;      /* carmin : titres, identité  */
+  --accent-soft:#F3E3D3;
+  --link:#E78A4E;        /* orange : éléments interactifs (graphique) */
+  --link-txt:#AF3A03;    /* orange foncé : texte de lien (lisible)    */
+  --ok:#4C7A5D;
+  --ok-soft:#E4EBD6;
+  --ko:#C14A4A;
+  --ko-soft:#F6E0D8;
+  --warn:#B47109;
+  --warn-soft:#F4EBCE;
+  --violet:#945E80;
+  --bleu:#45707A;        /* bleu-vert lisible en texte */
+  --lavande:#ECECFF;
+  --term:#32302F;        /* console : brun très sombre, jamais noir pur */
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+     background:var(--bg);color:var(--ink)}
+
+/* ── En-tête, identique à celui du Codex Python ─────────────────────────── */
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 18px;
+       display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.2px;color:var(--accent)}
+header .sub{color:var(--muted);font-size:12.5px}
+#marque{text-decoration:none;color:inherit;display:flex;align-items:baseline;gap:12px}
+#marque:hover h1{color:#A33B3B}
+#status{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--sunk);flex:none}
+.dot.ready{background:var(--ok)} .dot.load{background:var(--warn);animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ── Gabarit : liste à gauche, travail à droite ─────────────────────────── */
+.page{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start}
+main{min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
+aside.liste{background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+   position:sticky;top:62px;max-height:calc(100vh - 78px);display:flex;flex-direction:column}
+.filtres{padding:10px;display:grid;gap:7px;border-bottom:1px solid var(--line)}
+.filtres select,.filtres input{width:100%;padding:7px 9px;border:1px solid var(--line);
+   border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13.5px}
+/* Retour à la présentation du thème, sans repasser par l'accueil. */
+.fil-theme{display:block;width:100%;text-align:left;background:var(--panel);border:0;
+   border-bottom:1px solid var(--line);border-radius:0;padding:8px 12px;cursor:pointer;
+   font:inherit;font-size:12.5px;color:var(--muted);font-weight:400}
+.fil-theme:hover{background:var(--accent-soft);color:var(--link-txt)}
+.fil-theme b{display:block;color:var(--ink);font-weight:600;font-size:13px}
+.compte{padding:7px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+#liste{overflow-y:auto;flex:1}
+.qst{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;
+   display:flex;gap:9px;align-items:baseline}
+.qst:hover{background:var(--accent-soft)}
+.qst.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.qst .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;flex:none;width:30px}
+.qst .ttl{flex:1;font-size:13.5px;line-height:1.35}
+.qst .dif{font-size:11px;color:var(--muted);white-space:nowrap}
+.qst .mark{flex:none;font-size:12px}
+/* Sauvegarde de la progression, au bas de la liste : elle doit rester à portée
+   pendant qu'on travaille, et non depuis le seul écran d'accueil. */
+/* Dans l'accueil, le bloc s'étale et s'explique ; au bas de la liste, il se
+   réduit à deux boutons. Même mécanique, deux encombrements. */
+.transfert{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+   margin:16px 0 0;padding:13px 0 0;border-top:1px solid var(--line)}
+.transfert button{font-size:12.5px;padding:6px 12px}
+.transfert .pourquoi{font-size:12.5px;color:var(--muted);max-width:430px}
+aside .transfert{flex:none;margin:0;gap:7px;padding:9px 10px;background:var(--panel2)}
+aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
+.transfert .bilan{flex-basis:100%;font-size:12.5px;color:var(--muted);margin:0}
+.transfert .bilan:empty{display:none}
+.transfert .bilan.ko{color:var(--ko)}
+
+/* ── Écran d'accueil : le « hero » du Codex Python ──────────────────────── */
+.accueil{padding:0}
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
+.hero h2{display:block;margin:0 0 10px;font-size:30px;letter-spacing:-.5px;color:var(--accent);
+   font-weight:650;border:0;padding:0;text-transform:none}
+.hero p{margin:0;font-size:15.5px;max-width:70ch;line-height:1.75;color:var(--ink)}
+.hero .compteurs{display:flex;gap:34px;flex-wrap:wrap;margin-top:24px;
+   padding-top:20px;border-top:1px solid var(--line)}
+.hero .compteurs b{display:block;font-size:26px;color:var(--accent);font-weight:650;line-height:1.2}
+.hero .compteurs span{font-size:12.5px;color:var(--muted)}
+
+/* Une carte par thème : c'est par là qu'on entre dans la banque, comme on
+   choisit un niveau sur le Codex Python. */
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:16px}
+.theme{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 20px;
+   cursor:pointer;text-align:left;font:inherit;color:inherit;display:block;width:100%}
+.theme:hover{border-color:var(--accent)}
+.theme .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.theme h3{margin:5px 0 6px;font-size:17px;color:var(--accent);font-weight:650;display:block}
+.theme .desc{font-size:12.5px;color:var(--muted);line-height:1.6;min-height:60px}
+.theme .barre{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;margin:12px 0 6px}
+.theme .barre i{display:block;height:100%;background:var(--link);border-radius:99px}
+.theme .chiffres{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+.theme .paliers{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.theme .palier{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+
+/* Enchaînement des enquêtes : l'étape suivante est à un clic. */
+.etape{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 0;
+   padding:14px 18px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.etape .libelle{font-size:13px;color:var(--muted);flex:1;min-width:200px}
+.etape .libelle b{color:var(--ink);font-weight:600}
+
+@media (max-width:820px){.page{grid-template-columns:1fr}
+   aside.liste{position:static;max-height:none}}
+
+/* ── Page d'introduction d'un thème ─────────────────────────────────────
+   Le décor se plante ici, une fois, au lieu d'ouvrir chacun des énoncés. */
+.intro{min-width:0}
+.intro .entete{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:26px 30px}
+.intro .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.intro h2{display:block;margin:6px 0 4px;font-size:26px;letter-spacing:-.4px;color:var(--accent);
+   font-weight:650;border:0;padding:0;text-transform:none}
+.intro .paliers{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 0}
+.intro .palier{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+.intro .texte{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+   padding:22px 30px;margin-top:16px;font-size:14.5px;line-height:1.75}
+.intro .texte p{margin:0 0 12px}
+.intro .texte p:last-child{margin-bottom:0}
+.intro .texte h3{display:block;margin:22px 0 10px;font-size:12px;text-transform:uppercase;
+   letter-spacing:.5px;color:var(--ok);font-weight:600}
+.intro .accroche{font-size:15.5px;line-height:1.75;color:var(--ink);margin:0 0 16px;
+   padding-left:14px;border-left:3px solid var(--accent-soft)}
+.intro .inventaire{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+   gap:12px;margin-top:14px}
+.intro .entite{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.intro .entite h4{margin:0 0 6px;font-size:13px;color:var(--bleu);letter-spacing:.03em;font-weight:600}
+.intro .entite ul{margin:0;padding:0;list-style:none;
+   font:12.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+.intro .entite li{display:flex;align-items:baseline;gap:7px}
+.intro .entite li .col{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.intro .entite li .type{font-size:11px;color:var(--sunk);white-space:nowrap}
+.intro .entite li.pk{color:var(--ink);font-weight:600}
+.intro .entite li.fk{color:var(--ink);font-weight:400}
+/* Deux lectures du même schéma : le modèle relationnel, tel qu'on l'interroge,
+   et le modèle conceptuel, tel qu'on l'a pensé. */
+.intro .vues{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.intro .vues button{font:inherit;font-size:12px;padding:4px 12px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+.intro .vues button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .vues button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.intro .cadre-mcd{overflow:auto;max-height:600px;margin:14px 0 0;padding:10px;
+   background:#fff;border:1px solid var(--line);border-radius:6px}
+.intro .cadre-mcd.ajuste svg{width:100%;height:auto}
+.intro .cadre-mcd:not(.ajuste) svg{max-width:none}
+.intro .legende .bascule{margin-left:auto}
+
+/* Feuilleter les données : le schéma dit comment la base est faite, il ne dit
+   pas ce qu'elle contient. Un onglet par table, et les lignes en dessous. */
+.intro .onglets{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+.intro .onglets button{font:inherit;font-size:12px;padding:3px 10px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+   display:inline-flex;align-items:baseline;gap:6px;
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.intro .onglets button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .onglets button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.intro .onglets button .n{font-size:11px;opacity:.65}
+.intro .apercu{margin:12px 0 0}
+.intro .apercu .cadre{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:6px}
+.intro .apercu table.res{border:0}
+.intro .apercu table.res th{position:sticky;top:0;z-index:1}
+.intro .apercu .sous{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+   margin:8px 0 0;font-size:12px;color:var(--muted)}
+.intro .apercu .sous code{font-size:11.5px}
+.intro .apercu .sous button{margin-left:auto;font:inherit;font-size:11.5px;padding:3px 10px;
+   border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer}
+.intro .apercu .sous button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .demarrer{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px;
+   padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.intro .demarrer .compte{padding:0;border:0;font-size:13px;color:var(--muted);flex:1;min-width:180px}
+/* retour à la présentation depuis une question */
+.fil{display:flex;justify-content:flex-end;margin:0 0 8px}
+.fil button{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);
+   cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.fil button:hover{color:var(--link-txt)}
+
+/* ── Carte de la question et intertitres, calqués sur le Codex Python ───── */
+.card{padding:16px 18px}
+.card h2{display:block;margin:0 0 3px;font-size:19px;letter-spacing:-.3px;color:var(--accent);
+   border:0;padding:0;text-transform:none}
+.meta{color:var(--muted);font-size:12.5px;margin-bottom:11px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.statement{font-size:14.5px}
+.chip{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ok);
+   margin:20px 0 8px;font-weight:600;display:flex;align-items:center;gap:8px}
+.bloc{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px;margin:0}
+.plan{position:relative;margin:14px 0;padding:20px 0}
+.plan svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.schema{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:44px;
+   position:relative;z-index:1;align-items:start}
+.tbl{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tbl h3{margin:0 0 6px;font-size:13.5px;color:var(--bleu);letter-spacing:.03em}
+/* le nom d'une table ouvre son contenu dans la console */
+.tbl h3 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;
+   letter-spacing:inherit;border-bottom:1px dotted var(--line)}
+.tbl h3 button:hover{color:var(--link-txt);border-bottom-color:var(--link-txt)}
+.tbl ul{margin:0;padding:0;list-style:none;
+   font:12.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+/* Une ligne de colonne se lit de gauche à droite : le nom, son type, puis la
+   nature de la clé. C'est la disposition des diagrammes relationnels. */
+.tbl li{position:relative;display:flex;align-items:baseline;gap:7px}
+.tbl li .col{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tbl li .type{font-size:11px;color:var(--sunk);white-space:nowrap}
+.tbl li.pk{color:var(--ink);font-weight:600}
+.tbl li.fk{color:var(--ink);font-weight:400}
+.marque{font:600 9.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+   letter-spacing:.06em;padding:1px 5px;border-radius:3px;flex:none}
+.marque.pk{background:var(--accent-soft);color:var(--accent)}
+.marque.fk{background:#E2ECEE;color:var(--bleu)}
+/* légende, sous le schéma */
+.legende{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:10px 0 0;
+   font-size:12px;color:var(--muted)}
+.legende span.marque{margin-right:5px}
+/* Tous les liens empruntent les mêmes gouttières : au repos on ne distingue pas
+   lesquels se répondent. Survoler une table éteint les autres et met en évidence
+   ses voisines — le nom de la table visée reste écrit en clair sur chaque clé. */
+.tbl{transition:border-color .12s,box-shadow .12s}
+.tbl.actif{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+g.lien{transition:opacity .12s}
+.plan.focus g.lien{opacity:.1}
+.plan.focus g.lien.actif{opacity:1}
+g.lien.actif path{stroke:var(--accent)}
+g.lien.actif circle.depart{fill:var(--accent)}
+g.lien.actif circle.arrivee{stroke:var(--accent)}
+textarea{width:100%;min-height:150px;background:#282828;color:#EBDBB2;border:1px solid var(--line);
+   border-radius:8px;padding:12px 14px;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+   resize:vertical;tab-size:2}
+/* éditeur : mêmes teintes Gruvbox sombre que la console */
+.CodeMirror{height:auto;min-height:150px;border:1px solid var(--line);border-radius:8px;
+   background:#282828;color:#EBDBB2;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:6px 0}
+.CodeMirror-gutters{background:#32302F;border-right:1px solid #3C3836}
+/* Le retour à la ligne étant actif, rien ne déborde jamais horizontalement :
+   la barre de défilement qui apparaît parfois vient d'une mesure faussée, pas
+   d'un vrai débordement. On la masque — mais c'est le refresh() de
+   ouvrirQuestion qui traite la cause. Ne pas forcer overflow-x sur
+   .CodeMirror-scroll : cela écraserait le décalage négatif dont CodeMirror se
+   sert pour placer la gouttière. */
+.CodeMirror-hscrollbar{display:none !important}
+.CodeMirror-linenumber{color:#7C6F64}
+.CodeMirror-cursor{border-left:1.5px solid #EBDBB2}
+.CodeMirror .cm-keyword{color:#EA6962;font-weight:600}
+.CodeMirror .cm-string{color:#A9B665}
+.CodeMirror .cm-number{color:#D8A657}
+.CodeMirror .cm-comment{color:#7C6F64;font-style:italic}
+.CodeMirror .cm-variable-2,.CodeMirror .cm-variable{color:#7DAEA3}
+.CodeMirror .cm-operator,.CodeMirror .cm-punctuation{color:#D4BE98}
+/* NULL, TRUE, FALSE : sans cette règle, CodeMirror leur laisse le bleu sombre
+   de son thème par défaut, illisible sur le fond de l'éditeur. */
+.CodeMirror .cm-atom{color:#D3869B}
+.CodeMirror-selected{background:#45403D !important}
+/* ligne signalée par l'analyseur de SQLite */
+.CodeMirror .ligne-erreur{background:rgba(234,105,98,.16)}
+.CodeMirror-gutter-elt .marque-erreur{color:#EA6962;font-weight:700}
+.CodeMirror-hints{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;z-index:30}
+.CodeMirror-hint.hint-champ{color:#45707A}
+.CodeMirror-hint.hint-cle{color:#AF3A03;font-weight:600}
+/* coloration des extraits figés (solution, syntaxe des notions) : les règles de
+   l'éditeur sont portées par .CodeMirror, runMode écrit ailleurs. */
+.sql-colore .cm-keyword{color:#EA6962;font-weight:600}
+.sql-colore .cm-string{color:#A9B665}
+.sql-colore .cm-number{color:#D8A657}
+.sql-colore .cm-comment{color:#7C6F64;font-style:italic}
+.sql-colore .cm-variable-2,.sql-colore .cm-variable,.sql-colore .cm-variable-3{color:#7DAEA3}
+.sql-colore .cm-operator,.sql-colore .cm-punctuation,.sql-colore .cm-bracket{color:#D4BE98}
+.sql-colore .cm-atom{color:#D3869B}
+/* accès à la fiche de syntaxe, comme sur le Codex Python */
+.fiche{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;
+  font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--accent);
+  color:var(--accent);background:#F6EAE0;margin-right:14px;white-space:nowrap}
+.fiche:hover{background:var(--accent);color:#fff}
+/* rappel au-dessus de l'éditeur, là où l'on en a besoin en écrivant */
+.fiche-mini{margin-left:auto;font-size:12.5px;font-weight:600;text-decoration:none;
+  color:var(--accent);white-space:nowrap;text-transform:none;letter-spacing:0}
+.fiche-mini:hover{text-decoration:underline}
+.syntaxe{font-size:12.5px;margin-left:auto}
+.syntaxe.ok{color:var(--ok)}
+.syntaxe.ko{color:var(--ko)}
+.actions{display:flex;gap:9px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{font:inherit;font-size:13.5px;padding:7px 15px;border-radius:6px;border:1px solid var(--line);
+   background:var(--bg);color:var(--ink);cursor:pointer;font-weight:500}
+button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+button.principal{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button.principal:hover:not(:disabled){background:#A33B3B;color:var(--bg)}
+button.mini{padding:3px 9px;font-size:12px;white-space:nowrap}
+button:disabled{opacity:.45;cursor:not-allowed}
+.etat{color:var(--muted);font-size:13px}
+.verdict{padding:11px 14px;border-radius:3px;margin:14px 0 12px;font-size:14px;font-weight:600}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict.ko{background:var(--ko-soft);color:var(--ko)}
+table.jeux{border-collapse:collapse;width:100%;margin:10px 0}
+table.jeux th{background:var(--code);text-align:left;padding:7px 10px;border:1px solid var(--line);
+   font-size:12.5px;font-weight:600}
+table.jeux td{padding:7px 10px;border:1px solid var(--line);background:#fff;vertical-align:top;font-size:13.5px}
+table.jeux tr.fail td{background:var(--ko-soft)}
+.badge{font-weight:700}.badge.ok{color:var(--ok)}.badge.ko{color:var(--ko)}
+.nom{font-weight:600}
+/* signalement d'énoncé : discret, sous l'énoncé */
+.ligne-signaler{display:flex;justify-content:flex-end;margin:8px 0 0}
+.signaler{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);
+   cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.signaler:hover{color:var(--link-txt)}
+dialog#signal{border:1px solid var(--line);border-radius:8px;padding:0;max-width:520px;
+   width:calc(100% - 32px);background:var(--panel);color:var(--ink);font:inherit}
+dialog#signal::backdrop{background:rgba(60,56,54,.45)}
+#signal h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:15px;color:var(--accent)}
+#signal .corps{padding:14px 18px}
+#signal .ctx{margin:0 0 4px;font-size:12.5px;color:var(--muted)}
+#signal label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+#signal select,#signal textarea{width:100%;padding:8px 10px;border:1px solid var(--line);
+   border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13.5px;min-height:auto}
+#signal textarea{min-height:105px;resize:vertical}
+#signal input[type=file]{width:100%;padding:7px 9px;border:1px dashed var(--line);
+   border-radius:6px;font:inherit;font-size:12.5px;color:var(--muted);background:none}
+#signal .opt{font-weight:400;color:var(--muted);font-size:12px}
+#signal .anonyme{margin:10px 0 0;font-size:12px;color:var(--muted)}
+#signal .pied{display:flex;gap:9px;align-items:center;padding:12px 18px;border-top:1px solid var(--line)}
+#signal .etat{margin-left:auto;font-size:12.5px;color:var(--muted)}
+#signal .etat.ko{color:var(--ko)}
+.desc{color:var(--muted);font-size:12.5px}
+/* rappel permanent : ici, on ne fait que lire la base */
+.cadre-select{margin:0 0 9px;padding:7px 11px;font-size:12.5px;color:var(--muted);
+   background:var(--warn-soft);border:1px solid var(--line);border-radius:5px}
+.cadre-select code{font-size:11.5px}
+table.res{border-collapse:collapse;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+table.res th{background:var(--code);text-align:left;padding:4px 8px;border:1px solid var(--line);font-weight:600}
+table.res td{padding:3px 8px;border:1px solid var(--line);background:#fff;white-space:nowrap}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.duo h3{margin:0 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+/* sections repliables : le résumé reprend l'allure d'un titre de section */
+details.section{margin:20px 0 0}
+details.section>summary{font-size:12px;text-transform:uppercase;letter-spacing:.5px;
+   color:var(--ok);font-weight:600;margin:0 0 8px;cursor:pointer;list-style:none;
+   display:flex;align-items:center;gap:8px}
+details.section>summary::-webkit-details-marker{display:none}
+details.section>summary::before{content:'\25BE';font-size:12px;transition:transform .15s}
+details.section:not([open])>summary::before{transform:rotate(-90deg)}
+details.section>summary .compte{margin-left:auto;padding:0;border:0;font-size:12px;
+   color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+/* Bascule entre les tables de la question et la base entière. */
+.bascule{margin-left:auto;font:inherit;font-size:11.5px;text-transform:none;letter-spacing:0;
+   font-weight:500;padding:3px 10px;border-radius:99px;border:1px solid var(--line);
+   background:var(--bg);color:var(--muted);cursor:pointer}
+.bascule:hover{border-color:var(--accent);color:var(--accent)}
+/* résultat attendu d'un jeu : replié par défaut, pour garder l'énoncé près de l'éditeur */
+details.res-repli>summary{cursor:pointer;font-size:13px;color:var(--bleu);list-style:none;
+   display:inline-flex;align-items:center;gap:6px}
+details.res-repli>summary::-webkit-details-marker{display:none}
+details.res-repli>summary::before{content:'\25BE';font-size:10px;transition:transform .15s}
+details.res-repli:not([open])>summary::before{transform:rotate(-90deg)}
+details.res-repli[open]>summary{margin-bottom:6px}
+/* solution de référence : dépliable à tout moment, comme sur le Codex Python */
+details.solution{margin:16px 0 0;background:var(--panel);border:1px solid var(--line);
+   border-radius:8px;padding:10px 14px}
+details.solution.verrouille>summary{color:var(--muted);cursor:not-allowed}
+details.solution .verrou{font-weight:400;font-size:12.5px;color:var(--muted)}
+details.solution:not(.verrouille) .verrou{display:none}
+details.solution>summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ok);
+   list-style:none;display:flex;align-items:center;gap:8px}
+details.solution>summary::-webkit-details-marker{display:none}
+details.solution>summary::before{content:'\25BE';font-size:11px;transition:transform .15s}
+details.solution:not([open])>summary::before{transform:rotate(-90deg)}
+details.solution pre{margin:10px 0 0;background:#282828;color:#EBDBB2;padding:12px 14px;
+   border-radius:6px;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+details.solution .rappel{margin:10px 0 0;font-size:13px;color:var(--muted)}
+/* étiquettes de notions sous l'énoncé */
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.tag{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--code);
+   color:var(--muted);border:1px solid var(--line)}
+/* indice : les notions du cours, avant d'avoir trouvé */
+details.indice{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);
+   border-radius:8px;padding:10px 14px}
+details.indice>summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--bleu);
+   list-style:none;display:flex;align-items:center;gap:8px}
+details.indice>summary::-webkit-details-marker{display:none}
+details.indice>summary::before{content:'\25BE';font-size:11px;transition:transform .15s}
+details.indice:not([open])>summary::before{transform:rotate(-90deg)}
+details.indice>summary{background:var(--lavande);color:var(--violet);
+   margin:-10px -14px 0;padding:10px 14px;border-radius:7px 7px 0 0}
+details.indice .amorce{margin:11px 0 0;font-size:13.5px;color:var(--muted)}
+details.indice .etiquettes{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 0}
+details.indice .etq{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--bleu);cursor:pointer;white-space:nowrap}
+details.indice .etq:hover{border-color:var(--violet);color:var(--violet)}
+details.indice .etq[aria-pressed="true"]{background:var(--lavande);border-color:var(--violet);
+   color:var(--violet);font-weight:600}
+details.indice .notion[hidden]{display:none}
+/* le balisage <code> apparaît dans les énoncés et les noms de notions */
+code{font:.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:#EFE6CB;
+   border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+details.indice .notion h4 code{background:#fff}
+/* fiche d'une notion, affichée avec la solution */
+.notion{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin:10px 0 0}
+.notion h4{margin:0 0 6px;font-size:13.5px;color:var(--bleu);font-weight:600}
+.notion .syn{margin:0;background:#282828;color:#EBDBB2;padding:8px 11px;border-radius:5px;
+   font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow-x:auto}
+.notion .ex{margin:6px 0 0;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+.notion .note{margin:6px 0 0;font-size:13px}
+.notion .lien{margin:6px 0 0;font-size:12.5px}
+/* console : mêmes teintes que celle du Codex Python */
+.console{border:1px solid var(--line);border-radius:8px;margin:14px 0 0;overflow:hidden}
+.console-head{display:flex;align-items:center;gap:9px;padding:9px 14px;flex-wrap:wrap;
+   background:var(--code);border-bottom:1px solid var(--line)}
+.console-head strong{font-size:13px;font-weight:600}
+.console-head select{font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
+   border-radius:6px;background:#fff;color:var(--ink);font-family:inherit}
+.console-head button{padding:5px 12px;font-size:12.5px}
+.console-head .hint{color:var(--muted);font-size:12.5px;margin-left:auto}
+.console-body{background:#32302F;color:#EBDBB2;padding:12px 14px;
+   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+   white-space:pre-wrap;word-break:break-word;min-height:72px;max-height:290px;overflow-y:auto}
+.console-body .cmt{color:#A89984}
+.console-body .err{color:#EA6962}
+.console-body .lbl{color:#A9B665}
+/* ── Pied de page, identique à celui du Codex Python ────────────────────── */
+/* ── Choix du parcours : Python ou SQL, en tête de l'accueil ───────────── */
+.parcours{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.parc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:18px 20px;text-decoration:none;color:inherit}
+.parc:hover{border-color:var(--accent)}
+.parc .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.parc h3{margin:5px 0 6px;font-size:22px;color:var(--accent);font-weight:650;letter-spacing:-.3px}
+.parc p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.parc .volume{display:inline-block;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.parc.actif{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.parc.actif .etiq{color:var(--accent)}
+footer{margin:6px 16px 26px;padding:20px 24px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+  font-size:12.5px;line-height:1.75;color:var(--muted);
+  display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+footer h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.5px}
+footer .logos{display:flex;align-items:center;gap:22px;padding-right:28px;
+  border-right:1px solid var(--line);min-height:76px}
+footer .logos img{display:block;opacity:.9}
+footer .infos{flex:1;min-width:280px}
+footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px 26px}
+@media(max-width:700px){footer .logos{border-right:0;border-bottom:1px solid var(--line);
+  padding:0 0 16px;width:100%}}
+footer strong{color:var(--ink);font-weight:600}
+footer a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
+footer a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+
+<!-- Signalement d'énoncé : formulaire jamais affiché, présent uniquement pour que
+     Netlify l'enregistre au déploiement. L'envoi réel est fait en POST par le script. -->
+<form name="signalement" data-netlify="true" netlify-honeypot="bot-field"
+      enctype="multipart/form-data" hidden>
+  <input type="text" name="page">
+  <input type="text" name="exercice">
+  <input type="text" name="nature">
+  <textarea name="message"></textarea>
+  <textarea name="suggestion"></textarea>
+  <input type="hidden" name="subject">
+  <input type="file" name="capture">
+  <input type="text" name="bot-field">
+</form>
+<header>
+  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+    <h1>Le Codex</h1>
+    <span class="sub">SQL — requêtes de sélection</span>
+  </a>
+  <div id="status">
+    <a class="fiche" href="ressources/cheat-sheet-sql.png" target="_blank" rel="noopener"
+       title="Ouvrir la Cheat Sheet SQL dans un nouvel onglet">📄 Cheat Sheet</a>
+    <span class="dot load" id="dot"></span><span id="statusTxt">Chargement de SQLite…</span>
+  </div>
+</header>
+
+<div class="page">
+<aside class="liste">
+  <div class="filtres">
+    <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex SQL</button>
+    <select id="fBase"><option value="">Tous les thèmes</option></select>
+    <select id="fNiveau"><option value="">Tous les niveaux</option></select>
+    <select id="fEtat">
+      <option value="">Toutes les questions</option>
+      <option value="todo">Non réussies</option>
+      <option value="done">Réussies</option>
+    </select>
+    <select id="fNotion"><option value="">Toutes les notions</option></select>
+    <input type="search" id="fRech" placeholder="Rechercher un titre…">
+    <button id="hasard" title="Ouvre une question non réussie, tirée au sort parmi celles affichées">🎲 Question au hasard</button>
+  </div>
+  <button class="fil-theme" id="filTheme" type="button" hidden></button>
+  <div class="compte" id="compte">Chargement…</div>
+  <div id="liste"></div>
+  <div class="transfert">
+    <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder</button>
+    <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+    <input type="file" id="fichierProg" accept="application/json,.json" hidden>
+    <p class="bilan"></p>
+  </div>
+</aside>
+
+<main id="travail" hidden>
+  <!-- Carte de la question : titre, repères, énoncé — même gabarit que le Codex Python -->
+  <div class="fil"><button type="button" id="versIntro">↩ Présentation du thème</button></div>
+  <div class="panel card">
+    <h2 id="titreQ"></h2>
+    <div class="meta" id="metaQ"></div>
+    <div class="statement" id="enonce"></div>
+    <div class="ligne-signaler">
+      <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+    </div>
+  </div>
+
+  <details class="section" id="sec-schema" open>
+    <summary>Schéma de la base<button class="bascule" type="button" id="basculeSchema"></button></summary>
+    <div class="plan" id="plan">
+      <svg id="liens"></svg>
+      <div class="schema" id="schema"></div>
+    </div>
+    <p class="legende">
+      <span><span class="marque pk">PK</span>clé primaire</span>
+      <span><span class="marque fk">FK</span>clé étrangère</span>
+      <span>survolez une table pour isoler ses liens</span>
+    </p>
+  </details>
+
+  <details class="section" id="sec-jeux">
+    <summary>Jeux d'essai<span class="compte" id="compte-jeux"></span></summary>
+    <div id="jeux"></div>
+  </details>
+
+  <h2>Votre requête<a class="fiche-mini" href="ressources/cheat-sheet-sql.png" target="_blank" rel="noopener">📄 Cheat Sheet SQL</a></h2>
+  <p class="cadre-select">Le Codex n'exécute que des requêtes de <strong>sélection</strong>.
+     <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> et les ordres de
+     structure sont refusés : la base doit rester la même pour tout le monde, d'une
+     question à l'autre.</p>
+  <textarea id="code" spellcheck="false">SELECT *
+FROM CONCERT;</textarea>
+  <div class="actions">
+    <button class="principal" id="run" disabled>&#9654;&#9654; Tout tester</button>
+    <button id="reset">Effacer</button>
+    <span class="syntaxe" id="syntaxe"></span>
+  </div>
+
+  <div class="console">
+    <div class="console-head">
+      <strong>Console</strong>
+      <select id="cIn"></select>
+      <button id="exec" disabled>Exécuter</button>
+      <span class="hint">Résultat brut, sans comparaison. Cliquez un nom de table dans le schéma pour voir son contenu.</span>
+    </div>
+    <div class="console-body" id="cOut"><span class="cmt">Exécutez votre requête pour voir ce qu'elle renvoie.</span></div>
+  </div>
+
+  <details class="indice">
+    <summary>&#128269; Besoin d'un indice&#8239;?</summary>
+    <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
+       sur laquelle vous butez — chacune renvoie à sa page de cours.</p>
+    <div class="etiquettes" id="etiquettes"></div>
+    <div id="notions"></div>
+  </details>
+
+  <details class="solution" id="bloc-solution">
+    <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — testez d'abord votre requête</span></summary>
+    <pre id="solution"></pre>
+    <div class="actions" style="margin-top:10px">
+      <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
+    </div>
+    <p class="rappel">D'autres écritures peuvent donner le même résultat : ce qui compte est
+       qu'elles passent les quatre jeux d'essai.</p>
+  </details>
+
+  <div id="sortie"></div>
+  <div class="etape" id="etape" hidden></div>
+</main>
+
+<section class="intro" id="intro" hidden></section>
+
+<div class="accueil" id="accueil">
+  <div class="parcours">
+    <a class="parc" href="python.html">
+      <span class="etiq">Codex</span>
+      <h3>Python</h3>
+      <p>Lire et écrire du code : entrées, boucles, listes, algorithmes.</p>
+      <span class="volume" id="volPython">…</span>
+    </a>
+    <a class="parc actif" href="sql.html" aria-current="page">
+      <span class="etiq">Codex · vous êtes ici</span>
+      <h3>SQL</h3>
+      <p>Interroger une base : filtres, jointures, agrégats, sous-requêtes.</p>
+      <span class="volume" id="volSql">…</span>
+    </a>
+      <a class="parc" href="r.html">
+      <span class="etiq">Codex</span>
+      <h3>R</h3>
+      <p>Manipuler des données : vecteurs, tableaux, graphiques, statistiques.</p>
+      <span class="volume" id="volR">…</span>
+    </a>
+</div>
+  <div class="hero">
+    <h2>Le Codex — SQL</h2>
+    <p>Vous écrivez une requête de sélection ; elle est jouée sur quatre jeux d'essai
+       construits pour la mettre en défaut. Une requête juste sur un jeu de données
+       doit l'être sur tous. Choisissez une question dans la liste, à gauche.</p>
+    <div class="compteurs">
+      <div><b id="cQuestions">—</b><span>questions</span></div>
+      <div><b id="cBases">—</b><span>thèmes</span></div>
+      <div><b id="cReussies">—</b><span>réussies</span></div>
+    </div>
+    <div class="transfert">
+      <button class="bt-exporter">⤓ Exporter ma progression</button>
+      <button class="bt-importer">⤒ Charger un fichier</button>
+      <span class="pourquoi">Votre progression reste sur ce poste. Emportez-la dans un
+        fichier pour la retrouver ailleurs.</span>
+      <p class="bilan"></p>
+    </div>
+  </div>
+  <div class="themes" id="themes"></div>
+</div>
+</div>
+
+<dialog id="signal">
+  <h3>Signaler un problème d'énoncé</h3>
+  <div class="corps">
+    <p class="ctx" id="sigCtx"></p>
+    <label for="sigNature">De quoi s'agit-il&#8239;?</label>
+    <select id="sigNature">
+      <option>Énoncé ambigu ou incomplet</option>
+      <option>Énoncé faux ou contradictoire</option>
+      <option>Jeu d'essai incorrect</option>
+      <option>Schéma de la base incohérent</option>
+      <option>Faute de langue</option>
+      <option>Autre</option>
+    </select>
+    <label for="sigMsg">Qu'avez-vous constaté&#8239;?</label>
+    <textarea id="sigMsg" placeholder="Ce qui vous a bloqué, ou ce que vous avez compris à la place."></textarea>
+    <label for="sigSug">Une correction à proposer&#8239;? <span class="opt">facultatif</span></label>
+    <textarea id="sigSug" placeholder="Une reformulation de l'énoncé, ou le résultat que vous attendiez."></textarea>
+    <label for="sigFic">Une capture d'écran&#8239;? <span class="opt">facultatif</span></label>
+    <input type="file" id="sigFic" accept="image/*">
+    <p class="anonyme">Envoi anonyme : ni votre nom, ni votre requête ne sont transmis.</p>
+  </div>
+  <div class="pied">
+    <button class="principal" id="sigEnvoi">Envoyer</button>
+    <button id="sigFermer">Annuler</button>
+    <span class="etat" id="sigEtat"></span>
+  </div>
+</dialog>
+<footer>
+  <div class="logos">
+    <img src="data:image/png;base64,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" alt="APEX — UniLaSalle" height="76">
+    <img src="data:image/png;base64,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" alt="UniLaSalle" height="40">
+  </div>
+  <div class="infos">
+    <h2>⁝≡ Crédits</h2>
+    <div class="cols">
+      <div>
+        <strong>SkillQuest</strong> — UniLaSalle<br>
+        Dispositif pédagogique gamifié des Sciences Numériques.<br>
+        <a href="https://skillquest.unilasalle.fr/" target="_blank" rel="noopener">skillquest.unilasalle.fr</a>
+      </div>
+      <div>
+        <strong>Cours de référence</strong><br>
+        <a href="https://cours.skillquest.unilasalle.fr/Code+et+D%C3%A9veloppement/D%C3%A9veloppement+d'Applications/SQL+I"
+           target="_blank" rel="noopener">SQL I — requêtes de sélection</a><br>
+        sur le site de cours SkillQuest.
+      </div>
+      <div>
+        <strong>Conception</strong><br>
+        Julien Duquennoy<br>
+        APEX — UniLaSalle Beauvais, 2026<br>
+        <span id="tampon" style="opacity:.65">Version du 31 août 2026 · e70873a</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script>
+/* La banque porte plusieurs bases de données ; chaque question désigne la sienne.
+   SCHEMA et DATA reflètent la base de la question ouverte. */
+let SCHEMA = '', DATA = '', BASES = {}, BANQUE = [], NOTIONS_BANQUE = [], Q = null;
+let REFERENCE = '', JEUX = [], TAGS = [], NOTIONS = [], DEPART = '';
+let TITRE_EXERCICE = '', ORDRE_LIGNES = true;
+/* Trois rangs, calés sur la progression du cours. Une fiche ne porte qu'un rang :
+   le nom de la compétence vit ici seul, et suivra sans douleur la renumérotation
+   des compétences SQL si elle est décidée. Le rang d'une question est contrôlé à
+   la construction de la banque — il ne peut pas être inférieur à ce que sa
+   requête de référence exige. Doit rester en accord avec sql/niveau_sql.py. */
+const ORDRE_NIVEAUX = [1, 2, 3];
+const NIVEAUX = {
+  1: { nom: 'SQL II',  resume: 'écrire sur un chemin donné' },
+  2: { nom: 'SQL III', resume: 'choisir le chemin' },
+  3: { nom: 'SQL IV',  resume: 'construire un raisonnement' },
+};
+const nomNiveau = r => (NIVEAUX[r] || {}).nom || '—';
+/* Par défaut, une question ne montre que les tables qu'elle met en jeu : un
+   schéma de quatorze tables noie l'énoncé. La base entière reste à un clic. */
+let SCHEMA_COMPLET = false;
+
+const CLE_PROG = 'skillquest_sql_v1';
+const progression = JSON.parse(localStorage.getItem(CLE_PROG) || '{}');
+const enregistrer = () => localStorage.setItem(CLE_PROG, JSON.stringify(progression));
+
+let SQL = null;
+const bases = [];
+let editeur = null, marqueurs = [];
+
+const lireCode = () => editeur ? editeur.getValue() : document.getElementById('code').value;
+
+/* Dictionnaire pour l'autocomplétion : { table: [colonnes] }, lu dans la base. */
+function dictionnaire(db) {
+  const d = {};
+  for (const [t] of db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")[0].values)
+    d[t] = db.exec(`PRAGMA table_info(${t})`)[0].values.map(c => c[1]);
+  return d;
+}
+
+/* L'autocomplétion fournie par CodeMirror ne propose les colonnes qu'après un
+   préfixe « table. ». On l'enrichit : un champ écrit seul est complété à partir
+   des tables citées dans le FROM et les JOIN de la requête en cours — et, tant
+   qu'aucune table n'est citée, à partir de toutes les tables de la base. */
+let DICO = {};
+
+/* Constructions du langage proposées à la complétion. Le mode SQL de CodeMirror
+   ne connaît que des mots isolés : « INNER JOIN » ou « GROUP BY » n'y figurent pas.
+   La liste suit les six mots-clés du cours, puis les jointures et les fonctions
+   d'agrégation les plus utilisées. */
+const CONSTRUCTIONS = [
+  'SELECT', 'SELECT DISTINCT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
+  'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'CROSS JOIN', 'JOIN', 'ON',
+  'AS', 'AND', 'OR', 'NOT', 'IN', 'NOT IN', 'EXISTS', 'BETWEEN', 'LIKE',
+  'IS NULL', 'IS NOT NULL', 'ORDER BY ... ASC', 'ORDER BY ... DESC', 'LIMIT',
+  'UNION', 'UNION ALL', 'CASE WHEN ... THEN ... ELSE ... END',
+  'COUNT(', 'SUM(', 'AVG(', 'MIN(', 'MAX(', 'ROUND(', 'COALESCE(',
+  'UPPER(', 'LOWER(', 'LENGTH(', 'SUBSTR(', 'YEAR(', 'MONTH(', 'DAY(', 'HOUR('
+];
+
+function tablesCitees(texte) {
+  const noms = Object.keys(DICO);
+  const vues = [];
+  const re = /\b(?:from|join)\s+([`"\[]?)([A-Za-z_][\w]*)\1/gi;
+  let m;
+  while ((m = re.exec(texte)) !== null) {
+    const t = noms.find(n => n.toLowerCase() === m[2].toLowerCase());
+    if (t && !vues.includes(t)) vues.push(t);
+  }
+  return vues.length ? vues : noms;
+}
+
+function completer(cm, options) {
+  const base = CodeMirror.hint.sql(cm, options) || { list: [], from: cm.getCursor(), to: cm.getCursor() };
+  const cur = cm.getCursor();
+  const jeton = cm.getTokenAt(cur);
+  const avant = cm.getRange({ line: cur.line, ch: 0 }, cur);
+  /* après un point, CodeMirror sait déjà résoudre la table ou son alias */
+  if (/[\w`"\]]\.\s*[\w]*$/.test(avant)) return base;
+
+  const prefixe = (/[\w]*$/.exec(jeton.string.slice(0, cur.ch - jeton.start)) || [''])[0].toLowerCase();
+  const deja = new Set(base.list.map(x => String(x.text || x).toLowerCase()));
+  const champs = [];
+  for (const t of tablesCitees(cm.getValue()))
+    for (const c of DICO[t] || [])
+      if (c.toLowerCase().startsWith(prefixe) && !deja.has(c.toLowerCase())) {
+        deja.add(c.toLowerCase());
+        champs.push({ text: c, displayText: `${c}   ·   ${t}`, className: 'hint-champ' });
+      }
+  /* une construction est proposée si l'un de ses mots commence par ce qui est tapé :
+     « join » propose donc aussi INNER JOIN et LEFT JOIN */
+  const constructions = prefixe
+    ? CONSTRUCTIONS.filter(k => k.toLowerCase().split(/[^a-z]+/).some(mot => mot.startsWith(prefixe)))
+        .filter(k => !deja.has(k.toLowerCase()))
+        .map(k => ({ text: k, displayText: k, className: 'hint-cle' }))
+    : [];
+  /* champs d'abord, puis constructions du langage, puis le reste */
+  return { list: champs.concat(constructions, base.list), from: base.from, to: base.to };
+}
+
+/* Vérification syntaxique par l'analyseur de SQLite lui-même : préparer une
+   requête suffit à déclencher l'erreur, sans exécuter quoi que ce soit. */
+function verifierSyntaxe() {
+  if (!editeur || !bases.length) return;
+  marqueurs.forEach(m => m.clear());
+  marqueurs = [];
+  editeur.clearGutter('erreurs');
+  const zone = document.getElementById('syntaxe');
+  const req = lireCode().trim().replace(/;\s*$/, '');
+  if (!req) { zone.textContent = ''; return; }
+  const mot = motInterdit(req);
+  if (mot) {
+    zone.className = 'syntaxe ko';
+    zone.textContent = `${mot} : seules les requêtes de sélection sont exécutées ici`;
+    return;
+  }
+  let st = null;
+  try {
+    st = bases[0].db.prepare(req);
+    zone.className = 'syntaxe ok';
+    zone.textContent = 'syntaxe correcte';
+  } catch (e) {
+    const msg = String(e.message || e);
+    zone.className = 'syntaxe ko';
+    zone.textContent = msg;
+    signalerLigne(msg);
+  } finally { if (st) st.free(); }
+}
+
+/* SQLite ne donne pas de numéro de ligne : on retrouve le fragment cité dans
+   le message — near "FORM" — et on surligne la ligne où il apparaît. */
+function signalerLigne(msg) {
+  const m = msg.match(/near "([^"]+)"/) || msg.match(/: (\S+)$/);
+  if (!m) return;
+  const cible = m[1];
+  const lignes = lireCode().split('\n');
+  for (let i = 0; i < lignes.length; i++) {
+    const c = lignes[i].indexOf(cible);
+    if (c < 0) continue;
+    marqueurs.push(editeur.markText({ line: i, ch: 0 }, { line: i, ch: lignes[i].length },
+                                    { className: 'ligne-erreur' }));
+    const puce = document.createElement('span');
+    puce.className = 'marque-erreur'; puce.textContent = '●'; puce.title = msg;
+    editeur.setGutterMarker(i, 'erreurs', puce);
+    return;
+  }
+}
+
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const cellule = v => v === null ? '<span style="color:var(--muted)">NULL</span>' : esc(v);
+
+function tableau(r) {
+  if (!r || !r.values.length) return '<p class="etat">aucune ligne</p>';
+  return '<table class="res"><tr>' + r.columns.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>'
+       + r.values.map(l => '<tr>' + l.map(v => `<td>${cellule(v)}</td>`).join('') + '</tr>').join('')
+       + '</table>';
+}
+
+function normaliser(r) {
+  if (!r) return [];
+  const l = r.values.map(v => v.map(x => x === null ? '\u0000' : String(x)).join('\u001f'));
+  return ORDRE_LIGNES ? l : l.slice().sort();
+}
+
+function comparer(attendu, obtenu) {
+  const a = normaliser(attendu), b = normaliser(obtenu);
+  if (attendu && obtenu && attendu.columns.length !== obtenu.columns.length)
+    return { ok:false, msg:`${obtenu.columns.length} colonne(s) au lieu de ${attendu.columns.length}` };
+  if (a.length !== b.length)
+    return { ok:false, msg:`${b.length} ligne(s) au lieu de ${a.length}` };
+  for (let i = 0; i < a.length; i++)
+    if (a[i] !== b[i]) return { ok:false, msg:`première différence ligne ${i + 1}` };
+  return { ok:true, msg:`${a.length} ligne(s)` };
+}
+
+/* Chaque jeu d'essai est la base complète, dont on retire des lignes. */
+function ouvrir(j) {
+  const d = new SQL.Database();
+  d.create_function('MONTH', v => v ? parseInt(String(v).substr(5, 2), 10) : null);
+  d.create_function('YEAR',  v => v ? parseInt(String(v).substr(0, 4), 10) : null);
+  d.create_function('DAY',   v => v ? parseInt(String(v).substr(8, 2), 10) : null);
+  // HOUR ne veut rien dire sur une date seule : on ne le calcule que sur un horodatage
+  d.create_function('HOUR',  v => v && String(v).length >= 13 ? parseInt(String(v).substr(11, 2), 10) : null);
+  /* CONCAT n'existe pas en SQLite alors que les étudiants l'apprennent sur MySQL.
+     sql.js déduit le nombre d'arguments de la longueur de la fonction : on
+     enregistre donc une variante par arité usuelle. Comme MySQL, le résultat
+     est NULL dès qu'un argument l'est. */
+  const coller = (...v) => v.some(x => x === null) ? null : v.join('');
+  d.create_function('CONCAT', (a, b) => coller(a, b));
+  d.create_function('CONCAT', (a, b, c) => coller(a, b, c));
+  d.create_function('CONCAT', (a, b, c, e) => coller(a, b, c, e));
+  d.create_function('CONCAT', (a, b, c, e, f) => coller(a, b, c, e, f));
+  /* CONCAT_WS, à l'inverse de CONCAT, ignore les NULL : c'est tout son intérêt. */
+  const colleSep = (s, ...v) => s === null ? null : v.filter(x => x !== null).join(s);
+  d.create_function('CONCAT_WS', (s, a, b) => colleSep(s, a, b));
+  d.create_function('CONCAT_WS', (s, a, b, c) => colleSep(s, a, b, c));
+  d.create_function('CONCAT_WS', (s, a, b, c, e) => colleSep(s, a, b, c, e));
+
+  /* Le reste de la Cheat Sheet, que SQLite ne connaît pas sous ces noms-là.
+     Doit rester en accord avec fonctions_mysql() de sql/construire_banque_sql.py :
+     ce qui est contrôlé à la fabrication doit s'exécuter ici à l'identique.
+     Manquent, et c'est irrémédiable : LEFT() et RIGHT(), dont SQLite réserve le
+     nom aux jointures, et DATE_ADD(), dont l'INTERVAL n'est pas un argument. */
+  const jour = v => v ? new Date(String(v).slice(0, 10) + 'T00:00:00Z') : null;
+  d.create_function('MINUTE', v => v && String(v).length >= 16 ? parseInt(String(v).substr(14, 2), 10) : null);
+  d.create_function('SECOND', v => v && String(v).length >= 19 ? parseInt(String(v).substr(17, 2), 10) : null);
+  d.create_function('DATEDIFF', (a, b) =>
+    a && b ? Math.round((jour(a) - jour(b)) / 86400000) : null);
+  d.create_function('LAST_DAY', v => {
+    if (!v) return null;
+    const t = jour(v);
+    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0))
+      .toISOString().slice(0, 10);
+  });
+  // MySQL numérote la semaine du lundi (0) au dimanche (6) ; JavaScript, du dimanche
+  d.create_function('WEEKDAY', v => v ? (jour(v).getUTCDay() + 6) % 7 : null);
+  d.create_function('CHAR_LENGTH', v => v === null ? null : String(v).length);
+  d.create_function('SUBSTRING', (s, p) => s === null ? null : String(s).slice(Math.max(0, p - 1)));
+  d.create_function('SUBSTRING', (s, p, n) =>
+    s === null ? null : String(s).substr(Math.max(0, p - 1), n));
+  d.create_function('TRUNCATE', (x, n) =>
+    x === null ? null : Math.trunc(x * Math.pow(10, n)) / Math.pow(10, n));
+  d.run(SCHEMA); d.run(DATA);
+  /* Chaque jeu d'essai est la base complète, que l'on retaille par quelques ordres
+     SQL. Décrire un jeu par ses ordres plutôt que par des options figées permet
+     d'employer le même gabarit pour n'importe quelle question. */
+  for (const ordre of (j.retailler || [])) d.run(ordre);
+  return d;
+}
+
+function jouer(b, req) {
+  try { const r = b.db.exec(req); return { r: r.length ? r[0] : null, err: null }; }
+  catch (e) { return { r: null, err: String(e.message || e) }; }
+}
+
+/* Le Codex n'exécute que des requêtes de sélection.
+   Deux raisons, et la seconde est la vraie : le programme de SQL I à SQL IV ne
+   porte que sur l'interrogation — écrire dans une base est une autre compétence,
+   qui s'enseigne ailleurs ; et les données doivent rester intactes d'une question
+   à l'autre, sans quoi la question suivante travaillerait sur une base abîmée.
+
+   On nomme le mot fautif : « votre requête est refusée » n'apprend rien, « DELETE
+   n'est pas admis ici » se comprend tout de suite. */
+const ECRITURE = /\b(insert|update|delete|drop|alter|create|replace|truncate|attach|detach|pragma|vacuum|reindex|begin|commit|rollback|savepoint|grant|revoke)\b/i;
+/* On cherche le mot dans le *code*, pas dans les données : une requête qui
+   filtre sur « %update% » est parfaitement légitime, et se ferait refuser si l'on
+   fouillait aussi les chaînes de caractères. Littéraux et commentaires sont donc
+   retirés avant l'examen. */
+const sansTexte = req => String(req || '')
+  .replace(/'(?:[^']|'')*'/g, "''")
+  .replace(/"(?:[^"]|"")*"/g, '""')
+  .replace(/--[^\n]*/g, ' ')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ');
+const motInterdit = req => {
+  const m = ECRITURE.exec(sansTexte(req));
+  return m ? m[0].toUpperCase() : null;
+};
+const interdit = req => motInterdit(req) !== null;
+const messageInterdit = mot =>
+  `Le Codex n'exécute que des requêtes de <strong>sélection</strong> : `
+  + `<code>${mot}</code> n'y est pas admis. Les données doivent rester intactes `
+  + `pour les autres questions — et écrire dans une base est une compétence à part.`;
+
+/* La solution reste fermée tant que l'étudiant n'a rien tenté : la chercher
+   soi-même d'abord est le moment où l'on apprend. Un seul essai suffit à l'ouvrir,
+   réussi ou non — il ne s'agit pas de punir l'échec. */
+function deverrouillerSolution() {
+  const bloc = document.getElementById('bloc-solution');
+  if (bloc) bloc.classList.remove('verrouille');
+}
+
+function tester(indices) {
+  deverrouillerSolution();
+  const req = lireCode();
+  const zone = document.getElementById('sortie');
+  const mot = motInterdit(req);
+  if (mot) {
+    zone.innerHTML = `<div class="verdict ko">${messageInterdit(mot)}</div>`;
+    return;
+  }
+  const lignes = indices.map(i => {
+    const b = bases[i], o = jouer(b, req);
+    const v = o.err ? { ok:false, msg:o.err } : comparer(b.attendu, o.r);
+    return { b, obtenu: o.r, v };
+  });
+  const nOk = lignes.filter(l => l.v.ok).length;
+  const tout = nOk === lignes.length;
+  /* La progression se garde dans ce navigateur : une question réussie le reste,
+     et la requête est conservée même en cas d'échec pour pouvoir y revenir. */
+  if (Q) {
+    const avant = progression[Q.id] || { ok: false };
+    progression[Q.id] = { ok: avant.ok || (tout && indices.length === bases.length), code: req };
+    enregistrer();
+    dessinerListe();
+  }
+  const echec = lignes.find(l => !l.v.ok);
+  /* la console se cale sur le premier jeu en échec, pour l'examiner tout de suite */
+  const cible = echec ? bases.indexOf(echec.b) : indices[0];
+  if (cible >= 0) {
+    document.getElementById('cIn').value = String(cible);
+    /* la console montre ce que la requête a réellement renvoyé sur ce jeu,
+       comme le Codex Python affiche la sortie du programme après « Tout tester ». */
+    consoleExecuter();
+  }
+
+  zone.innerHTML =
+      `<div class="verdict ${tout ? 'ok' : 'ko'}">`
+    + (tout ? `&#9989; Réussi — les ${lignes.length} jeux d'essai passent.`
+            : `&#10060; ${nOk} jeu(x) d'essai validé(s) sur ${lignes.length}.`)
+    + '</div>'
+    + '<table class="jeux"><tr><th style="width:34px"></th><th>Jeu d\'essai</th><th>Attendu</th><th>Obtenu</th></tr>'
+    + lignes.map(l => `<tr class="${l.v.ok ? '' : 'fail'}">
+        <td><span class="badge ${l.v.ok ? 'ok' : 'ko'}">${l.v.ok ? '✓' : '✗'}</span></td>
+        <td><span class="nom">${esc(l.b.titre)}</span><div class="desc">${esc(l.b.desc)}</div></td>
+        <td>${l.b.attendu ? l.b.attendu.values.length : 0} ligne(s)</td>
+        <td>${esc(l.v.msg)}</td></tr>`).join('')
+    + '</table>'
+    + (echec ? '<div class="duo">'
+        + `<div><h3>Votre résultat — ${esc(echec.b.titre)}</h3>${tableau(echec.obtenu)}</div>`
+        + `<div><h3>Résultat attendu</h3>${tableau(echec.b.attendu)}</div></div>` : '');
+}
+
+/* Console : la requête est jouée sur le jeu choisi, sans comparaison.
+   C'est ici que s'affichent les messages d'erreur de SQLite, tels quels. */
+function consoleExecuter() {
+  deverrouillerSolution();
+  const req = lireCode().trim();
+  const out = document.getElementById('cOut');
+  const b = bases[+document.getElementById('cIn').value];
+  if (!req) { out.innerHTML = '<span class="cmt">Écrivez une requête, puis Exécuter.</span>'; return; }
+  const mot = motInterdit(req);
+  if (mot) {
+    out.innerHTML = `<span class="err">${messageInterdit(mot)}</span>`;
+    return;
+  }
+  rendreDansConsole(b, req);
+}
+
+/* Consulter une table du jeu d'essai courant : on ne peut pas écrire une requête
+   sans avoir vu les données sur lesquelles elle porte. L'éditeur n'est pas touché. */
+function consulterTable(nom) {
+  const b = bases[+document.getElementById('cIn').value];
+  rendreDansConsole(b, `SELECT * FROM ${nom}`, `-- ${nom} · jeu d'essai : ${b.titre}`);
+}
+
+function rendreDansConsole(b, req, titre) {
+  const out = document.getElementById('cOut');
+  const entete = `<span class="cmt">${esc(titre || `-- jeu d'essai : ${b.titre}`)}</span>\n`;
+  const o = jouer(b, req);
+  if (o.err) { out.innerHTML = entete + `<span class="err">${esc(o.err)}</span>`; return; }
+  if (!o.r) { out.innerHTML = entete + '<span class="cmt">Aucun résultat : la requête ne renvoie pas de lignes.</span>'; return; }
+
+  /* rendu en colonnes alignées, comme un client SQL en ligne de commande */
+  const cols = o.r.columns, vals = o.r.values;
+  const texte = v => v === null ? 'NULL' : String(v);
+  const larg = cols.map((c, i) =>
+    Math.max(c.length, ...vals.map(l => texte(l[i]).length), 0));
+  const ligne = t => t.map((v, i) => texte(v).padEnd(larg[i])).join('  ');
+  const trait = larg.map(n => '-'.repeat(n)).join('  ');
+  const corps = vals.slice(0, 50).map(l => esc(ligne(l))).join('\n');
+  const reste = vals.length > 50 ? `\n<span class="cmt">… ${vals.length - 50} ligne(s) de plus</span>` : '';
+  out.innerHTML = entete
+    + `<span class="lbl">${esc(ligne(cols))}</span>\n<span class="cmt">${esc(trait)}</span>\n`
+    + corps + reste
+    + `\n<span class="cmt">${vals.length} ligne(s)</span>`;
+}
+
+function afficherJeux() {
+  document.getElementById('jeux').innerHTML =
+      '<table class="jeux"><tr><th>Jeu d\'essai</th><th>Résultat attendu</th><th style="width:86px"></th></tr>'
+    + bases.map((b, i) => `<tr>
+        <td><span class="nom">${esc(b.titre)}</span><div class="desc">${esc(b.desc)}</div></td>
+        <td><details class="res-repli"><summary>${b.attendu ? b.attendu.values.length : 0} ligne(s)</summary>
+            ${tableau(b.attendu)}</details></td>
+        <td><button class="mini" data-jeu="${i}">&#9654; Tester</button></td></tr>`).join('')
+    + '</table>';
+  document.querySelectorAll('button[data-jeu]').forEach(b =>
+    b.onclick = () => tester([+b.dataset.jeu]));
+  document.getElementById('compte-jeux').textContent = `${bases.length} cas`;
+}
+
+/* Le schéma est lu dans la base elle-même : clés primaires par PRAGMA table_info,
+   clés étrangères par PRAGMA foreign_key_list. Les liens sont ensuite tracés en SVG
+   d'une colonne à l'autre, une fois les cartes posées et mesurées. */
+/* Un plan par vue : la question n'affiche que les tables qu'elle met en jeu,
+   la présentation du thème affiche la base entière. Chacun garde ses liens. */
+const LIENS_DE = {};
+
+/* « VARCHAR(200) » et « INTEGER » n'apprennent rien de plus que « texte » et
+   « entier » à ce stade, et allongent les cartes. On garde la famille. */
+function abregeType(t) {
+  const T = String(t || '').toUpperCase();
+  if (/INT/.test(T))                       return 'entier';
+  if (/CHAR|TEXT|CLOB/.test(T))            return 'texte';
+  if (/DATETIME|TIMESTAMP/.test(T))        return 'horodatage';
+  if (/DATE/.test(T))                      return 'date';
+  if (/DEC|NUM|REAL|FLOA|DOUB/.test(T))    return 'décimal';
+  return T.toLowerCase();
+}
+
+function afficherSchema(db, ou = 'plan', retenues = null) {
+  let tables = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")[0]
+                 .values.map(v => v[0]);
+  if (retenues && retenues.length) {
+    const garde = new Set(retenues.map(t => t.toUpperCase()));
+    tables = tables.filter(t => garde.has(t.toUpperCase()));
+  }
+  const presentes = new Set(tables);
+  const infos = {};
+  const liens = LIENS_DE[ou] = [];
+  for (const t of tables) {
+    const cols = db.exec(`PRAGMA table_info(${t})`)[0].values;
+    const fkr = db.exec(`PRAGMA foreign_key_list(${t})`);
+    const fk = {};
+    if (fkr.length) for (const r of fkr[0].values) fk[r[3]] = { table: r[2], col: r[4] };
+    infos[t] = { cols, fk };
+    // un lien vers une table absente du plan n'a personne à relier
+    for (const c in fk)
+      if (presentes.has(fk[c].table))
+        liens.push({ de: `${t}.${c}`, vers: `${fk[c].table}.${fk[c].col}` });
+  }
+  /* les tables qui référencent les autres se placent au milieu : les liens
+     partent alors vers la gauche et vers la droite, sans se croiser */
+  const ordre = tables.slice().sort((a, b) =>
+    Object.keys(infos[a].fk).length - Object.keys(infos[b].fk).length);
+  const milieu = ordre.pop();
+  const rang = [];
+  ordre.forEach((t, k) => k % 2 === 0 ? rang.unshift(t) : rang.push(t));
+  rang.splice(Math.floor(rang.length / 2), 0, milieu);
+
+  const vise = {};
+  for (const l of liens) vise[l.vers] = true;
+
+  document.getElementById(ou).querySelector('.schema').innerHTML = rang.map(t => {
+    const { cols, fk } = infos[t];
+    // Le nom de la table n'ouvre son contenu que là où une base est chargée :
+    // sur la présentation, il n'y a rien à consulter, donc rien à cliquer.
+    const titre = ou === 'plan'
+      ? `<button type="button" data-table="${esc(t)}"
+           title="Afficher le contenu de cette table dans la console">${esc(t)}</button>`
+      : esc(t);
+    return `<div class="tbl" data-table="${esc(t)}"><h3>${titre}</h3><ul>`
+      + cols.map(c => {
+          const nom = c[1], type = c[2], pk = c[5], cle = `${t}.${nom}`;
+          const attr = ` data-col="${esc(cle)}"`;
+          // Une colonne peut être à la fois clé primaire et clé étrangère : c'est
+          // le cas ordinaire d'une table d'association. Les deux pastilles se
+          // cumulent alors, comme sur un diagramme relationnel.
+          const classes = [pk ? 'pk' : '', fk[nom] ? 'fk' : '',
+                           vise[cle] ? 'vise' : ''].filter(Boolean).join(' ');
+          const pastilles = (pk ? '<span class="marque pk" title="clé primaire">PK</span>' : '')
+                          + (fk[nom] ? '<span class="marque fk" title="clé étrangère">FK</span>' : '');
+          return `<li class="${classes}"${attr}><span class="col">${esc(nom)}</span>`
+               + `<span class="type">${esc(abregeType(type))}</span>${pastilles}</li>`;
+        }).join('')
+      + '</ul></div>';
+  }).join('');
+
+  dessinerLiens(ou);
+}
+
+/* Un trait part du bord de la colonne source vers le bord de la colonne cible.
+   Les positions sont mesurées après rendu, donc le tracé suit la mise en page. */
+function dessinerLiens(ou = 'plan') {
+  const plan = document.getElementById(ou);
+  const svg = plan && plan.querySelector('svg');
+  if (!plan || !svg) return;
+  const LIENS = LIENS_DE[ou] || [];
+  const base = plan.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${base.width} ${base.height}`);
+
+  const rect = el => {
+    const r = el.getBoundingClientRect();
+    return { g: r.left - base.left, d: r.right - base.left,
+             h: r.top - base.top,  b: r.bottom - base.top };
+  };
+  /* Les cartes sont des obstacles : un trait ne doit ni les traverser ni passer
+     dessous. On les rétrécit de quelques pixels pour qu'un trait puisse longer
+     un bord sans être considéré comme le coupant. */
+  const MARGE = 3;
+  const obstacles = [...plan.querySelectorAll('.tbl')].map(el => {
+    const r = rect(el);
+    return { g: r.g + MARGE, d: r.d - MARGE, h: r.h + MARGE, b: r.b - MARGE };
+  });
+  if (!obstacles.length) { svg.innerHTML = ''; return; }
+
+  const coupe = (x1, y1, x2, y2) => obstacles.some(o =>
+    x1 === x2 ? (x1 > o.g && x1 < o.d && Math.max(y1, y2) > o.h && Math.min(y1, y2) < o.b)
+              : (y1 > o.h && y1 < o.b && Math.max(x1, x2) > o.g && Math.min(x1, x2) < o.d));
+
+  const libre = pts => {
+    for (let i = 1; i < pts.length; i++)
+      if (coupe(pts[i-1][0], pts[i-1][1], pts[i][0], pts[i][1])) return false;
+    return true;
+  };
+
+  /* Couloirs verticaux disponibles : les gouttières entre colonnes, plus les
+     marges de part et d'autre du schéma. */
+  const bords = obstacles.map(o => [o.g - MARGE, o.d + MARGE]).sort((a, b) => a[0] - b[0]);
+  const couloirs = [bords[0][0] - 16];
+  for (let i = 1; i < bords.length; i++)
+    if (bords[i][0] > bords[i-1][1]) couloirs.push((bords[i-1][1] + bords[i][0]) / 2);
+  couloirs.push(Math.max(...bords.map(b => b[1])) + 16);
+
+  const hauts = Math.min(...obstacles.map(o => o.h)) - 14;
+  const bas   = Math.max(...obstacles.map(o => o.b)) + 14;
+
+  /* Un tracé orthogonal aux angles arrondis se lit mieux qu'une courbe libre :
+     on voit d'où part le lien et où il arrive. */
+  const trace = (pts, r = 9) => {
+    let d = `M ${pts[0][0]} ${pts[0][1]}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [px, py] = pts[i-1], [x, y] = pts[i], [nx, ny] = pts[i+1];
+      const d1 = Math.hypot(x - px, y - py), d2 = Math.hypot(nx - x, ny - y);
+      if (!d1 || !d2) continue;
+      const t1 = Math.min(r, d1 / 2) / d1, t2 = Math.min(r, d2 / 2) / d2;
+      d += ` L ${x + (px - x) * t1} ${y + (py - y) * t1}`
+         + ` Q ${x} ${y}, ${x + (nx - x) * t2} ${y + (ny - y) * t2}`;
+    }
+    const f = pts[pts.length - 1];
+    return d + ` L ${f[0]} ${f[1]}`;
+  };
+
+  let d = '';
+  for (const l of LIENS) {
+    const a = plan.querySelector(`[data-col="${l.de}"]`);
+    const b = plan.querySelector(`[data-col="${l.vers}"]`);
+    if (!a || !b) continue;
+    const ca = a.closest('.tbl'), cb = b.closest('.tbl');
+    const ra = rect(ca), rb = rect(cb);
+    const ya = rect(a).h + (rect(a).b - rect(a).h) / 2;
+    const yb = rect(b).h + (rect(b).b - rect(b).h) / 2;
+
+    // on sort du côté qui fait face à la table visée
+    const aDroite = rb.g >= ra.d, aGauche = rb.d <= ra.g;
+    const xa = aGauche ? ra.g - 5 : ra.d + 5;
+    const xb = (rb.g >= ra.d) ? rb.g - 5 : (rb.d <= ra.g ? rb.d + 5 : rb.d + 5);
+
+    let chemin = null;
+    // 1. un couloir vertical entre les deux tables, du plus proche au plus lointain
+    const vise = (xa + xb) / 2;
+    for (const x of [...couloirs].sort((p, q) => Math.abs(p - vise) - Math.abs(q - vise))) {
+      const c = [[xa, ya], [x, ya], [x, yb], [xb, yb]];
+      if (libre(c)) { chemin = c; break; }
+    }
+    // 2. sinon on contourne par au-dessus, puis par en dessous
+    if (!chemin) for (const yc of [hauts, bas]) {
+      const c = [[xa, ya], [xa + (aGauche ? -14 : 14), ya], [xa + (aGauche ? -14 : 14), yc],
+                 [xb + (aDroite ? -14 : 14), yc], [xb + (aDroite ? -14 : 14), yb], [xb, yb]];
+      if (libre(c)) { chemin = c; break; }
+    }
+    if (!chemin) continue;   // aucun passage libre : mieux vaut rien que traverser
+
+    d += `<g class="lien" data-de="${esc(l.de.split('.')[0])}" data-vers="${esc(l.vers.split('.')[0])}">`
+       + `<path d="${trace(chemin)}" fill="none" stroke="var(--bleu)" stroke-width="1.6"
+             stroke-linejoin="round" opacity=".8"/>`
+       + `<circle class="depart" cx="${xa}" cy="${ya}" r="3.2" fill="var(--bleu)"/>`
+       + `<circle class="arrivee" cx="${xb}" cy="${yb}" r="3.2" fill="none" stroke="var(--bleu)" stroke-width="1.6"/>`
+       + `</g>`;
+  }
+  svg.innerHTML = d;
+  plan.classList.remove('focus');
+}
+
+/* Bascule « tables en jeu » / « base entière », sous le titre du schéma. */
+function majBasculeSchema() {
+  const b = document.getElementById('basculeSchema');
+  if (!b || !Q) return;
+  const total = ((BASES[Q.base] || {}).tables || []).length;
+  const utiles = (Q.tables || []).length;
+  b.hidden = !utiles || utiles >= total;
+  b.textContent = SCHEMA_COMPLET
+    ? `↩ Tables en jeu (${utiles})`
+    : `⤢ Base entière (${total})`;
+  b.title = SCHEMA_COMPLET
+    ? 'Ne montrer que les tables citées par la question'
+    : 'Montrer les ' + total + ' tables de la base';
+}
+
+document.getElementById('basculeSchema').onclick = ev => {
+  ev.preventDefault();          // le bouton vit dans un <summary> : il le replierait
+  ev.stopPropagation();
+  SCHEMA_COMPLET = !SCHEMA_COMPLET;
+  afficherSchema(bases[0].db, 'plan', SCHEMA_COMPLET ? null : (Q && Q.tables));
+  majBasculeSchema();
+};
+
+/* Une quinzaine de liens partagent les mêmes gouttières : au repos, impossible de
+   dire lesquels se répondent. Survoler une table éteint tous les autres tracés et
+   entoure ses voisines. */
+function eclairerTable(nom, ou = 'plan') {
+  const plan = document.getElementById(ou);
+  if (!plan) return;
+  plan.classList.toggle('focus', !!nom);
+  const voisines = new Set();
+  plan.querySelectorAll('g.lien').forEach(g => {
+    const actif = !!nom && (g.dataset.de === nom || g.dataset.vers === nom);
+    g.classList.toggle('actif', actif);
+    if (actif) { voisines.add(g.dataset.de); voisines.add(g.dataset.vers); }
+  });
+  plan.querySelectorAll('.tbl').forEach(c =>
+    c.classList.toggle('actif', voisines.has(c.dataset.table)));
+}
+for (const ou of ['plan', 'planIntro']) {
+  const plan = document.getElementById(ou);
+  if (!plan) continue;
+  plan.addEventListener('mouseover', e => {
+    const carte = e.target.closest('.tbl');
+    eclairerTable(carte ? carte.dataset.table : null, ou);
+  });
+  plan.addEventListener('mouseleave', () => eclairerTable(null, ou));
+}
+
+let minuteur;
+window.addEventListener('resize', () => { clearTimeout(minuteur); minuteur = setTimeout(dessinerLiens, 120); });
+/* le schéma est mesuré à l'écran : les liens se retracent à chaque dépliage */
+document.getElementById('sec-schema').addEventListener('toggle', () => setTimeout(dessinerLiens, 0));
+
+/* Prépare les jeux d'essai de la question courante. Les bases précédentes sont
+   fermées : sans cela chaque changement de question laisserait une base en mémoire. */
+function preparerBases() {
+  for (const b of bases) { try { b.db.close(); } catch (_) {} }
+  bases.length = 0;
+  for (const j of JEUX) {
+    const d = ouvrir(j);
+    const r = d.exec(REFERENCE);
+    bases.push({ db: d, titre: j.titre, desc: j.desc, attendu: r.length ? r[0] : null });
+  }
+  afficherSchema(bases[0].db, 'plan', SCHEMA_COMPLET ? null : (Q && Q.tables));
+  majBasculeSchema();
+  afficherJeux();
+  document.getElementById('cIn').innerHTML = bases.map((b, i) =>
+    `<option value="${i}">${esc(b.titre)} — ${esc(b.desc)}</option>`).join('');
+  DICO = dictionnaire(bases[0].db);
+  if (editeur) editeur.setOption('hintOptions', { tables: DICO });
+  document.getElementById('exec').disabled = false;
+  document.getElementById('run').disabled = false;
+  document.getElementById('dot').className = 'dot ready';
+  document.getElementById('statusTxt').textContent = `SQLite prêt · ${bases.length} jeux d'essai`;
+}
+
+initSqlJs({ locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/' + f })
+  .then(mod => {
+    SQL = mod;
+    editeur = CodeMirror.fromTextArea(document.getElementById('code'), {
+      mode: 'text/x-sql', lineNumbers: true, indentUnit: 2, tabSize: 2,
+      lineWrapping: true, gutters: ['CodeMirror-linenumbers', 'erreurs'],
+      extraKeys: { 'Ctrl-Space': cm => cm.showHint({ hint: completer, completeSingle: false }), 'Cmd-Enter': () => tester(bases.map((_, i) => i)),
+                   'Ctrl-Enter': () => tester(bases.map((_, i) => i)) },
+      hintOptions: { tables: DICO }
+    });
+    /* l'autocomplétion se déclenche à la frappe, sans attendre Ctrl-Espace */
+    editeur.on('inputRead', (cm, ev) => {
+      if (ev.text && /[\w.]/.test(ev.text[0]))
+        cm.showHint({ hint: completer, completeSingle: false });
+    });
+    let attente;
+    editeur.on('change', () => { clearTimeout(attente); attente = setTimeout(verifierSyntaxe, 350); });
+    return chargerBanque();
+  })
+  .catch(e => {
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('statusTxt').textContent = 'SQLite n’a pas pu être chargé : ' + e;
+  });
+
+/* Colore un bloc de SQL figé avec l'analyseur de CodeMirror. Sans lui la page
+   reste lisible : on ne fait rien et le texte demeure en clair. */
+function colorerSQL(el) {
+  if (!el || !window.CodeMirror || !CodeMirror.runMode) return;
+  const source = el.textContent;
+  el.textContent = '';
+  el.classList.add('sql-colore');
+  CodeMirror.runMode(source, 'text/x-sql', el);
+}
+
+function remplirSolutionEtIndices() {
+  const sol = document.getElementById('solution');
+  sol.classList.remove('sql-colore');
+  sol.textContent = REFERENCE;
+  colorerSQL(sol);
+/* Le nom d'une notion porte du balisage (<code>LEFT JOIN</code>) : l'étiquette
+   n'en garde que le texte, la fiche conserve la mise en forme. */
+const sansBalises = h => String(h).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+  document.getElementById('etiquettes').innerHTML = NOTIONS.map((n, i) =>
+  `<button type="button" class="etq" aria-pressed="false" data-notion="${i}">${esc(sansBalises(n.nom))}</button>`).join('');
+
+  document.getElementById('notions').innerHTML = NOTIONS.map((n, i) => `
+  <div class="notion" data-notion="${i}" hidden>
+    <h4>${n.nom}</h4>
+    <pre class="syn">${esc(n.syntaxe)}</pre>
+    <p class="ex">${n.exemple}</p>
+    <p class="note">${n.note}</p>
+    <p class="lien"><a href="${n.url}" target="_blank" rel="noopener">${n.page}</a></p>
+  </div>`).join('');
+  document.querySelectorAll('.notion .syn').forEach(colorerSQL);
+
+  document.querySelectorAll('.etq').forEach(b => {
+  b.onclick = () => {
+    const ouvert = b.getAttribute('aria-pressed') === 'true';
+    // on referme tout : afficher plusieurs fiches revient à tout dévoiler d'un coup
+    document.querySelectorAll('.etq').forEach(a => a.setAttribute('aria-pressed', 'false'));
+    document.querySelectorAll('.notion[data-notion]').forEach(f => f.hidden = true);
+    if (!ouvert) {
+      b.setAttribute('aria-pressed', 'true');
+      document.querySelector(`.notion[data-notion="${b.dataset.notion}"]`).hidden = false;
+    }
+  };
+  });
+  document.querySelector('details.indice').open = false;
+}
+
+document.getElementById('copier-solution').onclick = () => {
+  if (editeur) { editeur.setValue(REFERENCE); editeur.focus(); }
+};
+
+
+/* ─────────────── signalement d'énoncé ─────────────── */
+/* Le service worker n'intercepte que les requêtes GET : ce POST part au réseau.
+   Hors connexion il échoue, et on le dit plutôt que de laisser croire à un envoi. */
+const TAILLE_MAX = 7 * 1024 * 1024;   // Netlify refuse les requêtes au-delà de 8 Mo
+
+async function envoyerSignalement(donnees, fichier) {
+  const corps = new FormData();
+  corps.append('form-name', 'signalement');
+  corps.append('bot-field', '');
+  for (const [cle, valeur] of Object.entries(donnees)) corps.append(cle, valeur);
+  if (fichier) corps.append('capture', fichier, fichier.name);
+  // pas d'en-tête Content-Type : le navigateur pose lui-même la frontière multipart
+  const rep = await fetch('/', { method: 'POST', body: corps });
+  if (!rep.ok) throw new Error('réponse ' + rep.status);
+}
+
+document.getElementById('signalerExo').onclick = () => {
+  const dlg = document.getElementById('signal');
+  const etat = document.getElementById('sigEtat');
+  const msg = document.getElementById('sigMsg');
+  const sug = document.getElementById('sigSug');
+  const fic = document.getElementById('sigFic');
+  const nature = document.getElementById('sigNature');
+  const envoi = document.getElementById('sigEnvoi');
+  document.getElementById('sigCtx').textContent = 'Codex SQL · ' + TITRE_EXERCICE;
+  msg.value = ''; sug.value = ''; fic.value = ''; nature.selectedIndex = 0;
+  etat.textContent = ''; etat.className = 'etat';
+  envoi.disabled = false;
+  dlg.showModal();
+  msg.focus();
+
+  envoi.onclick = async () => {
+    if (!msg.value.trim()) {
+      etat.textContent = 'Décrivez le problème avant d’envoyer.';
+      etat.className = 'etat ko'; msg.focus(); return;
+    }
+    const capture = fic.files[0] || null;
+    if (capture && capture.size > TAILLE_MAX) {
+      etat.textContent = 'Capture trop lourde (7 Mo maximum).';
+      etat.className = 'etat ko'; return;
+    }
+    envoi.disabled = true;
+    etat.textContent = capture ? 'Envoi de la capture…' : 'Envoi…'; etat.className = 'etat';
+    try {
+      await envoyerSignalement({
+        page: 'Codex SQL',
+        exercice: TITRE_EXERCICE,
+        nature: nature.value,
+        message: msg.value.trim(),
+        suggestion: sug.value.trim(),
+        // « subject » fixe l'objet du mail : l'exercice doit être lisible depuis la boîte
+        subject: `[Codex SQL] ${TITRE_EXERCICE} — ${nature.value}`,
+      }, capture);
+      etat.textContent = 'Merci, c’est transmis.';
+      setTimeout(() => dlg.close(), 1100);
+    } catch (err) {
+      envoi.disabled = false;
+      etat.className = 'etat ko';
+      etat.textContent = navigator.onLine
+        ? 'L’envoi a échoué. Réessayez plus tard.'
+        : 'Pas de connexion : le signalement n’est pas parti.';
+    }
+  };
+  document.getElementById('sigFermer').onclick = () => dlg.close();
+};
+
+const blocSolution = document.getElementById('bloc-solution');
+blocSolution.addEventListener('click', ev => {
+  if (blocSolution.classList.contains('verrouille')) ev.preventDefault();
+});
+
+/* ─────────────── transfert de la progression ───────────────
+   Même mécanique que sur le Codex Python : tout reste local, le fichier est
+   fabriqué et relu par le navigateur. Le champ « domaine » évite de charger
+   une progression Python ici, où les identifiants ne veulent rien dire. */
+const FORMAT_PROG = 'codex-progression';
+const DOMAINE_PROG = 'sql';
+
+function dire(texte, erreur) {
+  document.querySelectorAll('.transfert .bilan').forEach(b => {
+    b.textContent = texte;
+    b.className = erreur ? 'bilan ko' : 'bilan';
+  });
+}
+
+/* La fusion n'écrase jamais : une réussite acquise le reste, et la requête
+   déjà présente sur ce poste est conservée. */
+function fusionnerProgression(entrant) {
+  let ajoutes = 0, completes = 0;
+  for (const [id, v] of Object.entries(entrant)) {
+    if (!v || typeof v !== 'object') continue;
+    const actuel = progression[id];
+    if (!actuel) {
+      progression[id] = { ok: !!v.ok, code: typeof v.code === 'string' ? v.code : '' };
+      ajoutes++;
+      continue;
+    }
+    if (v.ok && !actuel.ok) { actuel.ok = true; completes++; }
+    if (!actuel.code && typeof v.code === 'string') actuel.code = v.code;
+  }
+  enregistrer();
+  return { ajoutes, completes };
+}
+
+(function brancherTransfert() {
+  const champ = document.getElementById('fichierProg');
+
+  document.querySelectorAll('.bt-exporter').forEach(b => b.onclick = () => {
+    const n = Object.keys(progression).length;
+    if (!n) { dire('Rien à sauvegarder pour l’instant.', true); return; }
+    const contenu = JSON.stringify({
+      format: FORMAT_PROG, version: 1, domaine: DOMAINE_PROG,
+      date: new Date().toISOString(),
+      exercices: progression,
+    }, null, 1);
+    const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codex-sql-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    const faites = Object.values(progression).filter(v => v.ok).length;
+    dire(`Fichier créé : ${n} question${n > 1 ? 's' : ''}, dont ${faites} réussie${faites > 1 ? 's' : ''}.`);
+  });
+
+  document.querySelectorAll('.bt-importer').forEach(b =>
+    b.onclick = () => { champ.value = ''; champ.click(); });
+
+  champ.onchange = async () => {
+    const f = champ.files[0];
+    if (!f) return;
+    let lu;
+    try { lu = JSON.parse(await f.text()); }
+    catch (_) { dire('Fichier illisible : ce n’est pas un export du Codex.', true); return; }
+    if (!lu || lu.format !== FORMAT_PROG || typeof lu.exercices !== 'object') {
+      dire('Ce fichier n’est pas un export du Codex.', true); return;
+    }
+    if (lu.domaine !== DOMAINE_PROG) {
+      dire('Ce fichier vient du Codex Python : chargez-le depuis la page Python.', true); return;
+    }
+    const r = fusionnerProgression(lu.exercices);
+    dessinerListe();
+    dire(r.ajoutes || r.completes
+      ? `Chargement terminé : ${r.ajoutes} question${r.ajoutes > 1 ? 's' : ''} ajoutée${r.ajoutes > 1 ? 's' : ''}, ${r.completes} passée${r.completes > 1 ? 's' : ''} en réussie.`
+      : 'Chargement terminé : votre progression était déjà à jour.');
+  };
+})();
+
+/* Le bouton de la liste ramène à l'accueil du parcours ; le titre de l'en-tête,
+   lui, remonte d'un cran, vers le choix des parcours. */
+document.getElementById('retour').addEventListener('click', afficherAccueil);
+
+/* ─────────────── banque de questions ─────────────── */
+async function chargerBanque() {
+  const compte = document.getElementById('compte');
+  try {
+    const b = await fetch('data/sql.json', { cache: 'no-cache' }).then(r => r.json());
+    // Une banque d'un ancien format (sans clé « bases ») servie par un cache
+    // périmé faisait planter la page entière plus bas, sans message lisible.
+    if (!b || !b.bases || !Array.isArray(b.questions)) throw new Error('format inattendu');
+    BASES = b.bases; BANQUE = b.questions; NOTIONS_BANQUE = b.notions || [];
+  } catch (e) {
+    compte.textContent = 'La banque de questions n’a pas pu être chargée. '
+      + 'Rechargez la page en vidant le cache (Ctrl+Maj+R).';
+    return;
+  }
+  document.getElementById('fBase').innerHTML = '<option value="">Tous les thèmes</option>'
+    + Object.entries(BASES).map(([slug, b]) => {
+        const n = BANQUE.filter(q => q.base === slug).length;
+        return `<option value="${esc(slug)}">${esc(b.nom)} — ${n} question${n > 1 ? 's' : ''}</option>`;
+      }).join('');
+  // les niveaux suivent la progression du cours, pas leur ordre d'apparition
+  const niveaux = ORDRE_NIVEAUX.filter(n => BANQUE.some(q => q.niveau === n));
+  document.getElementById('fNiveau').innerHTML = '<option value="">Tous les niveaux</option>'
+    + niveaux.map(n => {
+        const c = BANQUE.filter(q => q.niveau === n).length;
+        return `<option value="${n}">${esc(NIVEAUX[n].nom)} — ${c} question${c > 1 ? 's' : ''}</option>`;
+      }).join('');
+  remplirNotions();
+  volumes();
+  ['fBase', 'fNiveau', 'fNotion', 'fEtat', 'fRech'].forEach(id =>
+    document.getElementById(id).addEventListener('input', dessinerListe));
+  document.getElementById('hasard').onclick = questionAuHasard;
+  dessinerThemes();
+  dessinerListe();
+}
+
+/* Volume des deux parcours, sur les cartes de l'accueil. Le sommaire Python
+   (data/index.json) pèse quelques centaines d'octets : on peut le lire ici. */
+async function volumes() {
+  const sql = document.getElementById('volSql');
+  if (sql) sql.textContent =
+    `${BANQUE.length} questions · ${Object.keys(BASES).length} thèmes`;
+  const r = document.getElementById('volR');
+  if (r) {
+    try {
+      const s = await (await fetch('data/r-sommaire.json')).json();
+      r.textContent = `${s.questions} questions · ${s.chapitres} chapitres`;
+    } catch (_) { r.textContent = 'du langage aux statistiques'; }
+  }
+  const py = document.getElementById('volPython');
+  if (!py) return;
+  try {
+    const niveaux = await (await fetch('data/index.json')).json();
+    const total = niveaux.reduce((a, n) => a + n.n, 0);
+    py.textContent = `${total} exercices · ${niveaux.length} niveaux`;
+  } catch (_) {
+    py.textContent = 'quatre niveaux d’exercices';
+  }
+}
+
+/* Les notions viennent normalisées de la banque (voir sql/notions_sql.py) :
+   un vocabulaire fermé d'une vingtaine d'entrées, là où les étiquettes libres
+   des fiches en comptaient soixante-dix. On garde leur ordre d'apparition, qui
+   est celui du cours. */
+function remplirNotions() {
+  document.getElementById('fNotion').innerHTML = '<option value="">Toutes les notions</option>'
+    + NOTIONS_BANQUE.map(n => {
+        const c = BANQUE.filter(q => (q.notions_cles || []).includes(n)).length;
+        return `<option value="${esc(n)}">${esc(n)} — ${c}</option>`;
+      }).join('');
+}
+
+/* Une carte par thème sur l'accueil : effectifs par niveau et progression.
+   Cliquer ouvre la première question non réussie du thème — sur une enquête,
+   c'est exactement l'étape où l'on s'était arrêté. */
+function dessinerThemes() {
+  const zone = document.getElementById('themes');
+  if (!zone) return;
+  zone.innerHTML = Object.entries(BASES).map(([slug, b]) => {
+    const qs = BANQUE.filter(q => q.base === slug);
+    const faites = qs.filter(q => progression[q.id] && progression[q.id].ok).length;
+    const pct = qs.length ? Math.round(100 * faites / qs.length) : 0;
+    const paliers = ORDRE_NIVEAUX
+      .map(r => [r, qs.filter(q => q.niveau === r).length])
+      .filter(([, n]) => n)
+      .map(([r, n]) => `<span class="palier">${esc(NIVEAUX[r].nom)} · ${n}</span>`).join('');
+    return `<button class="theme" data-base="${esc(slug)}">
+      <span class="etiq">${b.enquete ? 'Enquête' : 'Thème'}</span>
+      <h3>${esc(b.nom)}</h3>
+      <div class="desc">${esc(b.description || '')}</div>
+      <div class="paliers">${paliers}</div>
+      <div class="barre"><i style="width:${pct}%"></i></div>
+      <div class="chiffres"><span>${qs.length} question${qs.length > 1 ? 's' : ''}</span>
+        <span>${faites} réussie${faites > 1 ? 's' : ''} · ${pct} %</span></div>
+    </button>`;
+  }).join('');
+  zone.querySelectorAll('.theme').forEach(el => el.onclick = () => ouvrirIntro(el.dataset.base));
+}
+
+/* ── Feuilleter les données ────────────────────────────────────────────────
+   Une table dont on n'a jamais vu une ligne reste un mot. On ouvre donc la base
+   entière, en lecture seule, le temps de la présentation : un onglet par table,
+   et ses premières lignes en dessous. Une seule base est montée à la fois —
+   celle-ci pèse quelques centaines de kilo-octets de données. */
+let APERCU = { slug: null, db: null };
+
+function fermerApercu() {
+  if (APERCU.db) { try { APERCU.db.close(); } catch (e) { /* déjà fermée */ } }
+  APERCU = { slug: null, db: null };
+}
+
+function compterLignes(db, table) {
+  try {
+    const r = db.exec(`SELECT COUNT(*) FROM "${table}"`);
+    return r.length ? r[0].values[0][0] : null;
+  } catch (e) { return null; }
+}
+
+function montrerTable(table, lignes) {
+  const cible = document.getElementById('apercu');
+  if (!APERCU.db || !cible) return;
+  document.querySelectorAll('#onglets button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.t === table)));
+
+  const total = compterLignes(APERCU.db, table);
+  let res = null;
+  try {
+    const r = APERCU.db.exec(`SELECT * FROM "${table}" LIMIT ${lignes}`);
+    res = r.length ? r[0] : null;
+  } catch (e) { /* table illisible : on affichera « aucune ligne » */ }
+  const vues = res ? res.values.length : 0;
+  const reste = total !== null && vues < total;
+
+  cible.innerHTML = `
+    <div class="cadre">${tableau(res)}</div>
+    <div class="sous">
+      <code>SELECT * FROM ${esc(table)} LIMIT ${lignes};</code>
+      <span>${vues} ligne${vues > 1 ? 's' : ''} sur ${total === null ? '?' : total}${
+        res ? ` · ${res.columns.length} colonne${res.columns.length > 1 ? 's' : ''}` : ''}</span>
+      ${reste ? `<button type="button" id="plusLignes">Afficher ${
+        Math.min(total, lignes + 200)} lignes</button>` : ''}
+    </div>`;
+  const plus = document.getElementById('plusLignes');
+  if (plus) plus.onclick = () => montrerTable(table, lignes + 200);
+}
+
+function monterApercu(slug) {
+  const b = BASES[slug], chips = document.getElementById('onglets'),
+        cible = document.getElementById('apercu');
+  if (!chips || !cible) return;
+  if (!SQL || !b || !b.donnees) {
+    chips.innerHTML = '';
+    cible.innerHTML = '<p class="etat">Les données ne sont pas disponibles.</p>';
+    return;
+  }
+  chips.innerHTML = (b.tables || []).map(t =>
+    `<button type="button" data-t="${esc(t.nom)}" aria-pressed="false">${esc(t.nom)}` +
+    `<span class="n"></span></button>`).join('');
+
+  /* Rejouer le fichier de données prend quelques centaines de millisecondes :
+     on le repousse après le premier rendu, pour que la page s'affiche tout de suite. */
+  const monter = () => {
+    let db;
+    try { db = new SQL.Database(); db.run(b.schema); db.run(b.donnees); }
+    catch (e) {
+      cible.innerHTML = '<p class="etat">Les données n’ont pas pu être chargées.</p>';
+      return;
+    }
+    // l'étudiant a pu quitter la présentation pendant le chargement
+    if (document.getElementById('intro').hidden) { db.close(); return; }
+    fermerApercu();
+    APERCU = { slug, db };
+    chips.querySelectorAll('button').forEach(btn => {
+      const n = compterLignes(db, btn.dataset.t);
+      btn.querySelector('.n').textContent = n === null ? '' : n;
+      btn.onclick = () => montrerTable(btn.dataset.t, 25);
+    });
+    cible.innerHTML = '<p class="etat">Choisissez une table ci-dessus pour en lire le contenu.</p>';
+  };
+  cible.innerHTML = '<p class="etat">Chargement des données…</p>';
+  (window.requestIdleCallback || (f => setTimeout(f, 60)))(monter);
+}
+
+/* Page d'introduction d'un thème : le contexte, les tables et leurs liens.
+   On y arrive depuis l'accueil, et depuis n'importe quelle question du thème. */
+function ouvrirIntro(slug) {
+  const b = BASES[slug];
+  if (!b) return;
+  document.getElementById('fBase').value = slug;
+  dessinerListe();
+
+  const qs = BANQUE.filter(q => q.base === slug).sort((a, c) =>
+    ORDRE_NIVEAUX.indexOf(a.niveau) - ORDRE_NIVEAUX.indexOf(c.niveau) || a.id - c.id);
+  const faites = qs.filter(q => progression[q.id] && progression[q.id].ok).length;
+  const paliers = ORDRE_NIVEAUX
+    .map(r => [r, qs.filter(q => q.niveau === r).length])
+    .filter(([, n]) => n)
+    .map(([r, n]) => `<span class="palier">${esc(NIVEAUX[r].nom)} · ${n}</span>`).join('');
+
+  // sur une enquête, on reprend là où l'on s'était arrêté ; sinon, au début
+  const ordre = b.enquete ? qs.slice().sort((a, c) => a.id - c.id) : qs;
+  const suite = ordre.find(q => !(progression[q.id] && progression[q.id].ok)) || ordre[0];
+
+  document.getElementById('intro').innerHTML = `
+    <div class="entete">
+      <span class="etiq">${b.enquete ? 'Enquête' : 'Thème'}</span>
+      <h2>${esc(b.nom)}</h2>
+      <div class="paliers">${paliers}</div>
+    </div>
+    <div class="texte">
+      ${/* La présentation ouvre déjà sur le contexte : reprendre l'accroche des
+             énoncés au-dessus ferait dire deux fois la même chose. Elle ne sert
+             donc que de repli, pour une base encore sans présentation. */
+        b.presentation
+          || `<div class="accroche">${b.accroche || ''}</div>
+              <p>${esc(b.description || '')}</p>`}
+      <h3>Le schéma</h3>
+      <div class="vues" id="vues">
+        <button type="button" data-vue="rel" aria-pressed="true">Modèle relationnel</button>
+        ${b.mcd ? '<button type="button" data-vue="mcd" aria-pressed="false">Modèle conceptuel · MCD</button>' : ''}
+      </div>
+      <div class="vue" id="vueRel">
+        <div class="plan" id="planIntro"><svg></svg><div class="schema"></div></div>
+        <p class="legende">
+          <span><span class="marque pk">PK</span>clé primaire</span>
+          <span><span class="marque fk">FK</span>clé étrangère</span>
+          <span>survolez une table pour isoler ses liens</span>
+        </p>
+      </div>
+      ${b.mcd ? `<div class="vue" id="vueMcd" hidden>
+        <p>Le même contenu, dit autrement — et dit d'abord, car c'est par ce modèle que
+           l'on commence : on y décrit ce dont on parle, avant de se demander comment le
+           ranger. Les rectangles sont les <strong>entités</strong> ; les ovales, les
+           <strong>associations</strong> qui les mettent en rapport, nommées par un verbe
+           qui se lit d'une entité à l'autre. Chaque entité porte des
+           <strong>propriétés</strong> ; celle qui est soulignée est son
+           <strong>identifiant</strong>, ce qui distingue une occurrence de toutes les
+           autres.</p>
+        <p>Chaque patte porte une <strong>cardinalité</strong>, qui se lit depuis l'entité
+           qu'elle touche : combien de fois, au minimum puis au maximum, une occurrence de
+           cette entité participe à l'association. <code>1,1</code> exactement une fois,
+           <code>0,1</code> au plus une, <code>0,n</code> aucune ou plusieurs,
+           <code>1,n</code> au moins une. Tout le sens du modèle est là : rien d'autre ne
+           dit qu'un employé n'appartient qu'à un seul service quand un service en emploie
+           plusieurs.</p>
+        <div class="cadre-mcd ajuste" id="cadreMcd">${b.mcd}</div>
+        <p class="legende">
+          <span>propriété soulignée = identifiant</span>
+          <span>cardinalités relevées sur les données de cette base</span>
+          <button type="button" class="bascule" id="tailleMcd">Taille réelle</button>
+        </p>
+      </div>` : ''}
+      <h3>Le contenu</h3>
+      <p>Le schéma dit comment la base est faite ; il ne dit pas ce qu'elle contient.
+         Choisissez une table pour en feuilleter les lignes — c'est exactement ce que
+         renvoie <code>SELECT * FROM …</code>, la plus simple des requêtes.</p>
+      <div class="onglets" id="onglets"></div>
+      <div class="apercu" id="apercu"><p class="etat">Chargement des données…</p></div>
+    </div>
+    <div class="demarrer">
+      <span class="compte">${qs.length} question${qs.length > 1 ? 's' : ''} ·
+        ${faites} réussie${faites > 1 ? 's' : ''}</span>
+      ${suite ? `<button class="principal" id="demarrer">${
+        b.enquete
+          ? (faites ? 'Reprendre l’enquête →' : 'Commencer l’enquête →')
+          : (faites ? 'Reprendre →' : 'Commencer →')}</button>` : ''}
+      <button id="retourAccueil">↩ Tous les thèmes</button>
+    </div>`;
+
+  if (suite) document.getElementById('demarrer').onclick = () => ouvrirQuestion(suite.id);
+  document.getElementById('retourAccueil').onclick = afficherAccueil;
+
+  /* Bascule entre le modèle relationnel (les tables telles qu'on les interroge)
+     et le modèle conceptuel (ce que la base représente). */
+  document.querySelectorAll('#vues button').forEach(bt => bt.onclick = () => {
+    const vue = bt.dataset.vue;
+    document.querySelectorAll('#vues button').forEach(o =>
+      o.setAttribute('aria-pressed', String(o === bt)));
+    document.getElementById('vueRel').hidden = vue !== 'rel';
+    const m = document.getElementById('vueMcd');
+    if (m) m.hidden = vue !== 'mcd';
+    // le schéma relationnel se mesure à l'affichage : ses liens sont à retracer
+    if (vue === 'rel') requestAnimationFrame(() => dessinerLiens('planIntro'));
+  });
+  const taille = document.getElementById('tailleMcd');
+  if (taille) taille.onclick = () => {
+    const cadre = document.getElementById('cadreMcd');
+    const ajuste = cadre.classList.toggle('ajuste');
+    taille.textContent = ajuste ? 'Taille réelle' : 'Ajuster à la largeur';
+  };
+
+  document.getElementById('accueil').hidden = true;
+  document.getElementById('travail').hidden = true;
+  document.getElementById('intro').hidden = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  /* Le schéma complet demande une base ouverte : on en monte une le temps de la
+     lire, sans données — seule la structure nous intéresse ici. */
+  if (SQL) {
+    try {
+      const d = new SQL.Database();
+      d.run(b.schema);
+      afficherSchema(d, 'planIntro');
+      d.close();
+      requestAnimationFrame(() => dessinerLiens('planIntro'));
+    } catch (e) { /* la présentation reste lisible sans le schéma */ }
+  }
+  monterApercu(slug);
+}
+
+/* Retour à la liste des thèmes, depuis la présentation comme depuis une question. */
+function afficherAccueil() {
+  Q = null;
+  fermerApercu();
+  document.getElementById('intro').hidden = true;
+  document.getElementById('travail').hidden = true;
+  document.getElementById('accueil').hidden = false;
+  dessinerListe();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Tirage au sort parmi les questions affichées, en évitant celles déjà réussies
+   — et en évitant de retomber sur celle qui est ouverte. */
+function questionAuHasard() {
+  const l = retenues().filter(q => !(progression[q.id] && progression[q.id].ok));
+  const pool = l.filter(q => !Q || q.id !== Q.id);
+  const source = pool.length ? pool : l;
+  if (!source.length) { document.getElementById('compte').textContent =
+    'Tout est réussi dans cette sélection.'; return; }
+  ouvrirQuestion(source[Math.floor(Math.random() * source.length)].id);
+}
+
+function retenues() {
+  const ba = document.getElementById('fBase').value;
+  const d = +document.getElementById('fNiveau').value;   // '' devient 0, donc « tous »
+  const no = document.getElementById('fNotion').value;
+  const e = document.getElementById('fEtat').value;
+  const r = document.getElementById('fRech').value.trim().toLowerCase();
+  return BANQUE.filter(q => {
+    if (ba && q.base !== ba) return false;
+    if (d && q.niveau !== d) return false;
+    if (no && !(q.notions_cles || []).includes(no)) return false;
+    const faite = !!(progression[q.id] && progression[q.id].ok);
+    if (e === 'done' && !faite) return false;
+    if (e === 'todo' && faite) return false;
+    if (r && !q.titre.toLowerCase().includes(r)) return false;
+    return true;
+  })
+  // du plus simple au plus exigeant : la liste donne l'ordre d'apprentissage
+  .sort((a, b) => ORDRE_NIVEAUX.indexOf(a.niveau) - ORDRE_NIVEAUX.indexOf(b.niveau) || a.id - b.id);
+}
+
+function dessinerListe() {
+  const l = retenues();
+  const faites = BANQUE.filter(q => progression[q.id] && progression[q.id].ok).length;
+  document.getElementById('compte').textContent =
+    `${l.length} affichée${l.length > 1 ? 's' : ''} · ${faites}/${BANQUE.length} réussie${faites > 1 ? 's' : ''}`;
+  // Renvoi vers la présentation : le thème courant est celui du filtre, ou à
+  // défaut celui de la question ouverte.
+  const slug = document.getElementById('fBase').value || (Q && Q.base) || '';
+  const fil = document.getElementById('filTheme');
+  if (slug && BASES[slug]) {
+    fil.hidden = false;
+    fil.innerHTML = `↩ Présentation<b>${esc(BASES[slug].nom)}</b>`;
+    fil.onclick = () => ouvrirIntro(slug);
+  } else {
+    fil.hidden = true;
+  }
+
+  // compteurs de l'écran d'accueil
+  document.getElementById('cQuestions').textContent = BANQUE.length;
+  document.getElementById('cBases').textContent = Object.keys(BASES).length;
+  document.getElementById('cReussies').textContent = faites;
+  dessinerThemes();
+  document.getElementById('liste').innerHTML = l.map(q => `
+    <div class="qst${Q && Q.id === q.id ? ' on' : ''}" data-id="${q.id}">
+      <span class="num">${String(q.id).padStart(2, '0')}</span>
+      <span class="ttl">${esc(q.titre)}<div class="dif">${esc((BASES[q.base] || {}).nom || q.base)} · ${esc(nomNiveau(q.niveau))}</div></span>
+      <span class="mark">${progression[q.id] && progression[q.id].ok ? '✅' : ''}</span>
+    </div>`).join('') || '<div class="compte">Aucune question ne correspond.</div>';
+  document.querySelectorAll('.qst').forEach(el =>
+    el.onclick = () => ouvrirQuestion(+el.dataset.id));
+}
+
+/* « 00:06:00 » est le format d'origine des questions ; on n'affiche que les minutes. */
+function minutes(duree) {
+  const m = /^(\d+):(\d+):/.exec(duree || '');
+  if (!m) return '';
+  const t = +m[1] * 60 + +m[2];
+  return t ? `${t} min` : '';
+}
+
+function ouvrirQuestion(id) {
+  Q = BANQUE.find(q => q.id === id);
+  if (!Q) return;
+  const base = BASES[Q.base];
+  if (!base) { document.getElementById('compte').textContent = 'Base introuvable : ' + Q.base; return; }
+  SCHEMA = base.schema; DATA = base.donnees;
+  REFERENCE = Q.reference; JEUX = Q.jeux; TAGS = Q.tags || [];
+  NOTIONS = Q.notions || []; DEPART = Q.depart || 'SELECT *\nFROM CONCERT;';
+  TITRE_EXERCICE = Q.titre;
+  ORDRE_LIGNES = Q.ordre_lignes !== false;
+  fermerApercu();   // la base ouverte pour la présentation ne sert plus
+
+  document.getElementById('accueil').hidden = true;
+  document.getElementById('intro').hidden = true;
+  document.getElementById('travail').hidden = false;
+  document.getElementById('versIntro').onclick = () => ouvrirIntro(Q.base);
+  document.getElementById('titreQ').textContent = Q.titre;
+  document.getElementById('metaQ').innerHTML =
+    [base.nom, nomNiveau(Q.niveau), Q.points ? `${Q.points} points` : '', minutes(Q.duree)]
+      .filter(Boolean).map(x => `<span class="chip">${esc(x)}</span>`).join('');
+  document.getElementById('enonce').innerHTML = Q.enonce;
+  document.getElementById('sortie').innerHTML = '';
+  document.getElementById('cOut').innerHTML =
+    '<span class="cmt">Exécutez votre requête pour voir ce qu’elle renvoie.</span>';
+  blocSolution.classList.add('verrouille');
+  blocSolution.open = false;
+
+  preparerBases();
+  remplirSolutionEtIndices();
+  const garde = progression[id] && progression[id].code;
+  editeur.setValue(garde || DEPART);
+  verifierSyntaxe();
+  /* CodeMirror est créé au chargement, alors que la colonne de travail est encore
+     masquée : il mesure tout à zéro, la gouttière se réduit à un pixel et les
+     numéros de ligne viennent se poser sur le texte. Il faut le remesurer une fois
+     l'éditeur réellement visible — c'est le rôle de refresh(). */
+  requestAnimationFrame(() => editeur.refresh());
+  afficherEtapeSuivante();
+  dessinerListe();
+  document.getElementById('travail').scrollIntoView({ block: 'start' });
+}
+
+/* Les enquêtes se lisent dans l'ordre : chaque question renvoie à la suivante.
+   Les bases thématiques ordinaires n'ont pas de fil narratif, on ne leur en
+   invente pas un. */
+function afficherEtapeSuivante() {
+  const zone = document.getElementById('etape');
+  const base = BASES[Q.base] || {};
+  if (!base.enquete) { zone.hidden = true; zone.innerHTML = ''; return; }
+
+  const etapes = BANQUE.filter(q => q.base === Q.base).sort((a, b) => a.id - b.id);
+  const rang = etapes.findIndex(q => q.id === Q.id);
+  const suivante = etapes[rang + 1];
+  zone.hidden = false;
+
+  if (!suivante) {
+    zone.innerHTML = `<span class="libelle">Dernière étape de l'enquête <b>${esc(base.nom)}</b>.
+      ${etapes.length} question${etapes.length > 1 ? 's' : ''} au total.</span>
+      <button id="etapeRetour">↩ Revenir au début</button>`;
+    document.getElementById('etapeRetour').onclick = () => ouvrirQuestion(etapes[0].id);
+    return;
+  }
+  const faite = progression[Q.id] && progression[Q.id].ok;
+  zone.innerHTML = `<span class="libelle">Étape ${rang + 1} sur ${etapes.length} ·
+      la suivante : <b>${esc(suivante.titre)}</b></span>
+    <button class="${faite ? 'principal' : ''}" id="etapeSuivante">Étape suivante →</button>`;
+  document.getElementById('etapeSuivante').onclick = () => ouvrirQuestion(suivante.id);
+}
+
+document.getElementById('run').onclick = () => tester(bases.map((_, i) => i));
+document.getElementById('exec').onclick = consoleExecuter;
+/* Le schéma est dessiné une fois SQLite chargé, donc après ce script : on écoute
+   le conteneur, qui lui existe déjà, plutôt que des boutons pas encore créés. */
+document.getElementById('schema').addEventListener('click', ev => {
+  const b = ev.target.closest('button[data-table]');
+  if (!b) return;
+  consulterTable(b.dataset.table);
+  document.getElementById('cOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+document.getElementById('reset').onclick = () => { editeur.setValue(DEPART); editeur.focus(); };
+</script>
+</body>
+</html>

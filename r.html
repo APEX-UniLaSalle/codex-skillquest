@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — R</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js"></script>
+<style>
+
+:root{
+  /* SkillQuest — Gruvbox Material (light). Palette commune au Codex Python :
+     toute retouche ici doit être reportée dans index.html, et réciproquement. */
+  --bg:#F9F5D7;          /* crème, fond principal      */
+  --panel:#EFE6CE;       /* fond secondaire, encarts   */
+  --panel2:#EDEED2;      /* variante d'encart          */
+  --code:#EBDBB2;        /* fond tertiaire, chips      */
+  --sunk:#D0C2A9;        /* sidebar, éléments enfoncés */
+  --ink:#654735;         /* texte courant, brun encre  */
+  --muted:#8A6B52;       /* texte secondaire           */
+  --line:#D0C2A9;        /* filets ton sur ton         */
+  --accent:#C14A4A;      /* carmin : titres, identité  */
+  --accent-soft:#F3E3D3;
+  --link:#E78A4E;        /* orange : éléments interactifs (graphique) */
+  --link-txt:#AF3A03;    /* orange foncé : texte de lien (lisible)    */
+  --ok:#4C7A5D;
+  --ok-soft:#E4EBD6;
+  --ko:#C14A4A;
+  --ko-soft:#F6E0D8;
+  --warn:#B47109;
+  --warn-soft:#F4EBCE;
+  --violet:#945E80;
+  --bleu:#45707A;        /* bleu-vert lisible en texte */
+  --lavande:#ECECFF;
+  --term:#32302F;        /* console : brun très sombre, jamais noir pur */
+}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+     background:var(--bg);color:var(--ink)}
+
+/* ── En-tête, identique à celui du Codex Python ─────────────────────────── */
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 18px;
+       display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.2px;color:var(--accent)}
+header .sub{color:var(--muted);font-size:12.5px}
+#marque{text-decoration:none;color:inherit;display:flex;align-items:baseline;gap:12px}
+#marque:hover h1{color:#A33B3B}
+#status{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--sunk);flex:none}
+.dot.ready{background:var(--ok)} .dot.load{background:var(--warn);animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ── Gabarit : liste à gauche, travail à droite ─────────────────────────── */
+.page{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start}
+main{min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
+aside.liste{background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+   position:sticky;top:62px;max-height:calc(100vh - 78px);display:flex;flex-direction:column}
+.filtres{padding:10px;display:grid;gap:7px;border-bottom:1px solid var(--line)}
+.filtres select,.filtres input{width:100%;padding:7px 9px;border:1px solid var(--line);
+   border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13.5px}
+/* Retour à la présentation du thème, sans repasser par l'accueil. */
+.fil-theme{display:block;width:100%;text-align:left;background:var(--panel);border:0;
+   border-bottom:1px solid var(--line);border-radius:0;padding:8px 12px;cursor:pointer;
+   font:inherit;font-size:12.5px;color:var(--muted);font-weight:400}
+.fil-theme:hover{background:var(--accent-soft);color:var(--link-txt)}
+.fil-theme b{display:block;color:var(--ink);font-weight:600;font-size:13px}
+.compte{padding:7px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+#liste{overflow-y:auto;flex:1}
+.qst{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;
+   display:flex;gap:9px;align-items:baseline}
+.qst:hover{background:var(--accent-soft)}
+.qst.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.qst .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;flex:none;width:30px}
+.qst .ttl{flex:1;font-size:13.5px;line-height:1.35}
+.qst .dif{font-size:11px;color:var(--muted);white-space:nowrap}
+.qst .mark{flex:none;font-size:12px}
+/* Sauvegarde de la progression, au bas de la liste : elle doit rester à portée
+   pendant qu'on travaille, et non depuis le seul écran d'accueil. */
+/* Dans l'accueil, le bloc s'étale et s'explique ; au bas de la liste, il se
+   réduit à deux boutons. Même mécanique, deux encombrements. */
+.transfert{display:flex;gap:9px;flex-wrap:wrap;align-items:center;
+   margin:16px 0 0;padding:13px 0 0;border-top:1px solid var(--line)}
+.transfert button{font-size:12.5px;padding:6px 12px}
+.transfert .pourquoi{font-size:12.5px;color:var(--muted);max-width:430px}
+aside .transfert{flex:none;margin:0;gap:7px;padding:9px 10px;background:var(--panel2)}
+aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
+.transfert .bilan{flex-basis:100%;font-size:12.5px;color:var(--muted);margin:0}
+.transfert .bilan:empty{display:none}
+.transfert .bilan.ko{color:var(--ko)}
+
+/* ── Écran d'accueil : le « hero » du Codex Python ──────────────────────── */
+.accueil{padding:0}
+.hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
+.hero h2{display:block;margin:0 0 10px;font-size:30px;letter-spacing:-.5px;color:var(--accent);
+   font-weight:650;border:0;padding:0;text-transform:none}
+.hero p{margin:0;font-size:15.5px;max-width:70ch;line-height:1.75;color:var(--ink)}
+.hero .compteurs{display:flex;gap:34px;flex-wrap:wrap;margin-top:24px;
+   padding-top:20px;border-top:1px solid var(--line)}
+.hero .compteurs b{display:block;font-size:26px;color:var(--accent);font-weight:650;line-height:1.2}
+.hero .compteurs span{font-size:12.5px;color:var(--muted)}
+
+/* Une carte par thème : c'est par là qu'on entre dans la banque, comme on
+   choisit un niveau sur le Codex Python. */
+.themes{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;margin-top:16px}
+.theme{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 20px;
+   cursor:pointer;text-align:left;font:inherit;color:inherit;display:block;width:100%}
+.theme:hover{border-color:var(--accent)}
+.theme .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.theme h3{margin:5px 0 6px;font-size:17px;color:var(--accent);font-weight:650;display:block}
+.theme .desc{font-size:12.5px;color:var(--muted);line-height:1.6;min-height:60px}
+.theme .barre{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;margin:12px 0 6px}
+.theme .barre i{display:block;height:100%;background:var(--link);border-radius:99px}
+.theme .chiffres{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+.theme .paliers{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.theme .palier{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+
+/* Enchaînement des enquêtes : l'étape suivante est à un clic. */
+.etape{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:22px 0 0;
+   padding:14px 18px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.etape .libelle{font-size:13px;color:var(--muted);flex:1;min-width:200px}
+.etape .libelle b{color:var(--ink);font-weight:600}
+
+@media (max-width:820px){.page{grid-template-columns:1fr}
+   aside.liste{position:static;max-height:none}}
+
+/* ── Page d'introduction d'un thème ─────────────────────────────────────
+   Le décor se plante ici, une fois, au lieu d'ouvrir chacun des énoncés. */
+.intro{min-width:0}
+.intro .entete{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:26px 30px}
+.intro .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.intro h2{display:block;margin:6px 0 4px;font-size:26px;letter-spacing:-.4px;color:var(--accent);
+   font-weight:650;border:0;padding:0;text-transform:none}
+.intro .paliers{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 0}
+.intro .palier{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+.intro .texte{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+   padding:22px 30px;margin-top:16px;font-size:14.5px;line-height:1.75}
+.intro .texte p{margin:0 0 12px}
+.intro .texte p:last-child{margin-bottom:0}
+.intro .texte h3{display:block;margin:22px 0 10px;font-size:12px;text-transform:uppercase;
+   letter-spacing:.5px;color:var(--ok);font-weight:600}
+.intro .accroche{font-size:15.5px;line-height:1.75;color:var(--ink);margin:0 0 16px;
+   padding-left:14px;border-left:3px solid var(--accent-soft)}
+.intro .inventaire{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
+   gap:12px;margin-top:14px}
+.intro .entite{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.intro .entite h4{margin:0 0 6px;font-size:13px;color:var(--bleu);letter-spacing:.03em;font-weight:600}
+.intro .entite ul{margin:0;padding:0;list-style:none;
+   font:12.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+.intro .entite li{display:flex;align-items:baseline;gap:7px}
+.intro .entite li .col{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.intro .entite li .type{font-size:11px;color:var(--sunk);white-space:nowrap}
+.intro .entite li.pk{color:var(--ink);font-weight:600}
+.intro .entite li.fk{color:var(--ink);font-weight:400}
+/* Deux lectures du même schéma : le modèle relationnel, tel qu'on l'interroge,
+   et le modèle conceptuel, tel qu'on l'a pensé. */
+.intro .vues{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.intro .vues button{font:inherit;font-size:12px;padding:4px 12px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+.intro .vues button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .vues button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.intro .cadre-mcd{overflow:auto;max-height:600px;margin:14px 0 0;padding:10px;
+   background:#fff;border:1px solid var(--line);border-radius:6px}
+.intro .cadre-mcd.ajuste svg{width:100%;height:auto}
+.intro .cadre-mcd:not(.ajuste) svg{max-width:none}
+.intro .legende .bascule{margin-left:auto}
+
+/* Feuilleter les données : le schéma dit comment la base est faite, il ne dit
+   pas ce qu'elle contient. Un onglet par table, et les lignes en dessous. */
+.intro .onglets{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+.intro .onglets button{font:inherit;font-size:12px;padding:3px 10px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+   display:inline-flex;align-items:baseline;gap:6px;
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.intro .onglets button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .onglets button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
+.intro .onglets button .n{font-size:11px;opacity:.65}
+.intro .apercu{margin:12px 0 0}
+.intro .apercu .cadre{overflow:auto;max-height:360px;border:1px solid var(--line);border-radius:6px}
+.intro .apercu table.res{border:0}
+.intro .apercu table.res th{position:sticky;top:0;z-index:1}
+.intro .apercu .sous{display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+   margin:8px 0 0;font-size:12px;color:var(--muted)}
+.intro .apercu .sous code{font-size:11.5px}
+.intro .apercu .sous button{margin-left:auto;font:inherit;font-size:11.5px;padding:3px 10px;
+   border-radius:99px;border:1px solid var(--line);background:var(--bg);color:var(--muted);cursor:pointer}
+.intro .apercu .sous button:hover{border-color:var(--accent);color:var(--accent)}
+.intro .demarrer{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px;
+   padding:16px 20px;background:var(--panel);border:1px solid var(--line);border-radius:3px}
+.intro .demarrer .compte{padding:0;border:0;font-size:13px;color:var(--muted);flex:1;min-width:180px}
+/* retour à la présentation depuis une question */
+.fil{display:flex;justify-content:flex-end;margin:0 0 8px}
+.fil button{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);
+   cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.fil button:hover{color:var(--link-txt)}
+
+/* ── Carte de la question et intertitres, calqués sur le Codex Python ───── */
+.card{padding:16px 18px}
+.card h2{display:block;margin:0 0 3px;font-size:19px;letter-spacing:-.3px;color:var(--accent);
+   border:0;padding:0;text-transform:none}
+.meta{color:var(--muted);font-size:12.5px;margin-bottom:11px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.statement{font-size:14.5px}
+.chip{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ok);
+   margin:20px 0 8px;font-weight:600;display:flex;align-items:center;gap:8px}
+.bloc{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:16px 18px;margin:0}
+.plan{position:relative;margin:14px 0;padding:20px 0}
+.plan svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.schema{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:44px;
+   position:relative;z-index:1;align-items:start}
+.tbl{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tbl h3{margin:0 0 6px;font-size:13.5px;color:var(--bleu);letter-spacing:.03em}
+/* le nom d'une table ouvre son contenu dans la console */
+.tbl h3 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;
+   letter-spacing:inherit;border-bottom:1px dotted var(--line)}
+.tbl h3 button:hover{color:var(--link-txt);border-bottom-color:var(--link-txt)}
+.tbl ul{margin:0;padding:0;list-style:none;
+   font:12.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+/* Une ligne de colonne se lit de gauche à droite : le nom, son type, puis la
+   nature de la clé. C'est la disposition des diagrammes relationnels. */
+.tbl li{position:relative;display:flex;align-items:baseline;gap:7px}
+.tbl li .col{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tbl li .type{font-size:11px;color:var(--sunk);white-space:nowrap}
+.tbl li.pk{color:var(--ink);font-weight:600}
+.tbl li.fk{color:var(--ink);font-weight:400}
+.marque{font:600 9.5px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+   letter-spacing:.06em;padding:1px 5px;border-radius:3px;flex:none}
+.marque.pk{background:var(--accent-soft);color:var(--accent)}
+.marque.fk{background:#E2ECEE;color:var(--bleu)}
+/* légende, sous le schéma */
+.legende{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin:10px 0 0;
+   font-size:12px;color:var(--muted)}
+.legende span.marque{margin-right:5px}
+/* Tous les liens empruntent les mêmes gouttières : au repos on ne distingue pas
+   lesquels se répondent. Survoler une table éteint les autres et met en évidence
+   ses voisines — le nom de la table visée reste écrit en clair sur chaque clé. */
+.tbl{transition:border-color .12s,box-shadow .12s}
+.tbl.actif{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+g.lien{transition:opacity .12s}
+.plan.focus g.lien{opacity:.1}
+.plan.focus g.lien.actif{opacity:1}
+g.lien.actif path{stroke:var(--accent)}
+g.lien.actif circle.depart{fill:var(--accent)}
+g.lien.actif circle.arrivee{stroke:var(--accent)}
+textarea{width:100%;min-height:150px;background:#282828;color:#EBDBB2;border:1px solid var(--line);
+   border-radius:8px;padding:12px 14px;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+   resize:vertical;tab-size:2}
+/* éditeur : mêmes teintes Gruvbox sombre que la console */
+.CodeMirror{height:auto;min-height:150px;border:1px solid var(--line);border-radius:8px;
+   background:#282828;color:#EBDBB2;font:13.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:6px 0}
+.CodeMirror-gutters{background:#32302F;border-right:1px solid #3C3836}
+/* Le retour à la ligne étant actif, rien ne déborde jamais horizontalement :
+   la barre de défilement qui apparaît parfois vient d'une mesure faussée, pas
+   d'un vrai débordement. On la masque — mais c'est le refresh() de
+   ouvrirQuestion qui traite la cause. Ne pas forcer overflow-x sur
+   .CodeMirror-scroll : cela écraserait le décalage négatif dont CodeMirror se
+   sert pour placer la gouttière. */
+.CodeMirror-hscrollbar{display:none !important}
+.CodeMirror-linenumber{color:#7C6F64}
+.CodeMirror-cursor{border-left:1.5px solid #EBDBB2}
+.CodeMirror .cm-keyword{color:#EA6962;font-weight:600}
+.CodeMirror .cm-string{color:#A9B665}
+.CodeMirror .cm-number{color:#D8A657}
+.CodeMirror .cm-comment{color:#7C6F64;font-style:italic}
+.CodeMirror .cm-variable-2,.CodeMirror .cm-variable{color:#7DAEA3}
+.CodeMirror .cm-operator,.CodeMirror .cm-punctuation{color:#D4BE98}
+/* NULL, TRUE, FALSE : sans cette règle, CodeMirror leur laisse le bleu sombre
+   de son thème par défaut, illisible sur le fond de l'éditeur. */
+.CodeMirror .cm-atom{color:#D3869B}
+.CodeMirror-selected{background:#45403D !important}
+/* ligne signalée par l'analyseur de SQLite */
+.CodeMirror .ligne-erreur{background:rgba(234,105,98,.16)}
+.CodeMirror-gutter-elt .marque-erreur{color:#EA6962;font-weight:700}
+.CodeMirror-hints{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;z-index:30}
+.CodeMirror-hint.hint-champ{color:#45707A}
+.CodeMirror-hint.hint-cle{color:#AF3A03;font-weight:600}
+/* coloration des extraits figés (solution, syntaxe des notions) : les règles de
+   l'éditeur sont portées par .CodeMirror, runMode écrit ailleurs. */
+.sql-colore .cm-keyword{color:#EA6962;font-weight:600}
+.sql-colore .cm-string{color:#A9B665}
+.sql-colore .cm-number{color:#D8A657}
+.sql-colore .cm-comment{color:#7C6F64;font-style:italic}
+.sql-colore .cm-variable-2,.sql-colore .cm-variable,.sql-colore .cm-variable-3{color:#7DAEA3}
+.sql-colore .cm-operator,.sql-colore .cm-punctuation,.sql-colore .cm-bracket{color:#D4BE98}
+.sql-colore .cm-atom{color:#D3869B}
+/* accès à la fiche de syntaxe, comme sur le Codex Python */
+.fiche{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;
+  font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--accent);
+  color:var(--accent);background:#F6EAE0;margin-right:14px;white-space:nowrap}
+.fiche:hover{background:var(--accent);color:#fff}
+/* rappel au-dessus de l'éditeur, là où l'on en a besoin en écrivant */
+.fiche-mini{margin-left:auto;font-size:12.5px;font-weight:600;text-decoration:none;
+  color:var(--accent);white-space:nowrap;text-transform:none;letter-spacing:0}
+.fiche-mini:hover{text-decoration:underline}
+.syntaxe{font-size:12.5px;margin-left:auto}
+.syntaxe.ok{color:var(--ok)}
+.syntaxe.ko{color:var(--ko)}
+.actions{display:flex;gap:9px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{font:inherit;font-size:13.5px;padding:7px 15px;border-radius:6px;border:1px solid var(--line);
+   background:var(--bg);color:var(--ink);cursor:pointer;font-weight:500}
+button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+button.principal{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+button.principal:hover:not(:disabled){background:#A33B3B;color:var(--bg)}
+button.mini{padding:3px 9px;font-size:12px;white-space:nowrap}
+button:disabled{opacity:.45;cursor:not-allowed}
+.etat{color:var(--muted);font-size:13px}
+.verdict{padding:11px 14px;border-radius:3px;margin:14px 0 12px;font-size:14px;font-weight:600}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)}
+.verdict.ko{background:var(--ko-soft);color:var(--ko)}
+table.jeux{border-collapse:collapse;width:100%;margin:10px 0}
+table.jeux th{background:var(--code);text-align:left;padding:7px 10px;border:1px solid var(--line);
+   font-size:12.5px;font-weight:600}
+table.jeux td{padding:7px 10px;border:1px solid var(--line);background:#fff;vertical-align:top;font-size:13.5px}
+table.jeux tr.fail td{background:var(--ko-soft)}
+.badge{font-weight:700}.badge.ok{color:var(--ok)}.badge.ko{color:var(--ko)}
+.nom{font-weight:600}
+/* signalement d'énoncé : discret, sous l'énoncé */
+.ligne-signaler{display:flex;justify-content:flex-end;margin:8px 0 0}
+.signaler{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);
+   cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.signaler:hover{color:var(--link-txt)}
+dialog#signal{border:1px solid var(--line);border-radius:8px;padding:0;max-width:520px;
+   width:calc(100% - 32px);background:var(--panel);color:var(--ink);font:inherit}
+dialog#signal::backdrop{background:rgba(60,56,54,.45)}
+#signal h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:15px;color:var(--accent)}
+#signal .corps{padding:14px 18px}
+#signal .ctx{margin:0 0 4px;font-size:12.5px;color:var(--muted)}
+#signal label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+#signal select,#signal textarea{width:100%;padding:8px 10px;border:1px solid var(--line);
+   border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13.5px;min-height:auto}
+#signal textarea{min-height:105px;resize:vertical}
+#signal input[type=file]{width:100%;padding:7px 9px;border:1px dashed var(--line);
+   border-radius:6px;font:inherit;font-size:12.5px;color:var(--muted);background:none}
+#signal .opt{font-weight:400;color:var(--muted);font-size:12px}
+#signal .anonyme{margin:10px 0 0;font-size:12px;color:var(--muted)}
+#signal .pied{display:flex;gap:9px;align-items:center;padding:12px 18px;border-top:1px solid var(--line)}
+#signal .etat{margin-left:auto;font-size:12.5px;color:var(--muted)}
+#signal .etat.ko{color:var(--ko)}
+.desc{color:var(--muted);font-size:12.5px}
+/* rappel permanent : ici, on ne fait que lire la base */
+.cadre-select{margin:0 0 9px;padding:7px 11px;font-size:12.5px;color:var(--muted);
+   background:var(--warn-soft);border:1px solid var(--line);border-radius:5px}
+.cadre-select code{font-size:11.5px}
+table.res{border-collapse:collapse;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+table.res th{background:var(--code);text-align:left;padding:4px 8px;border:1px solid var(--line);font-weight:600}
+table.res td{padding:3px 8px;border:1px solid var(--line);background:#fff;white-space:nowrap}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
+.duo h3{margin:0 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+/* sections repliables : le résumé reprend l'allure d'un titre de section */
+details.section{margin:20px 0 0}
+details.section>summary{font-size:12px;text-transform:uppercase;letter-spacing:.5px;
+   color:var(--ok);font-weight:600;margin:0 0 8px;cursor:pointer;list-style:none;
+   display:flex;align-items:center;gap:8px}
+details.section>summary::-webkit-details-marker{display:none}
+details.section>summary::before{content:'\25BE';font-size:12px;transition:transform .15s}
+details.section:not([open])>summary::before{transform:rotate(-90deg)}
+details.section>summary .compte{margin-left:auto;padding:0;border:0;font-size:12px;
+   color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
+/* Bascule entre les tables de la question et la base entière. */
+.bascule{margin-left:auto;font:inherit;font-size:11.5px;text-transform:none;letter-spacing:0;
+   font-weight:500;padding:3px 10px;border-radius:99px;border:1px solid var(--line);
+   background:var(--bg);color:var(--muted);cursor:pointer}
+.bascule:hover{border-color:var(--accent);color:var(--accent)}
+/* résultat attendu d'un jeu : replié par défaut, pour garder l'énoncé près de l'éditeur */
+details.res-repli>summary{cursor:pointer;font-size:13px;color:var(--bleu);list-style:none;
+   display:inline-flex;align-items:center;gap:6px}
+details.res-repli>summary::-webkit-details-marker{display:none}
+details.res-repli>summary::before{content:'\25BE';font-size:10px;transition:transform .15s}
+details.res-repli:not([open])>summary::before{transform:rotate(-90deg)}
+details.res-repli[open]>summary{margin-bottom:6px}
+/* solution de référence : dépliable à tout moment, comme sur le Codex Python */
+details.solution{margin:16px 0 0;background:var(--panel);border:1px solid var(--line);
+   border-radius:8px;padding:10px 14px}
+details.solution.verrouille>summary{color:var(--muted);cursor:not-allowed}
+details.solution .verrou{font-weight:400;font-size:12.5px;color:var(--muted)}
+details.solution:not(.verrouille) .verrou{display:none}
+details.solution>summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--ok);
+   list-style:none;display:flex;align-items:center;gap:8px}
+details.solution>summary::-webkit-details-marker{display:none}
+details.solution>summary::before{content:'\25BE';font-size:11px;transition:transform .15s}
+details.solution:not([open])>summary::before{transform:rotate(-90deg)}
+details.solution pre{margin:10px 0 0;background:#282828;color:#EBDBB2;padding:12px 14px;
+   border-radius:6px;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+details.solution .rappel{margin:10px 0 0;font-size:13px;color:var(--muted)}
+/* étiquettes de notions sous l'énoncé */
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+.tag{font-size:12px;padding:3px 10px;border-radius:20px;background:var(--code);
+   color:var(--muted);border:1px solid var(--line)}
+/* indice : les notions du cours, avant d'avoir trouvé */
+details.indice{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);
+   border-radius:8px;padding:10px 14px}
+details.indice>summary{cursor:pointer;font-size:14px;font-weight:600;color:var(--bleu);
+   list-style:none;display:flex;align-items:center;gap:8px}
+details.indice>summary::-webkit-details-marker{display:none}
+details.indice>summary::before{content:'\25BE';font-size:11px;transition:transform .15s}
+details.indice:not([open])>summary::before{transform:rotate(-90deg)}
+details.indice>summary{background:var(--lavande);color:var(--violet);
+   margin:-10px -14px 0;padding:10px 14px;border-radius:7px 7px 0 0}
+details.indice .amorce{margin:11px 0 0;font-size:13.5px;color:var(--muted)}
+details.indice .etiquettes{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 0}
+details.indice .etq{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:99px;
+   border:1px solid var(--line);background:#fff;color:var(--bleu);cursor:pointer;white-space:nowrap}
+details.indice .etq:hover{border-color:var(--violet);color:var(--violet)}
+details.indice .etq[aria-pressed="true"]{background:var(--lavande);border-color:var(--violet);
+   color:var(--violet);font-weight:600}
+details.indice .notion[hidden]{display:none}
+/* le balisage <code> apparaît dans les énoncés et les noms de notions */
+code{font:.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:#EFE6CB;
+   border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+details.indice .notion h4 code{background:#fff}
+/* fiche d'une notion, affichée avec la solution */
+.notion{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin:10px 0 0}
+.notion h4{margin:0 0 6px;font-size:13.5px;color:var(--bleu);font-weight:600}
+.notion .syn{margin:0;background:#282828;color:#EBDBB2;padding:8px 11px;border-radius:5px;
+   font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow-x:auto}
+.notion .ex{margin:6px 0 0;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
+.notion .note{margin:6px 0 0;font-size:13px}
+.notion .lien{margin:6px 0 0;font-size:12.5px}
+/* console : mêmes teintes que celle du Codex Python */
+.console{border:1px solid var(--line);border-radius:8px;margin:14px 0 0;overflow:hidden}
+.console-head{display:flex;align-items:center;gap:9px;padding:9px 14px;flex-wrap:wrap;
+   background:var(--code);border-bottom:1px solid var(--line)}
+.console-head strong{font-size:13px;font-weight:600}
+.console-head select{font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
+   border-radius:6px;background:#fff;color:var(--ink);font-family:inherit}
+.console-head button{padding:5px 12px;font-size:12.5px}
+.console-head .hint{color:var(--muted);font-size:12.5px;margin-left:auto}
+.console-body{background:#32302F;color:#EBDBB2;padding:12px 14px;
+   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+   white-space:pre-wrap;word-break:break-word;min-height:72px;max-height:290px;overflow-y:auto}
+.console-body .cmt{color:#A89984}
+.console-body .err{color:#EA6962}
+.console-body .lbl{color:#A9B665}
+/* ── Pied de page, identique à celui du Codex Python ────────────────────── */
+/* ── Choix du parcours : Python ou SQL, en tête de l'accueil ───────────── */
+.parcours{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.parc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:18px 20px;text-decoration:none;color:inherit}
+.parc:hover{border-color:var(--accent)}
+.parc .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.parc h3{margin:5px 0 6px;font-size:22px;color:var(--accent);font-weight:650;letter-spacing:-.3px}
+.parc p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.parc .volume{display:inline-block;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.parc.actif{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.parc.actif .etiq{color:var(--accent)}
+footer{margin:6px 16px 26px;padding:20px 24px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+  font-size:12.5px;line-height:1.75;color:var(--muted);
+  display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+footer h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--accent);
+  text-transform:uppercase;letter-spacing:.5px}
+footer .logos{display:flex;align-items:center;gap:22px;padding-right:28px;
+  border-right:1px solid var(--line);min-height:76px}
+footer .logos img{display:block;opacity:.9}
+footer .infos{flex:1;min-width:280px}
+footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px 26px}
+@media(max-width:700px){footer .logos{border-right:0;border-bottom:1px solid var(--line);
+  padding:0 0 16px;width:100%}}
+footer strong{color:var(--ink);font-weight:600}
+footer a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
+footer a:hover{text-decoration:underline}
+
+/* ── propre au Codex R ─────────────────────────────────────────────────── */
+.console-r{margin:12px 0 0;background:var(--term);color:#EBDBB2;border-radius:6px;
+   padding:11px 13px;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;overflow-x:auto;min-height:26px}
+.console-r .err{color:#EA6962}
+.console-r .cmt{color:#7C6F64}
+canvas.trace{display:none;margin:12px auto 0;max-width:100%;height:auto;background:#fff;
+   border:1px solid var(--line);border-radius:6px}
+canvas.trace.actif{display:block}
+.attendu{margin:12px 0 0;padding:11px 13px;background:var(--ok-soft);
+   border:1px solid var(--line);border-radius:6px;font-size:13px}
+.attendu canvas{display:block;margin:8px auto 0;max-width:100%;height:auto;
+   background:#fff;border:1px solid var(--line);border-radius:4px}
+.verdict{margin:12px 0 0;padding:10px 13px;border-radius:6px;font-size:13.5px;
+   border:1px solid var(--line)}
+.verdict.ok{background:var(--ok-soft);color:var(--ok);font-weight:600}
+.verdict.ko{background:var(--ko-soft);color:var(--ko)}
+.verdict.att{background:var(--warn-soft);color:var(--warn)}
+.chapitre-jeu{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+.chapitre-jeu code{background:var(--code);padding:1px 5px;border-radius:3px}
+/* Contrôle de la banque : atelier, pas vitrine — visible avec ?controle=1 */
+.controle{margin:18px 0 0;padding:16px 20px;background:var(--panel);
+   border:1px solid var(--line);border-radius:3px}
+.controle h3{margin:0 0 6px;font-size:14px;color:var(--accent)}
+.controle p{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+.controle table{border-collapse:collapse;margin:12px 0 0;font-size:12.5px;width:100%}
+.controle th{text-align:left;background:var(--code);padding:5px 9px;border:1px solid var(--line)}
+.controle td{padding:4px 9px;border:1px solid var(--line);background:#fff;vertical-align:top}
+.controle td.ko{background:var(--ko-soft);color:var(--ko)}
+.controle td.ok{color:var(--ok)}
+.controle .etat{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- Signalement d'énoncé : formulaire jamais affiché, présent uniquement pour que
+     Netlify l'enregistre au déploiement. L'envoi réel est fait en POST par le script. -->
+<form name="signalement" data-netlify="true" netlify-honeypot="bot-field"
+      enctype="multipart/form-data" hidden>
+  <input type="text" name="page">
+  <input type="text" name="exercice">
+  <input type="text" name="nature">
+  <textarea name="message"></textarea>
+  <textarea name="suggestion"></textarea>
+  <input type="hidden" name="subject">
+  <input type="file" name="capture">
+  <input type="text" name="bot-field">
+</form>
+
+<header>
+  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+    <h1>Le Codex</h1>
+    <span class="sub">R — manipuler les données</span>
+  </a>
+  <div id="status">
+    <span class="dot load" id="dot"></span><span id="statusTxt">Chargement de R…</span>
+  </div>
+</header>
+
+<div class="page">
+<aside class="liste">
+  <div class="filtres">
+    <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex R</button>
+    <select id="fChap"><option value="">Tous les chapitres</option></select>
+    <select id="fJeu"><option value="">Tous les jeux de données</option></select>
+    <select id="fEtat">
+      <option value="">Toutes les questions</option>
+      <option value="todo">Non réussies</option>
+      <option value="done">Réussies</option>
+    </select>
+    <select id="fNotion"><option value="">Toutes les notions</option></select>
+    <input type="search" id="fRech" placeholder="Rechercher un titre…">
+    <button id="hasard" title="Ouvre une question non réussie, tirée au sort parmi celles affichées">🎲 Question au hasard</button>
+  </div>
+  <div class="compte" id="compte">Chargement…</div>
+  <div id="liste"></div>
+  <div class="transfert">
+    <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder</button>
+    <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+    <input type="file" id="fichierProg" accept="application/json,.json" hidden>
+    <p class="bilan"></p>
+  </div>
+</aside>
+
+<main id="travail" hidden>
+  <div class="panel card">
+    <h2 id="titreQ"></h2>
+    <div class="meta" id="metaQ"></div>
+    <div class="statement" id="enonce"></div>
+    <div class="ligne-signaler">
+      <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+    </div>
+  </div>
+
+  <h2>Votre code R</h2>
+  <p class="chapitre-jeu" id="donnees" hidden></p>
+  <textarea id="code" spellcheck="false"></textarea>
+  <div class="actions">
+    <button class="principal" id="run" disabled>&#9654; Exécuter</button>
+    <button id="verif" disabled>Vérifier ma réponse</button>
+    <button id="reset">Effacer</button>
+  </div>
+
+  <div class="console-r" id="sortie"><span class="cmt">Exécutez votre code pour voir ce qu'il renvoie.</span></div>
+  <canvas class="trace" id="trace" width="640" height="440"></canvas>
+  <div id="verdict"></div>
+  <div class="attendu" id="attendu" hidden></div>
+
+  <details class="indice">
+    <summary>&#128269; Besoin d'un indice&#8239;?</summary>
+    <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
+       sur laquelle vous butez — chacune renvoie à son chapitre de cours.</p>
+    <div class="etiquettes" id="etiquettes"></div>
+    <div id="notions"></div>
+  </details>
+
+  <details class="solution" id="bloc-solution">
+    <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — exécutez d'abord votre code</span></summary>
+    <pre id="solution"></pre>
+    <div class="actions" style="margin-top:10px">
+      <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
+    </div>
+    <p class="rappel">D'autres écritures donnent souvent le même résultat : ce qui compte
+       est que la réponse soit la bonne, pas qu'elle soit écrite comme la nôtre.</p>
+  </details>
+</main>
+
+<div class="accueil" id="accueil">
+  <div class="parcours">
+    <a class="parc" href="python.html">
+      <span class="etiq">Codex</span>
+      <h3>Python</h3>
+      <p>Lire et écrire du code : entrées, boucles, listes, algorithmes.</p>
+      <span class="volume" id="volPython">…</span>
+    </a>
+    <a class="parc" href="sql.html">
+      <span class="etiq">Codex</span>
+      <h3>SQL</h3>
+      <p>Interroger une base : filtres, jointures, agrégats, sous-requêtes.</p>
+      <span class="volume" id="volSql">…</span>
+    </a>
+    <a class="parc actif" href="r.html" aria-current="page">
+      <span class="etiq">Codex · vous êtes ici</span>
+      <h3>R</h3>
+      <p>Manipuler des données : vecteurs, tableaux, graphiques, statistiques.</p>
+      <span class="volume" id="volR">…</span>
+    </a>
+  </div>
+  <div class="hero">
+    <h2>Le Codex — R</h2>
+    <p>R tourne ici même, dans votre navigateur : vous écrivez quelques lignes, vous les
+       exécutez, et votre réponse est comparée à celle attendue. Il n'y a rien à installer,
+       et rien n'est envoyé nulle part.</p>
+    <p>Les questions suivent les chapitres du cours, sur trois jeux de données réels —
+       des parcelles agricoles, une campagne de sondages géologiques, un service de
+       restauration. Les mêmes gestes s'y apprennent&#8239;; ce sont les données qui leur
+       donnent un sens. Choisissez une question dans la liste, à gauche.</p>
+    <div class="compteurs">
+      <div><b id="cQuestions">—</b><span>questions</span></div>
+      <div><b id="cChapitres">—</b><span>chapitres</span></div>
+      <div><b id="cJeux">—</b><span>jeux de données</span></div>
+      <div><b id="cReussies">—</b><span>réussies</span></div>
+    </div>
+    <div class="transfert">
+      <button class="bt-exporter">⤓ Exporter ma progression</button>
+      <button class="bt-importer">⤒ Charger un fichier</button>
+      <span class="pourquoi">Votre progression reste sur ce poste. Emportez-la dans un
+        fichier pour la retrouver ailleurs.</span>
+      <p class="bilan"></p>
+    </div>
+  </div>
+  <div class="themes" id="chapitres"></div>
+  <section class="controle" id="controle" hidden>
+    <h3>Contrôle de la banque</h3>
+    <p>Rejoue les réponses de référence de toutes les questions dans R, et signale
+       celles qui échouent. À lancer après chaque ajout de questions — c'est le seul
+       moyen de vérifier une banque écrite sans R sous la main.</p>
+    <div class="actions">
+      <button class="principal" id="lancerControle" disabled>Contrôler les 0 questions</button>
+      <span class="etat" id="etatControle"></span>
+    </div>
+    <div id="resultatControle"></div>
+  </section>
+</div>
+</div>
+
+<dialog id="signal">
+  <h3>Signaler un problème d'énoncé</h3>
+  <div class="corps">
+    <p class="ctx" id="sigCtx"></p>
+    <label for="sigNature">De quoi s'agit-il&#8239;?</label>
+    <select id="sigNature">
+      <option>Énoncé ambigu ou incomplet</option>
+      <option>Énoncé faux ou contradictoire</option>
+      <option>Réponse attendue discutable</option>
+      <option>Le code ne s'exécute pas</option>
+      <option>Faute de langue</option>
+      <option>Autre</option>
+    </select>
+    <label for="sigMsg">Qu'avez-vous constaté&#8239;?</label>
+    <textarea id="sigMsg" placeholder="Ce qui vous a bloqué, ou ce que vous avez compris à la place."></textarea>
+    <label for="sigSug">Une correction à proposer&#8239;? <span class="opt">facultatif</span></label>
+    <textarea id="sigSug" placeholder="Une reformulation de l'énoncé, ou le résultat que vous attendiez."></textarea>
+    <label for="sigFic">Une capture d'écran&#8239;? <span class="opt">facultatif</span></label>
+    <input type="file" id="sigFic" accept="image/*">
+    <p class="anonyme">Envoi anonyme : ni votre nom, ni votre code ne sont transmis.</p>
+  </div>
+  <div class="pied">
+    <button class="principal" id="sigEnvoi">Envoyer</button>
+    <button id="sigFermer">Annuler</button>
+    <span class="etat" id="sigEtat"></span>
+  </div>
+</dialog>
+
+<footer>
+  <div class="logos">
+    <img src="data:image/png;base64,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" alt="APEX — UniLaSalle" height="76">
+    <img src="data:image/png;base64,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" alt="UniLaSalle" height="40">
+  </div>
+  <div class="infos">
+    <h2>⁝≡ Crédits</h2>
+    <div class="cols">
+      <div>
+        <strong>SkillQuest</strong> — UniLaSalle<br>
+        Dispositif pédagogique gamifié des Sciences Numériques.<br>
+        <a href="https://skillquest.unilasalle.fr/" target="_blank" rel="noopener">skillquest.unilasalle.fr</a>
+      </div>
+      <div>
+        <strong>Cours de référence</strong><br>
+        R I — découverte du langage, et R II — statistiques appliquées,<br>
+        sur le site de cours SkillQuest.
+      </div>
+      <div>
+        <strong>Conception</strong><br>
+        Julien Duquennoy<br>
+        APEX — UniLaSalle Beauvais, 2026<br>
+        <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
+        <span id="tampon" style="opacity:.65">Version du 31 août 2026 · e70873a</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+<script type="module">
+import { WebR, ChannelType } from 'https://webr.r-wasm.org/latest/webr.mjs';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Le Codex R — R s'exécute dans le navigateur, par WebR.
+
+   Un seul niveau : la difficulté n'est pas algorithmique mais instrumentale.
+   Les questions sont rangées par chapitre du cours, et chacune est corrigée en
+   comparant l'objet renvoyé à celui de la référence.
+   ═══════════════════════════════════════════════════════════════════════════ */
+let BANQUE = [], CHAPITRES = {}, NOTIONS_BANQUE = [], Q = null;
+/* Trois jeux de données, trois mondes : les mêmes gestes s'y apprennent, mais
+   ce sont les données qui donnent leur sens aux questions. */
+const JEUX = {
+  agro:  { nom: 'Agronomie', tableau: 'parcelles',
+           resume: '24 parcelles : cultures, azote apporté, rendements' },
+  geol:  { nom: 'Géologie', tableau: 'sondages',
+           resume: '30 sondages : formations, porosité, granulométrie' },
+  sante: { nom: 'Alimentation et santé', tableau: 'convives',
+           resume: '40 convives : groupes, IMC, apports, troubles déclarés' },
+};
+let webR = null, shelter = null, pret = false;
+
+const CLE = 'skillquest_r_v1';
+let progression = {};
+try { progression = JSON.parse(localStorage.getItem(CLE) || '{}'); } catch (e) { progression = {}; }
+const enregistrer = () => { try { localStorage.setItem(CLE, JSON.stringify(progression)); } catch (e) {} };
+
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+/* Une chaîne R littérale : c'est ainsi qu'on passe du code à R sans se soucier
+   des accolades, guillemets et retours à la ligne de l'étudiant. */
+const litteral = s => '"' + String(s || '')
+  .replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  .replace(/\n/g, '\\n').replace(/\r/g, '') + '"';
+
+/* ── éditeur ─────────────────────────────────────────────────────────────── */
+const editeur = CodeMirror.fromTextArea($('#code'), {
+  mode: 'text/x-rsrc', lineNumbers: true, lineWrapping: true,
+  viewportMargin: Infinity, indentUnit: 2,
+});
+
+/* ── banque ──────────────────────────────────────────────────────────────── */
+async function chargerBanque() {
+  const rep = await fetch('data/r.json', { cache: 'no-store' });
+  if (!rep.ok) throw new Error('banque introuvable (' + rep.status + ')');
+  const d = await rep.json();
+  BANQUE = d.questions || [];
+  CHAPITRES = d.chapitres || {};
+  NOTIONS_BANQUE = d.notions || [];
+
+  const fc = $('#fChap');
+  Object.entries(CHAPITRES).forEach(([cle, c]) => {
+    if (!c.questions) return;
+    const o = document.createElement('option');
+    o.value = cle; o.textContent = c.nom;
+    fc.appendChild(o);
+  });
+  const fj = $('#fJeu');
+  (d.jeux || []).forEach(cle => {
+    const o = document.createElement('option');
+    o.value = cle; o.textContent = (JEUX[cle] || {}).nom || cle;
+    fj.appendChild(o);
+  });
+  const fn = $('#fNotion');
+  NOTIONS_BANQUE.forEach(t => {
+    const o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    fn.appendChild(o);
+  });
+  dessinerChapitres();
+  dessinerListe();
+  majCompteurs();
+}
+
+const reussie = id => !!(progression[id] && progression[id].ok);
+
+function majCompteurs() {
+  $('#cQuestions').textContent = BANQUE.length;
+  $('#cChapitres').textContent = Object.values(CHAPITRES).filter(c => c.questions).length;
+  $('#cJeux').textContent = new Set(BANQUE.map(q => q.jeu).filter(Boolean)).size;
+  $('#cReussies').textContent = BANQUE.filter(q => reussie(q.id)).length;
+  $('#volR').textContent = `${BANQUE.length} questions · ` +
+    `${Object.values(CHAPITRES).filter(c => c.questions).length} chapitres`;
+  fetch('data/sql-sommaire.json').then(r => r.json())
+    .then(d => $('#volSql').textContent = `${d.questions} questions · ${d.themes} thèmes`)
+    .catch(() => {});
+  fetch('data/index.json').then(r => r.json())
+    .then(niveaux => {
+      const n = niveaux.reduce((a, x) => a + (x.n || 0), 0);
+      $('#volPython').textContent = n ? `${n} exercices · ${niveaux.length} niveaux`
+                                      : 'quatre niveaux d’exercices';
+    }).catch(() => {});
+}
+
+function dessinerChapitres() {
+  $('#chapitres').innerHTML = Object.entries(CHAPITRES).filter(([, c]) => c.questions)
+    .map(([cle, c]) => {
+      const qs = BANQUE.filter(q => q.chapitre === cle);
+      const ok = qs.filter(q => reussie(q.id)).length;
+      const pct = qs.length ? Math.round(100 * ok / qs.length) : 0;
+      return `<button class="theme" data-chap="${esc(cle)}">
+        <span class="etiq">${esc(c.cours || '')}</span>
+        <h3>${esc(c.nom)}</h3>
+        <p>${esc(c.resume || '')}</p>
+        <div class="chiffres"><span>${qs.length} question${qs.length > 1 ? 's' : ''}</span>
+          <span>${ok} réussie${ok > 1 ? 's' : ''} · ${pct} %</span></div>
+      </button>`;
+    }).join('');
+  $$('#chapitres .theme').forEach(el => el.onclick = () => {
+    $('#fChap').value = el.dataset.chap;
+    dessinerListe();
+    const premiere = retenues().find(q => !reussie(q.id)) || retenues()[0];
+    if (premiere) ouvrirQuestion(premiere.id);
+  });
+}
+
+function retenues() {
+  const chap = $('#fChap').value, etat = $('#fEtat').value, jeu = $('#fJeu').value;
+  const notion = $('#fNotion').value, rech = $('#fRech').value.trim().toLowerCase();
+  return BANQUE.filter(q =>
+    (!chap || q.chapitre === chap) &&
+    (!jeu || q.jeu === jeu) &&
+    (!notion || (q.tags || []).includes(notion)) &&
+    (!etat || (etat === 'done') === reussie(q.id)) &&
+    (!rech || q.titre.toLowerCase().includes(rech)));
+}
+
+function dessinerListe() {
+  const l = retenues();
+  $('#compte').textContent = l.length + ' question' + (l.length > 1 ? 's' : '')
+    + ' · ' + l.filter(q => reussie(q.id)).length + ' réussie(s)';
+  $('#liste').innerHTML = l.map(q => `
+    <div class="qst${Q && Q.id === q.id ? ' on' : ''}" data-id="${q.id}">
+      <span class="num">${String(q.id)}</span>
+      <span class="ttl">${esc(q.titre)}<div class="dif">${
+        esc((CHAPITRES[q.chapitre] || {}).nom || q.chapitre)}${
+        q.jeu ? ' · ' + esc((JEUX[q.jeu] || {}).nom || q.jeu) : ''}</div></span>
+      <span class="mark">${reussie(q.id) ? '✅' : ''}</span>
+    </div>`).join('') || '<div class="compte">Aucune question ne correspond.</div>';
+  $$('#liste .qst').forEach(el => el.onclick = () => ouvrirQuestion(+el.dataset.id));
+}
+
+/* ── ouverture d'une question ────────────────────────────────────────────── */
+function ouvrirQuestion(id) {
+  Q = BANQUE.find(q => q.id === id);
+  if (!Q) return;
+  $('#accueil').hidden = true;
+  $('#travail').hidden = false;
+  $('#titreQ').textContent = Q.titre;
+  const c = CHAPITRES[Q.chapitre] || {};
+  $('#metaQ').innerHTML = [
+    c.url ? `<a class="tag" href="${c.url}" target="_blank" rel="noopener"
+       title="Ouvrir le chapitre sur le site de cours">${esc(c.nom || Q.chapitre)} ↗</a>`
+          : `<span class="tag">${esc(c.nom || Q.chapitre)}</span>`,
+    Q.points ? `<span class="tag">${Q.points} points</span>` : '',
+    Q.duree ? `<span class="tag">${esc(Q.duree.slice(3))} min</span>` : '',
+    Q.jeu ? `<span class="tag">${esc((JEUX[Q.jeu] || {}).nom || Q.jeu)}</span>` : '',
+  ].join('');
+  $('#enonce').innerHTML = Q.enonce;
+  editeur.setValue(Q.depart || '');
+  editeur.clearHistory();
+
+  const d = $('#donnees'), j = JEUX[Q.jeu] || {};
+  if (Q.prelude && j.tableau) {
+    d.hidden = false;
+    d.innerHTML = `Les données sont déjà en mémoire — <code>${esc(j.tableau)}</code>, `
+      + `${esc(j.resume || '')}. Rien à charger.`;
+  } else if (Q.prelude) {
+    d.hidden = false;
+    d.innerHTML = 'Le fichier de données est déjà déposé dans le dossier de travail.';
+  } else { d.hidden = true; }
+
+  $('#sortie').innerHTML = '<span class="cmt">Exécutez votre code pour voir ce qu’il renvoie.</span>';
+  $('#trace').classList.remove('actif');
+  $('#verdict').innerHTML = '';
+  $('#attendu').hidden = true;
+  $('#solution').textContent = Q.reference;
+  const bloc = $('#bloc-solution');
+  bloc.open = false;
+  bloc.classList.toggle('verrouille', !(progression[id] && progression[id].essai));
+  remplirNotions();
+  dessinerListe();
+  /* CodeMirror mesure sa gouttière à la construction — or la colonne de travail
+     est alors masquée, et tout est mesuré à zéro : les numéros de ligne se
+     superposent au code. Un refresh une fois la colonne visible remet les
+     largeurs d'aplomb. Même remède que sur la page SQL. */
+  requestAnimationFrame(() => editeur.refresh());
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function remplirNotions() {
+  const l = Q.notions || [];
+  $('#etiquettes').innerHTML = l.map((n, i) =>
+    `<button class="etq" data-n="${i}" aria-pressed="false">${n.nom}</button>`).join('')
+    || '<span class="etat">Pas d’indice pour cette question.</span>';
+  $('#notions').innerHTML = l.map((n, i) => `
+    <div class="notion" data-notion="${i}" hidden>
+      <h4>${n.nom}</h4>
+      <pre class="syn">${esc(n.syntaxe)}</pre>
+      <p class="ex">${esc(n.exemple)}</p>
+      <p class="note">${n.note}</p>
+      <p class="lien">${n.url
+        ? `<a href="${n.url}" target="_blank" rel="noopener">${esc(n.page || 'le cours')} ↗</a>`
+        : esc(n.page || '')}</p>
+    </div>`).join('');
+  $$('#etiquettes .etq').forEach(b => b.onclick = () => {
+    const bloc = $(`.notion[data-notion="${b.dataset.n}"]`);
+    bloc.hidden = !bloc.hidden;
+    b.setAttribute('aria-pressed', String(!bloc.hidden));
+  });
+}
+
+/* ── exécution ───────────────────────────────────────────────────────────── */
+async function executer() {
+  if (!pret || !Q) return;
+  const sortie = $('#sortie'), toile = $('#trace');
+  sortie.innerHTML = '<span class="cmt">…</span>';
+  toile.classList.remove('actif');
+  $('#verdict').innerHTML = '';
+
+  progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true });
+  enregistrer();
+  $('#bloc-solution').classList.remove('verrouille');
+
+  try {
+    const cap = await shelter.captureR(
+      `.codex_run(${litteral(Q.prelude)}, ${litteral(editeur.getValue())})`,
+      { withAutoprint: false, captureStreams: true, captureConditions: false,
+        captureGraphics: true });
+    const txt = cap.output.map(l =>
+      l.type === 'stderr' ? `<span class="err">${esc(l.data)}</span>` : esc(l.data)).join('\n');
+    sortie.innerHTML = txt || '<span class="cmt">(aucune sortie)</span>';
+    if (cap.images && cap.images.length) dessiner(toile, cap.images[cap.images.length - 1]);
+  } catch (err) {
+    sortie.innerHTML = `<span class="err">${esc(nettoyer(err))}</span>`;
+  } finally {
+    shelter.purge();
+  }
+}
+
+function dessiner(toile, image) {
+  toile.width = image.width; toile.height = image.height;
+  toile.getContext('2d').drawImage(image, 0, 0);
+  toile.classList.add('actif');
+}
+
+const nettoyer = err => String((err && err.message) || err)
+  .replace(/^Error( in [^:]*)?:\s*/, '').trim();
+
+/* ── vérification ────────────────────────────────────────────────────────── */
+async function verifier() {
+  if (!pret || !Q) return;
+  const v = $('#verdict');
+  v.className = 'verdict att'; v.textContent = 'Contrôle en cours…';
+  const code = editeur.getValue();
+
+  try {
+    let etat;
+    if (Q.comparer === 'graphique') {
+      etat = await verifierGraphique(code);
+    } else {
+      const appel = Q.comparer === 'sortie' ? '.codex_compare_sortie' : '.codex_compare';
+      etat = await webR.evalRString(
+        `${appel}(${litteral(Q.prelude)}, ${litteral(code)}, ${litteral(Q.reference)})`);
+    }
+    afficherVerdict(etat);
+  } catch (err) {
+    v.className = 'verdict ko';
+    v.textContent = '✗ ' + nettoyer(err);
+  }
+}
+
+/* Un graphique ne se compare pas pixel à pixel : deux tracés justes peuvent
+   différer d'un pixel de marge. On contrôle donc ce qui est contrôlable —
+   la bonne fonction est appelée, et un dessin est bien sorti — puis on affiche
+   le tracé attendu à côté du sien, pour que l'étudiant juge de la ressemblance. */
+async function verifierGraphique(code) {
+  const attendues = Q.fonctions || [];
+  const manquante = attendues.find(f => !new RegExp('\\b' + f + '\\s*\\(').test(code));
+  if (manquante) return 'fonction:' + manquante;
+  const cap = await shelter.captureR(
+    `.codex_run(${litteral(Q.prelude)}, ${litteral(code)})`,
+    { withAutoprint: false, captureStreams: true, captureConditions: false,
+      captureGraphics: true });
+  const dessine = cap.images && cap.images.length;
+  if (dessine) dessiner($('#trace'), cap.images[cap.images.length - 1]);
+  shelter.purge();
+  if (!dessine) return 'sansgraphique';
+  await montrerAttendu();
+  return 'ok';
+}
+
+async function montrerAttendu() {
+  const bloc = $('#attendu');
+  bloc.hidden = false;
+  bloc.innerHTML = '<strong>Le tracé attendu</strong> — comparez-le au vôtre : titre, '
+    + 'légendes des axes, forme générale.<canvas id="toileAttendue"></canvas>';
+  try {
+    const cap = await shelter.captureR(
+      `.codex_run(${litteral(Q.prelude)}, ${litteral(Q.reference)})`,
+      { withAutoprint: false, captureStreams: false, captureConditions: false,
+        captureGraphics: true });
+    if (cap.images && cap.images.length) dessiner($('#toileAttendue'), cap.images[0]);
+  } catch (e) { /* le verdict reste valable sans le modèle */ }
+  finally { shelter.purge(); }
+}
+
+function afficherVerdict(etat) {
+  const v = $('#verdict');
+  if (etat === 'ok') {
+    v.className = 'verdict ok';
+    v.textContent = Q.comparer === 'graphique'
+      ? '✓ Le bon tracé est produit — comparez-le au modèle ci-dessous.'
+      : '✓ C’est la bonne réponse.';
+    progression[Q.id] = Object.assign({}, progression[Q.id], { ok: true, essai: true });
+    enregistrer(); dessinerListe(); majCompteurs(); dessinerChapitres();
+    return;
+  }
+  v.className = 'verdict ko';
+  if (etat === 'erreur')        v.textContent = '✗ Votre code ne s’exécute pas — regardez le message dans la console.';
+  else if (etat === 'sansgraphique') v.textContent = '✗ Aucun graphique n’a été produit.';
+  else if (etat.startsWith('fonction:'))
+    v.textContent = '✗ La fonction ' + etat.slice(9) + '() est attendue ici.';
+  else v.textContent = '✗ Le résultat n’est pas celui attendu.';
+}
+
+/* ── contrôle de la banque ────────────────────────────────────────────────
+   Les questions sont écrites sans R sous la main : rien ne garantit qu'une
+   référence s'exécute avant qu'on l'ait jouée. Ce contrôleur les rejoue toutes
+   et rapporte, pour chacune : la référence part-elle en erreur, renvoie-t-elle
+   quelque chose, un graphique sort-il quand il en faut un, et le point de départ
+   ne donne-t-il pas déjà la réponse.
+
+   Réservé à la fabrication : on l'affiche avec ?controle=1 dans l'adresse. */
+async function controlerBanque() {
+  const zone = $('#resultatControle'), etat = $('#etatControle');
+  const bouton = $('#lancerControle');
+  bouton.disabled = true;
+  const anomalies = [];
+  for (let i = 0; i < BANQUE.length; i++) {
+    const q = BANQUE[i];
+    etat.textContent = `${i + 1} / ${BANQUE.length} — ${q.titre}`;
+    const dit = (quoi, detail) => anomalies.push({ q, quoi, detail });
+    try {
+      if (q.comparer === 'graphique') {
+        const cap = await shelter.captureR(
+          `.codex_run(${litteral(q.prelude)}, ${litteral(q.reference)})`,
+          { withAutoprint: false, captureStreams: true, captureConditions: false,
+            captureGraphics: true });
+        if (!(cap.images && cap.images.length)) dit('aucun graphique', '—');
+        (q.fonctions || []).forEach(f => {
+          if (!new RegExp('\\b' + f + '\\s*\\(').test(q.reference))
+            dit('la référence n’appelle pas ' + f + '()', '—');
+        });
+        shelter.purge();
+      } else {
+        const r = await webR.evalRString(
+          `.codex_controle(${litteral(q.prelude)}, ${litteral(q.reference)}, ${litteral(q.comparer || 'objet')})`);
+        if (r !== 'ok') dit('référence en erreur', r);
+      }
+      if (q.depart && q.depart.trim()) {
+        const d = await webR.evalRString(
+          `.codex_compare(${litteral(q.prelude)}, ${litteral(q.depart)}, ${litteral(q.reference)})`);
+        if (d === 'ok') dit('le point de départ donne déjà la réponse', '—');
+      }
+    } catch (err) {
+      dit('exception', nettoyer(err));
+    }
+  }
+  etat.textContent = anomalies.length
+    ? `${anomalies.length} anomalie(s) sur ${BANQUE.length} questions`
+    : `${BANQUE.length} questions contrôlées, aucune anomalie.`;
+  zone.innerHTML = anomalies.length ? `<table>
+    <tr><th>Question</th><th>Chapitre</th><th>Anomalie</th><th>Détail</th></tr>
+    ${anomalies.map(a => `<tr><td class="ko">${a.q.id} — ${esc(a.q.titre)}</td>
+      <td>${esc((CHAPITRES[a.q.chapitre] || {}).nom || '')}</td>
+      <td class="ko">${esc(a.quoi)}</td><td>${esc(a.detail)}</td></tr>`).join('')}
+  </table>` : '<p class="etat ok">Toutes les références s’exécutent.</p>';
+  bouton.disabled = false;
+}
+
+/* ── progression : export / import ───────────────────────────────────────── */
+function exporter() {
+  const blob = new Blob([JSON.stringify({ codex: 'r', date: new Date().toISOString(),
+    progression }, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'codex-r-progression.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  $$('.bilan').forEach(p => p.textContent = 'Progression enregistrée.');
+}
+
+function importer(fichier) {
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    try {
+      const d = JSON.parse(lecteur.result);
+      const p = d.progression || d;
+      let n = 0;
+      Object.entries(p).forEach(([id, e]) => {
+        if (e && e.ok) { progression[id] = Object.assign({}, progression[id], e); n++; }
+      });
+      enregistrer(); dessinerListe(); majCompteurs(); dessinerChapitres();
+      $$('.bilan').forEach(q => q.textContent = n + ' question(s) réussie(s) reprise(s).');
+    } catch (e) {
+      $$('.bilan').forEach(q => q.textContent = 'Fichier illisible.');
+    }
+  };
+  lecteur.readAsText(fichier);
+}
+
+/* ── signalement (même dispositif que Python et SQL) ─────────────────────── */
+function ouvrirSignalement() {
+  $('#sigCtx').textContent = Q ? `Question : ${Q.titre}` : 'Codex R';
+  $('#sigEtat').textContent = '';
+  $('#signal').showModal();
+}
+async function envoyerSignalement() {
+  const etat = $('#sigEtat');
+  etat.className = 'etat'; etat.textContent = 'Envoi…';
+  const d = new FormData();
+  d.append('form-name', 'signalement');
+  d.append('page', 'Codex R');
+  d.append('exercice', Q ? `${Q.id} — ${Q.titre}` : '—');
+  d.append('nature', $('#sigNature').value);
+  d.append('message', $('#sigMsg').value);
+  d.append('suggestion', $('#sigSug').value);
+  d.append('subject', `Codex R — ${$('#sigNature').value}`);
+  if ($('#sigFic').files[0]) d.append('capture', $('#sigFic').files[0]);
+  try {
+    const rep = await fetch('/', { method: 'POST', body: d });
+    if (!rep.ok) throw new Error(rep.status);
+    etat.textContent = 'Merci, c’est envoyé.';
+    setTimeout(() => $('#signal').close(), 1200);
+  } catch (e) {
+    etat.className = 'etat ko';
+    etat.textContent = 'Envoi impossible — réessayez plus tard.';
+  }
+}
+
+/* ── câblage ─────────────────────────────────────────────────────────────── */
+window.addEventListener('resize', () => editeur.refresh());
+$('#run').onclick = executer;
+$('#verif').onclick = verifier;
+$('#reset').onclick = () => { editeur.setValue(Q ? (Q.depart || '') : ''); editeur.focus(); };
+$('#copier-solution').onclick = () => { editeur.setValue(Q.reference); editeur.focus(); };
+$('#retour').onclick = () => {
+  Q = null; $('#travail').hidden = true; $('#accueil').hidden = false;
+  dessinerListe(); window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+$('#hasard').onclick = () => {
+  const l = retenues().filter(q => !reussie(q.id));
+  const choix = (l.length ? l : retenues()).filter(q => !Q || q.id !== Q.id);
+  if (choix.length) ouvrirQuestion(choix[Math.floor(Math.random() * choix.length)].id);
+};
+['#fChap', '#fJeu', '#fEtat', '#fNotion'].forEach(s => $(s).onchange = dessinerListe);
+$('#fRech').oninput = dessinerListe;
+$$('.bt-exporter').forEach(b => b.onclick = exporter);
+$$('.bt-importer').forEach(b => b.onclick = () => $('#fichierProg').click());
+$('#fichierProg').onchange = e => e.target.files[0] && importer(e.target.files[0]);
+$('#signalerExo').onclick = ouvrirSignalement;
+$('#lancerControle').onclick = controlerBanque;
+if (new URLSearchParams(location.search).has('controle')) $('#controle').hidden = false;
+$('#sigFermer').onclick = () => $('#signal').close();
+$('#sigEnvoi').onclick = envoyerSignalement;
+
+/* ── démarrage du moteur ─────────────────────────────────────────────────── */
+/* Trois fonctions déposées dans R une fois pour toutes : exécuter dans un
+   environnement propre, comparer un objet, comparer une sortie. Le code de
+   l'étudiant est passé comme texte, donc jamais mêlé au nôtre. */
+const OUTILS = String.raw`
+.codex_env <- function(prelude) {
+  e <- new.env(parent = globalenv())
+  if (nzchar(prelude)) eval(parse(text = prelude), envir = e)
+  e
+}
+.codex_run <- function(prelude, code) {
+  e <- .codex_env(prelude)
+  for (expr in parse(text = code)) {
+    val <- withVisible(eval(expr, envir = e))
+    if (val$visible) print(val$value)
+  }
+  invisible(NULL)
+}
+.codex_valeur <- function(prelude, code) {
+  e <- .codex_env(prelude)
+  res <- NULL
+  for (expr in parse(text = code)) res <- eval(expr, envir = e)
+  res
+}
+.codex_compare <- function(prelude, code, ref) {
+  a <- try(.codex_valeur(prelude, code), silent = TRUE)
+  if (inherits(a, "try-error")) return("erreur")
+  b <- .codex_valeur(prelude, ref)
+  if (isTRUE(all.equal(a, b))) "ok" else "faux"
+}
+.codex_controle <- function(prelude, ref, mode = "objet") {
+  # Une référence jugée sur sa sortie n'a aucune raison de rendre une valeur :
+  # str(), cat() ou summary() impriment et renvoient NULL de façon invisible.
+  # Contrôler la valeur d'une telle référence la déclarait fausse à tort.
+  if (identical(mode, "sortie")) {
+    sortie <- try(capture.output(.codex_run(prelude, ref)), silent = TRUE)
+    if (inherits(sortie, "try-error")) return(trimws(as.character(sortie)))
+    if (!length(sortie) || !any(nzchar(trimws(sortie))))
+      return("la référence n'affiche rien")
+    return("ok")
+  }
+  res <- try(.codex_valeur(prelude, ref), silent = TRUE)
+  if (inherits(res, "try-error")) return(trimws(as.character(res)))
+  if (is.null(res)) return("la référence ne renvoie rien")
+  "ok"
+}
+.codex_compare_sortie <- function(prelude, code, ref) {
+  net <- function(x) paste(trimws(x), collapse = "\n")
+  a <- try(net(capture.output(.codex_run(prelude, code))), silent = TRUE)
+  if (inherits(a, "try-error")) return("erreur")
+  b <- net(capture.output(.codex_run(prelude, ref)))
+  if (identical(a, b)) "ok" else "faux"
+}
+`;
+
+(async () => {
+  try { await chargerBanque(); }
+  catch (e) { $('#compte').textContent = 'Banque illisible : ' + e.message; }
+
+  const depart = performance.now();
+  try {
+    /* Canal PostMessage : il évite d'exiger l'isolation d'origine (COOP/COEP),
+       qui casserait le chargement de Pyodide et de CodeMirror sur les autres
+       pages. On y perd l'interruption d'un calcul, dont on n'a pas l'usage. */
+    webR = new WebR({ channelType: ChannelType.PostMessage });
+    await webR.init();
+    shelter = await new webR.Shelter();
+    await webR.evalRVoid(OUTILS);
+    const v = await webR.evalRString('paste(R.version$major, R.version$minor, sep = ".")');
+    pret = true;
+    $('#dot').className = 'dot ready';
+    $('#statusTxt').textContent = `R ${v} prêt (${((performance.now() - depart) / 1000).toFixed(1)} s)`;
+    $('#run').disabled = false; $('#verif').disabled = false;
+    const bc = $('#lancerControle');
+    bc.disabled = false;
+    bc.textContent = `Contrôler les ${BANQUE.length} questions`;
+  } catch (err) {
+    $('#dot').className = 'dot ko';
+    $('#statusTxt').textContent = 'R n’a pas pu démarrer';
+    console.error(err);
+  }
+})();
+
+</script>
+</body>
+</html>

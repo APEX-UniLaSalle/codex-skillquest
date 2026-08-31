@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — Python | SkillQuest</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+
+<style>
+  :root{
+    /* SkillQuest — Gruvbox Material (light) */
+    --bg:#F9F5D7;          /* crème, fond principal      */
+    --panel:#EFE6CE;       /* fond secondaire, encarts   */
+    --panel2:#EDEED2;      /* variante d'encart          */
+    --code:#EBDBB2;        /* fond tertiaire, chips      */
+    --sunk:#D0C2A9;        /* sidebar, éléments enfoncés */
+    --ink:#654735;         /* texte courant, brun encre  */
+    --muted:#8A6B52;       /* texte secondaire           */
+    --line:#D0C2A9;        /* filets ton sur ton         */
+    --accent:#C14A4A;      /* carmin : titres, identité  */
+    --accent-soft:#F3E3D3;
+    --link:#E78A4E;        /* orange : éléments interactifs (graphique) */
+    --link-txt:#AF3A03;    /* orange foncé : texte de lien (lisible)    */
+    --ok:#4C7A5D;          /* vert     */
+    --ok-soft:#E4EBD6;
+    --ko:#C14A4A;          /* carmin   */
+    --ko-soft:#F6E0D8;
+    --warn:#B47109;        /* jaune    */
+    --warn-soft:#F4EBCE;
+    --violet:#945E80;
+    --bleu:#45707A;        /* bleu-vert lisible en texte */
+    --lavande:#ECECFF;
+    --term:#32302F;        /* console : brun très sombre, jamais noir pur */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink)}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 18px;
+         display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:20}
+  header h1{font-size:16px;margin:0;font-weight:650;letter-spacing:-.2px;color:var(--accent)}
+  header .sub{color:var(--muted);font-size:12.5px}
+  #status{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:7px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--sunk);flex:none}
+  .dot.ready{background:var(--ok)} .dot.load{background:var(--warn);animation:pulse 1.1s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+
+  main{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;
+       max-width:none;margin:0}
+  @media(max-width:900px){main{grid-template-columns:1fr}}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
+  aside{background:var(--panel2);position:sticky;top:62px;max-height:calc(100vh - 78px);display:flex;flex-direction:column}
+  .filters{padding:10px;border-bottom:1px solid var(--line);display:grid;gap:7px}
+  select,input[type=search]{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+    font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink)}
+  .listwrap{overflow-y:auto;flex:1}
+  .exo{padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:9px;align-items:baseline}
+  .exo:hover{background:var(--accent-soft)}
+  .exo.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+  .exo .num{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px;flex:none;width:30px}
+  .exo .ttl{font-size:13.5px;line-height:1.35}
+  .exo .mark{margin-left:auto;flex:none;font-size:12px}
+  .count{padding:7px 12px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+  /* signalement d'énoncé : discret, sous l'énoncé */
+  .ligne-signaler{display:flex;justify-content:flex-end;margin:6px 0 0}
+  .signaler{background:none;border:0;padding:2px 0;font:inherit;font-size:12.5px;color:var(--muted);
+    cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .signaler:hover{color:var(--link-txt)}
+  dialog#signal{border:1px solid var(--line);border-radius:6px;padding:0;max-width:520px;
+    width:calc(100% - 32px);background:var(--panel);color:var(--ink);font:inherit}
+  dialog#signal::backdrop{background:rgba(60,56,54,.45)}
+  #signal h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:15px;color:var(--accent)}
+  #signal .corps{padding:14px 18px}
+  #signal .ctx{margin:0 0 4px;font-size:12.5px;color:var(--muted)}
+  #signal label{display:block;font-size:13px;font-weight:600;margin:12px 0 5px}
+  #signal select,#signal textarea{width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:6px;background:var(--bg);color:var(--ink);font:inherit;font-size:13.5px}
+  #signal textarea{min-height:105px;resize:vertical}
+  #signal input[type=file]{width:100%;padding:7px 9px;border:1px dashed var(--line);
+     border-radius:6px;font:inherit;font-size:12.5px;color:var(--muted);background:none}
+  #signal .opt{font-weight:400;color:var(--muted);font-size:12px}
+  #signal .anonyme{margin:10px 0 0;font-size:12px;color:var(--muted)}
+  #signal .pied{display:flex;gap:9px;align-items:center;padding:12px 18px;border-top:1px solid var(--line)}
+  #signal .etat{margin-left:auto;font-size:12.5px;color:var(--muted)}
+  #signal .etat.ko{color:var(--ko)}
+
+  section.work{display:grid;gap:14px}
+  .card{padding:16px 18px}
+  .card h2{margin:0 0 3px;font-size:19px;letter-spacing:-.3px;color:var(--accent)}
+  .meta{color:var(--muted);font-size:12.5px;margin-bottom:11px;display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .chip{background:var(--code);border-radius:99px;padding:1px 9px;font-size:11.5px;color:var(--muted)}
+  .statement{font-size:14.5px}
+  .statement code{background:var(--code);padding:1px 5px;border-radius:4px;font-size:13px}
+  .sub-h{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ok);
+         margin:16px 0 7px;font-weight:600}
+  .constraint{background:var(--code);border-radius:3px;padding:8px 11px;font-size:13px;white-space:pre-wrap}
+
+  .editor-head{display:flex;align-items:center;gap:10px;padding:9px 14px;
+    border-bottom:1px solid var(--line);background:var(--code)}
+  .editor-head strong{font-size:13px;font-weight:600}
+  .editor-wrap{display:flex;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13.5px}
+  .editor-wrap{background:var(--term)}
+  .gutter{padding:11px 8px 11px 12px;text-align:right;color:#7C6F64;background:#3C3836;
+          user-select:none;line-height:1.55;border-radius:0;font-variant-numeric:tabular-nums}
+  textarea{flex:1;border:0;outline:0;resize:vertical;padding:11px 13px;min-height:230px;
+           font:inherit;line-height:1.55;background:var(--term);color:#EBDBB2;tab-size:4;
+           caret-color:#E78A4E}
+  .actions{display:flex;gap:9px;padding:11px 14px;border-top:1px solid var(--line);flex-wrap:wrap;align-items:center}
+  button{font:inherit;font-size:13.5px;padding:7px 15px;border-radius:6px;border:1px solid var(--line);
+         background:var(--bg);color:var(--ink);cursor:pointer;font-weight:500}
+  button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.primary{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+  button.primary:hover:not(:disabled){background:#A33B3B}
+  .hint{color:var(--muted);font-size:12.5px;margin-left:auto}
+
+  .res{padding:0 18px 16px}
+  .verdict{padding:11px 14px;border-radius:3px;margin:14px 0 12px;font-size:14px;font-weight:600}
+  .verdict.ok{background:var(--ok-soft);color:var(--ok)}
+  .verdict.ko{background:var(--ko-soft);color:var(--ko)}
+  .verdict.err{background:var(--warn-soft);color:var(--warn)}
+  table.tests{width:100%;border-collapse:collapse;font-size:13px}
+  table.tests th{text-align:left;font-weight:600;color:var(--muted);font-size:11.5px;
+    text-transform:uppercase;letter-spacing:.4px;padding:6px 9px;border-bottom:1px solid var(--line)}
+  table.tests td{padding:7px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.tests tr.fail{background:var(--ko-soft)}
+  pre.io{margin:0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;
+         white-space:pre-wrap;word-break:break-word;max-width:290px}
+  .badge{font-weight:700}
+  .badge.ok{color:var(--ok)} .badge.ko{color:var(--ko)}
+  .esp{color:var(--muted);opacity:.75}
+
+  details.sol{margin-top:14px;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+  details.sol summary{padding:10px 14px;cursor:pointer;font-size:13.5px;font-weight:600;background:var(--code)}
+  details.sol .inner{padding:14px}
+  pre.code{background:var(--code);padding:12px 14px;border-radius:3px;overflow-x:auto;margin:0 0 12px;
+           font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.5}
+  .notion{border-left:3px solid var(--violet);padding:2px 0 2px 12px;margin-bottom:11px}
+  .notion .n-name{font-weight:600;font-size:13.5px}
+  .notion .n-syn{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--code);
+                 padding:2px 6px;border-radius:4px;display:inline-block;margin:4px 0;white-space:pre}
+  .notion .n-ex,.notion .n-note{font-size:13px;color:var(--muted)}
+  .notion .n-lien{display:inline-block;margin-top:5px;font-size:12.5px;color:var(--link-txt);text-decoration:none;
+    border-bottom:1px solid var(--link)}
+  .notion .n-lien:hover{text-decoration:underline}
+  details.sol.indice summary{background:var(--lavande);color:var(--violet);
+    border-bottom:1px solid #C9C9E8}
+  .transfert{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:16px 0 0;
+    padding:13px 0 0;border-top:1px solid var(--line)}
+  .transfert button{font-size:12.5px;padding:6px 12px}
+  .transfert .pourquoi{font-size:12.5px;color:var(--muted);max-width:430px}
+  .transfert .bilan{flex-basis:100%;font-size:12.5px;color:var(--muted);margin:0}
+  .transfert .bilan:empty{display:none}
+  .transfert .bilan.ko{color:var(--ko)}
+  /* Deuxième exemplaire, au bas de la liste : la sauvegarde doit rester à portée
+     pendant qu'on travaille, pas seulement depuis l'accueil. */
+  .transfert.compact{margin:0;padding:9px 10px;gap:7px;flex:none;
+    border-top:1px solid var(--line);background:var(--panel2)}
+  .transfert.compact button{flex:1;font-size:12px;padding:5px 8px}
+  .empty{padding:44px 20px;text-align:center;color:var(--muted)}
+
+  #marque{text-decoration:none;color:inherit;display:flex;align-items:baseline;gap:12px}
+  #marque:hover h1{color:#A33B3B}
+
+  .accueil{padding:0 16px 26px}
+  .hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;
+    padding:34px 38px;margin-bottom:16px}
+  .hero h2{margin:0 0 10px;font-size:30px;letter-spacing:-.5px;color:var(--accent);font-weight:650}
+  .hero p{margin:0;font-size:15.5px;max-width:70ch;line-height:1.75}
+  .hero .compteurs{display:flex;gap:34px;flex-wrap:wrap;margin-top:24px;
+    padding-top:20px;border-top:1px solid var(--line)}
+  .hero .compteurs b{display:block;font-size:26px;color:var(--accent);font-weight:650;line-height:1.2}
+  .hero .compteurs span{font-size:12.5px;color:var(--muted)}
+
+  .niveaux{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:16px}
+  .niv{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:18px 20px;
+    cursor:pointer;text-align:left;font:inherit;color:inherit;display:block;width:100%}
+  .niv:hover{border-color:var(--accent)}
+  .niv .num{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+  .niv h3{margin:5px 0 3px;font-size:17px;color:var(--accent);font-weight:650}
+  .niv .desc{font-size:12.5px;color:var(--muted);min-height:34px}
+  .niv .barre{height:6px;background:var(--sunk);border-radius:99px;overflow:hidden;margin:12px 0 6px}
+  .niv .barre i{display:block;height:100%;background:var(--link);border-radius:99px}
+  .niv .chiffres{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
+
+  .colonnes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .bloc{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:20px 22px}
+  .bloc h3{margin:0 0 12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--ok);font-weight:600}
+  .bloc ol{margin:0;padding-left:20px;font-size:13.5px;line-height:1.85}
+  .bloc ol b{color:var(--ink)}
+  .bloc .themes{display:flex;flex-direction:column;gap:9px;font-size:13.5px}
+  .bloc .themes div{display:flex;align-items:baseline;gap:9px}
+  .bloc .themes em{font-style:normal;color:var(--muted);font-size:12.5px}
+  .pastille{width:9px;height:9px;border-radius:2px;flex:none;transform:translateY(-1px)}
+  .bloc a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
+
+/* ── Choix du parcours : Python ou SQL, en tête de l'accueil ───────────── */
+.parcours{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.parc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:3px;
+  padding:18px 20px;text-decoration:none;color:inherit}
+.parc:hover{border-color:var(--accent)}
+.parc .etiq{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--ok);font-weight:600}
+.parc h3{margin:5px 0 6px;font-size:22px;color:var(--accent);font-weight:650;letter-spacing:-.3px}
+.parc p{margin:0;font-size:13px;color:var(--muted);line-height:1.6}
+.parc .volume{display:inline-block;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.parc.actif{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.parc.actif .etiq{color:var(--accent)}
+  footer{margin:6px 16px 26px;padding:20px 24px;
+    background:var(--panel2);border:1px solid var(--line);border-radius:3px;
+    font-size:12.5px;line-height:1.75;color:var(--muted)}
+  footer h2{margin:0 0 10px;font-size:13px;font-weight:600;color:var(--accent);
+    text-transform:uppercase;letter-spacing:.5px}
+  footer{display:flex;gap:30px;align-items:flex-start;flex-wrap:wrap}
+  footer .logos{display:flex;align-items:center;gap:22px;padding-right:28px;
+    border-right:1px solid var(--line);min-height:76px}
+  footer .logos img{display:block;opacity:.9}
+  footer .infos{flex:1;min-width:280px}
+  footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:16px 26px}
+  @media(max-width:700px){footer .logos{border-right:0;border-bottom:1px solid var(--line);
+    padding:0 0 16px;width:100%}}
+  footer strong{color:var(--ink);font-weight:600}
+  footer a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
+  footer a:hover{text-decoration:underline}
+
+
+  button.mini{padding:3px 9px;font-size:12px;white-space:nowrap}
+
+  .editor-wrap .CodeMirror{flex:1;min-width:0}
+  .CodeMirror{height:auto;min-height:230px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:13.5px;line-height:1.55;border-radius:0;background:var(--term);color:#EBDBB2}
+  .CodeMirror-scroll{min-height:230px}
+  .CodeMirror-gutters{background:#3C3836;border-right:1px solid #504945}
+  .CodeMirror-linenumber{color:#7C6F64}
+  .CodeMirror-cursor{border-left:2px solid #E78A4E}
+  .CodeMirror-selected{background:#504945}
+  .CodeMirror-focused .CodeMirror-selected{background:#5A524C}
+  .CodeMirror-activeline-background{background:#3C3836}
+  /* Gruvbox Material dark — mêmes teintes que la console */
+  .cm-s-default .cm-keyword{color:#D3869B;font-weight:600}
+  .cm-s-default .cm-string{color:#A9B665}
+  .cm-s-default .cm-number{color:#D8A657}
+  .cm-s-default .cm-comment{color:#928374;font-style:italic}
+  .cm-s-default .cm-builtin,.cm-s-default .cm-variable-2{color:#7DAEA3}
+  .cm-s-default .cm-def{color:#89B482}
+  .cm-s-default .cm-operator{color:#E78A4E}
+  .cm-s-default .cm-variable{color:#EBDBB2}
+  .cm-s-default .cm-punctuation,.cm-s-default .cm-bracket{color:#EBDBB2}
+  td .badge-run{font-size:12px;font-weight:700}
+  .console-head{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .console-head strong{font-size:13px;font-weight:600}
+  .console-head select{width:auto;min-width:150px;max-width:330px;font-size:12.5px;padding:5px 8px}
+  .console-head button{padding:5px 12px;font-size:12.5px}
+  #customIn{width:100%;border:0;border-bottom:1px solid var(--line);padding:9px 14px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+    resize:vertical;min-height:52px;outline:0;background:var(--bg);color:var(--ink)}
+  .console-body{background:var(--term);color:#EBDBB2;padding:12px 14px;border-radius:0 0 3px 3px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+    line-height:1.5;white-space:pre-wrap;word-break:break-word;min-height:72px;max-height:290px;overflow-y:auto}
+  .console-body .cmt{color:#A89984}
+  .console-body .err{color:#EA6962}
+  .console-body .lbl{color:#A9B665}
+
+/* accès à la préparation de l'examen, depuis l'accueil */
+.examen{display:flex;align-items:center;gap:18px;margin:26px 0 32px;padding:18px 22px;
+  background:var(--carte,#F9F5D7);border:1px solid var(--bord,#D5C4A1);
+  border-left:5px solid var(--orange,#AF3A03);border-radius:12px;
+  text-decoration:none;color:inherit;transition:background .15s}
+.examen:hover{background:var(--fond2,#F2E5BC)}
+.examen .num{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;
+  color:var(--orange,#AF3A03);font-weight:700}
+.examen h3{margin:4px 0 6px;font-size:17px}
+.examen p{margin:0;font-size:13.5px;line-height:1.7;color:var(--doux,#7C6F64)}
+.examen-fleche{margin-left:auto;font-size:26px;color:var(--orange,#AF3A03);flex:none}
+/* lien vers la fiche de syntaxe, en-tête et accueil */
+.fiche{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:13px;
+  font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--accent);
+  color:var(--accent);background:#F6EAE0;margin-right:14px;white-space:nowrap}
+.fiche:hover{background:var(--accent);color:#fff}
+/* rappel au-dessus de l'éditeur, là où l'on en a besoin en écrivant */
+.fiche-mini{margin-left:auto;font-size:12.5px;font-weight:600;text-decoration:none;
+  color:var(--accent);white-space:nowrap}
+.fiche-mini:hover{text-decoration:underline}
+#hasard{margin-top:2px}
+</style>
+</head>
+<body>
+
+<!-- Signalement d'énoncé. Ce formulaire n'est jamais affiché : il sert uniquement
+     à ce que Netlify enregistre le formulaire au déploiement. L'envoi réel est fait
+     en POST par le script, plus bas. Le champ bot-field est un piège à robots. -->
+<form name="signalement" data-netlify="true" netlify-honeypot="bot-field"
+      enctype="multipart/form-data" hidden>
+  <input type="text" name="page">
+  <input type="text" name="exercice">
+  <input type="text" name="nature">
+  <textarea name="message"></textarea>
+  <textarea name="suggestion"></textarea>
+  <input type="hidden" name="subject">
+  <input type="file" name="capture">
+  <input type="text" name="bot-field">
+</form>
+
+<header>
+  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+    <h1>Le Codex</h1>
+    <span class="sub">Python — lecture et écriture de code</span>
+  </a>
+  <div id="status">
+    <span id="offline" title="Ressources en cache : l'app démarre sans connexion"></span>
+    <a class="fiche" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener"
+       title="Ouvrir la Cheat Sheet Python dans un nouvel onglet">📄 Cheat Sheet</a>
+    <span class="dot load" id="dot"></span><span id="statusTxt">Chargement de Python…</span>
+  </div>
+</header>
+
+<!-- champ unique, partagé par les deux boutons « Charger » (accueil et liste) -->
+<input type="file" id="fichierProg" accept="application/json,.json" hidden>
+
+<section class="accueil" id="accueil"></section>
+
+<main id="travail" style="display:none">
+  <aside class="panel">
+    <div class="filters">
+      <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil</button>
+      <select id="fNiveau"></select>
+      <select id="fTheme">
+        <option value="">Tous les thèmes</option>
+        <option value="geologie">Géologie</option>
+        <option value="agronomie">Agronomie</option>
+        <option value="alim_sante">Alimentation &amp; Santé</option>
+        <option value="autres">Autres</option>
+      </select>
+      <select id="fNotion"><option value="">Toutes les notions</option></select>
+      <select id="fEtat">
+        <option value="">Tous les exercices</option>
+        <option value="todo">Non réussis</option>
+        <option value="done">Réussis</option>
+      </select>
+      <input type="search" id="fSearch" placeholder="Rechercher un titre…">
+      <button id="hasard" title="Ouvre un exercice non réussi, tiré au sort dans ce niveau">🎲 Exercice au hasard</button>
+    </div>
+    <div class="count" id="count"></div>
+    <div class="listwrap" id="list"></div>
+    <div class="transfert compact">
+      <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder</button>
+      <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+      <p class="bilan"></p>
+    </div>
+  </aside>
+
+  <section class="work" id="work">
+    <div class="panel empty">Sélectionnez un exercice pour commencer.</div>
+  </section>
+</main>
+
+<dialog id="signal">
+  <h3>Signaler un problème d'énoncé</h3>
+  <div class="corps">
+    <p class="ctx" id="sigCtx"></p>
+    <label for="sigNature">De quoi s'agit-il&#8239;?</label>
+    <select id="sigNature">
+      <option>Énoncé ambigu ou incomplet</option>
+      <option>Énoncé faux ou contradictoire</option>
+      <option>Jeu d'essai incorrect</option>
+      <option>Faute de langue</option>
+      <option>Autre</option>
+    </select>
+    <label for="sigMsg">Qu'avez-vous constaté&#8239;?</label>
+    <textarea id="sigMsg" placeholder="Ce qui vous a bloqué, ou ce que vous avez compris à la place."></textarea>
+    <label for="sigSug">Une correction à proposer&#8239;? <span class="opt">facultatif</span></label>
+    <textarea id="sigSug" placeholder="Une reformulation de l'énoncé, ou le résultat que vous attendiez."></textarea>
+    <label for="sigFic">Une capture d'écran&#8239;? <span class="opt">facultatif</span></label>
+    <input type="file" id="sigFic" accept="image/*">
+    <p class="anonyme">Envoi anonyme : ni votre nom, ni votre code, ni votre progression ne sont transmis.</p>
+  </div>
+  <div class="pied">
+    <button class="primary" id="sigEnvoi">Envoyer</button>
+    <button id="sigFermer">Annuler</button>
+    <span class="etat" id="sigEtat"></span>
+  </div>
+</dialog>
+<footer>
+  <div class="logos">
+    <img src="data:image/png;base64,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" alt="APEX — UniLaSalle" height="76">
+    <img src="data:image/png;base64,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" alt="UniLaSalle" height="40">
+  </div>
+  <div class="infos">
+    <h2>⁝≡ Crédits</h2>
+    <div class="cols">
+      <div>
+        <strong>SkillQuest</strong> — UniLaSalle<br>
+        Dispositif pédagogique gamifié des Sciences Numériques.<br>
+        <a href="https://skillquest.unilasalle.fr/" target="_blank" rel="noopener">skillquest.unilasalle.fr</a>
+      </div>
+      <div>
+        <strong>Cours de référence</strong><br>
+        <a href="https://cours.skillquest.unilasalle.fr/Code+et+D%C3%A9veloppement/Programmation/Lecture+de+Code+-+Python/Lecture+de+code+-+Python"
+           target="_blank" rel="noopener">Lecture de code — Python</a><br>
+        sur le site de cours SkillQuest.
+      </div>
+      <div>
+        <strong>Conception</strong><br>
+        Julien Duquennoy<br>
+        APEX — UniLaSalle Beauvais, 2026<br>
+        <span id="tampon" style="opacity:.65">Version du 31 août 2026 · e70873a</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* ───────────────── état ───────────────── */
+const S = { niveaux: [], data: {}, cur: null, slug: null, worker: null, ready: false };
+const KEY = 'skillquest_entrainement_v1';
+const progress = JSON.parse(localStorage.getItem(KEY) || '{}');
+const saveProgress = () => localStorage.setItem(KEY, JSON.stringify(progress));
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+/* Les espaces d'une sortie attendue ou obtenue sont matérialisés par un point
+   médian : sans cela, un espace en fin de ligne rend deux colonnes identiques à
+   l'œil alors que le test échoue. Les retours à la ligne restent tels quels, et
+   aucune différence n'est signalée : c'est à l'étudiant de les repérer. */
+const showIO = (v, empty='(vide)') => v === ''
+  ? `<em style="color:#A89984">${empty}</em>`
+  : esc(v).replace(/ /g, '<span class="esp">·</span>');
+const show = (v, empty='(vide)') => v === '' ? `<em style="color:#A89984">${empty}</em>` : esc(v);
+
+/* ───────────────── worker Pyodide ─────────────────
+   L'exécution se fait dans un worker : une boucle infinie
+   écrite par l'étudiant ne fige jamais la page (on tue le worker). */
+const WORKER_SRC = `
+importScripts('https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js');
+let pyodide = null;
+const RUNNER = \`
+import sys, io, builtins, traceback
+def __run__(code, data):
+    buf = io.StringIO()
+    lines = data.split('\\\\n')
+    idx = [0]
+    def _input(prompt=''):
+        if idx[0] < len(lines):
+            v = lines[idx[0]]; idx[0] += 1; return v
+        raise EOFError("plus aucune ligne à lire : votre programme appelle input() plus souvent que le nombre de lignes fournies")
+    old_in, old_out = builtins.input, sys.stdout
+    builtins.input = _input
+    sys.stdout = buf
+    err = None
+    try:
+        exec(compile(code, '<solution>', 'exec'), {'__name__': '__main__'})
+    except SystemExit:
+        pass
+    except SyntaxError as e:
+        err = 'SyntaxError ligne ' + str(e.lineno) + ' : ' + str(e.msg)
+    except BaseException as e:
+        err = type(e).__name__ + ' : ' + str(e)
+        frames = [f for f in traceback.extract_tb(sys.exc_info()[2])
+                  if f.filename == '<solution>']
+        if frames:
+            f = frames[-1]
+            err += '\\\\n  ligne ' + str(f.lineno)
+            if f.line:
+                err += ' :  ' + f.line.strip()
+    finally:
+        builtins.input = old_in
+        sys.stdout = old_out
+    return [buf.getvalue().rstrip('\\\\n'), err]
+\`;
+self.onmessage = async (ev) => {
+  const { code, tests, stopOnFail } = ev.data;
+  if (!pyodide) {
+    pyodide = await loadPyodide();
+    pyodide.runPython(RUNNER);
+    self.postMessage({ type: 'ready' });
+    if (!code) return;
+  }
+  const run = pyodide.globals.get('__run__');
+  const out = [];
+  for (const t of tests) {
+    let res;
+    try { res = run(code, t.stdin).toJs(); }
+    catch (e) { res = ['', String(e).split('\\n')[0]]; }
+    out.push({ stdout: res[0], error: res[1] });
+    if (stopOnFail) {
+      const attendu = (t.attendu || '').replace(/\\n+$/, '');
+      if (res[1] || res[0] !== attendu) break;
+    }
+  }
+  self.postMessage({ type: 'result', out });
+};
+`;
+
+function spawnWorker() {
+  if (S.worker) S.worker.terminate();
+  S.worker = new Worker(URL.createObjectURL(new Blob([WORKER_SRC], { type: 'text/javascript' })));
+  S.worker.onmessage = (ev) => {
+    if (ev.data.type === 'ready') {
+      S.ready = true;
+      document.getElementById('dot').className = 'dot ready';
+      document.getElementById('statusTxt').textContent = 'Python prêt';
+      const b = document.getElementById('run'); if (b) b.disabled = false;
+    } else if (ev.data.type === 'result' && S.pending) {
+      clearTimeout(S.timer); const cb = S.pending; S.pending = null; cb(ev.data.out);
+    }
+  };
+  S.worker.onerror = (ev) => {
+    S.ready = false;
+    document.getElementById('dot').className = 'dot load';
+    document.getElementById('statusTxt').textContent =
+      'Python n’a pas pu être chargé — rechargez la page';
+    console.error('worker Pyodide :', ev.message || ev);
+  };
+  S.worker.postMessage({ code: null, tests: [] });
+}
+
+function execute(code, tests, cb, stopOnFail) {
+  if (!S.ready) return cb(null, 'Python n’est pas encore chargé.');
+  S.pending = r => cb(r, null);
+  S.timer = setTimeout(() => {
+    S.pending = null; S.ready = false;
+    document.getElementById('dot').className = 'dot load';
+    document.getElementById('statusTxt').textContent = 'Redémarrage…';
+    spawnWorker();
+    cb(null, 'Temps dépassé (10 s) : votre programme tourne sans fin. Vérifiez vos boucles.');
+  }, 10000);
+  S.worker.postMessage({ code, tests, stopOnFail: !!stopOnFail });
+}
+
+/* ───────────────── données ───────────────── */
+const INLINE = typeof window.__DATA__ !== 'undefined' ? window.__DATA__ : null;
+
+async function boot() {
+  spawnWorker();
+  S.niveaux = INLINE ? INLINE.index : await (await fetch('data/index.json')).json();
+  const sel = document.getElementById('fNiveau');
+  sel.innerHTML = S.niveaux.map(n => `<option value="${n.slug}">${n.libelle} — ${n.n} exercices</option>`).join('');
+  sel.onchange = () => loadNiveau(sel.value);
+  for (const n of S.niveaux) await charger(n.slug);   // pour compter la progression
+  S.slug = S.niveaux[0].slug;
+  afficherAccueil();
+}
+
+async function charger(slug) {
+  if (!S.data[slug])
+    S.data[slug] = INLINE ? INLINE[slug] : await (await fetch(`data/${slug}.json`)).json();
+  return S.data[slug];
+}
+
+/* ───────────────── accueil ───────────────── */
+const DESCRIPTIONS = {
+  prog1: 'Premiers programmes : lire une entrée, calculer, afficher.',
+  prog2: 'Boucles, conditions et chaînes de caractères.',
+  prog3: 'Listes, parcours imbriqués et manipulations de texte.',
+  prog4: 'Algorithmes complets : tris, recherches, structures.',
+};
+const THEMES_ACCUEIL = [
+  ['geologie',   'Géologie',              'var(--bleu)',   'forages, logs, granulométrie, gravimétrie'],
+  ['agronomie',  'Agronomie',             'var(--ok)',     'parcelles, rendements, élevage, irrigation'],
+  ['alim_sante', 'Alimentation & Santé',  'var(--accent)', 'nutrition, étiquetage, diététique'],
+  ['autres',     'Autres',                'var(--violet)', 'SkillQuest, jeux, espace, musique'],
+];
+
+function statsNiveau(slug) {
+  const ex = (S.data[slug] || {}).exercices || [];
+  const faits = ex.filter(e => progress[e.id] && progress[e.id].ok).length;
+  return { total: ex.length, faits, pct: ex.length ? Math.round(100 * faits / ex.length) : 0 };
+}
+
+function afficherAccueil() {
+  document.getElementById('travail').style.display = 'none';
+  const acc = document.getElementById('accueil');
+  acc.style.display = 'block';
+  const tot = S.niveaux.reduce((a, n) => a + statsNiveau(n.slug).total, 0);
+  const faits = S.niveaux.reduce((a, n) => a + statsNiveau(n.slug).faits, 0);
+
+  acc.innerHTML = `
+    <div class="parcours">
+      <a class="parc actif" href="python.html" aria-current="page">
+        <span class="etiq">Codex · vous êtes ici</span>
+        <h3>Python</h3>
+        <p>Lire et écrire du code : entrées, boucles, listes, algorithmes.</p>
+        <span class="volume">${tot} exercices · ${S.niveaux.length} niveaux</span>
+      </a>
+      <a class="parc" href="sql.html">
+        <span class="etiq">Codex</span>
+        <h3>SQL</h3>
+        <p>Interroger une base : filtres, jointures, agrégats, sous-requêtes.</p>
+        <span class="volume" id="volSql">…</span>
+      </a>
+        <a class="parc" href="r.html">
+      <span class="etiq">Codex</span>
+      <h3>R</h3>
+      <p>Manipuler des données : vecteurs, tableaux, graphiques, statistiques.</p>
+      <span class="volume" id="volR">…</span>
+    </a>
+</div>
+
+    <div class="hero">
+      <h2>Le Codex</h2>
+      <p>Un recueil d'exercices Python pour apprendre à <strong>lire</strong> puis à
+         <strong>écrire</strong> du code. Chaque exercice s'écrit dans le navigateur, se teste
+         immédiatement et se compare à une solution commentée. Les énoncés sont ancrés dans
+         vos disciplines : géologie, agronomie, alimentation et santé.</p>
+      <div class="compteurs">
+        <div><b>${tot}</b><span>exercices</span></div>
+        <div><b>${S.niveaux.length}</b><span>niveaux de difficulté</span></div>
+        <div><b>${faits}</b><span>réussis par vous</span></div>
+      </div>
+      <div class="transfert">
+        <button class="bt-exporter">⤓ Exporter ma progression</button>
+        <button class="bt-importer">⤒ Charger un fichier</button>
+        <span class="pourquoi">Votre progression reste sur ce poste. Emportez-la dans un
+          fichier pour la retrouver ailleurs.</span>
+        <p class="bilan"></p>
+      </div>
+    </div>
+
+    <div class="niveaux">
+      ${S.niveaux.map(n => {
+        const st = statsNiveau(n.slug);
+        return `<button class="niv" data-slug="${n.slug}">
+          <div class="num">${n.niveau}</div>
+          <h3>${n.libelle}</h3>
+          <div class="desc">${DESCRIPTIONS[n.slug] || ''}</div>
+          <div class="barre"><i style="width:${st.pct}%"></i></div>
+          <div class="chiffres"><span>${st.faits} / ${st.total} réussis</span><span>${st.pct} %</span></div>
+        </button>`;
+      }).join('')}
+    </div>
+
+    <a class="examen" href="coderpad.html">
+      <div class="examen-txt">
+        <div class="num">Avant l'examen</div>
+        <h3>Préparation au test CoderPad</h3>
+        <p>L'examen ne se passe pas comme le Codex : les données arrivent en
+           <b>paramètres</b> et le résultat se rend avec <b>return</b>, non avec
+           <code>print()</code>. Six exercices pour prendre le pli, exécutables ici même.</p>
+      </div>
+      <div class="examen-fleche">→</div>
+    </a>
+
+    <div class="colonnes">
+      <div class="bloc">
+        <h3>⁝≡ Comment ça marche</h3>
+        <ol>
+          <li>Choisissez un niveau, puis un exercice dans la liste.</li>
+          <li>Écrivez votre programme : <b>input()</b> pour lire, <b>print()</b> pour afficher.</li>
+          <li>Lancez un jeu d'essai, ou <b>Tout tester</b> d'un coup.</li>
+          <li>Bloqué ? Ouvrez l'<b>indice</b> : il renvoie à la page de cours.</li>
+          <li>Réussi ? La <b>solution experte</b> s'ouvre pour aller plus loin.</li>
+        </ol>
+      </div>
+      <div class="bloc">
+        <h3>📋 Thèmes des énoncés</h3>
+        <div class="themes">
+          ${THEMES_ACCUEIL.map(([, nom, coul, det]) =>
+            `<div><span class="pastille" style="background:${coul}"></span>
+               <span><strong>${nom}</strong> — <em>${det}</em></span></div>`).join('')}
+        </div>
+      </div>
+      <div class="bloc">
+        <h3>♨ Avant de commencer</h3>
+        <p style="margin:0 0 10px;font-size:13.5px;line-height:1.8">
+          Python s'exécute dans votre navigateur : rien n'est envoyé sur un serveur et votre
+          code reste sur ce poste. Le premier chargement prend quelques secondes, les suivants
+          sont instantanés.</p>
+        <p style="margin:0 0 10px;font-size:13.5px;line-height:1.8">
+          Votre code et vos exercices réussis sont enregistrés <strong>dans ce navigateur</strong>.
+          Ils ne vous suivent pas d'un poste à l'autre, et vider les données du navigateur les
+          efface. Les boutons d'export en haut de cette page permettent de les emporter
+          d'un poste à l'autre.</p>
+
+        <p style="margin:0;font-size:13.5px">
+          Le cours de référence :
+          <a href="https://cours.skillquest.unilasalle.fr/Code+et+D%C3%A9veloppement/Programmation/Lecture+de+Code+-+Python/Lecture+de+code+-+Python"
+             target="_blank" rel="noopener">Lecture de code — Python</a>.</p>
+      </div>
+    </div>`;
+
+  acc.querySelectorAll('.niv').forEach(b =>
+    b.onclick = () => ouvrirNiveau(b.dataset.slug));
+  brancherTransfert();
+  volumeSql();
+}
+
+/* ─────────────── transfert de la progression ───────────────
+   Tout reste local : le fichier est fabriqué et relu par le navigateur,
+   rien ne transite par un serveur. */
+const FORMAT_PROG = 'codex-progression';
+
+const DOMAINE_PROG = 'python';
+
+/* Les mêmes commandes existent en deux exemplaires : dans l'accueil, et au bas de
+   la liste pour rester accessibles pendant qu'on travaille. On les branche par
+   classe, et le compte rendu s'écrit dans les deux à la fois — l'accueil étant
+   redessiné à chaque import, le lier par identifiant ne tiendrait pas. */
+function dire(texte, erreur) {
+  document.querySelectorAll('.transfert .bilan').forEach(b => {
+    b.textContent = texte;
+    b.className = erreur ? 'bilan ko' : 'bilan';
+  });
+}
+
+/* Le volume du parcours SQL tient dans un sommaire de quelques octets : inutile
+   de télécharger la banque entière pour afficher un nombre sur l'accueil. */
+async function volumeSql() {
+  const el = document.getElementById('volSql');
+  if (el) {
+    try {
+      const s = await (await fetch('data/sql-sommaire.json')).json();
+      el.textContent = `${s.questions} questions · ${s.themes} thèmes`;
+    } catch (_) { el.textContent = 'plusieurs bases à explorer'; }
+  }
+  const r = document.getElementById('volR');
+  if (r) {
+    try {
+      const s = await (await fetch('data/r-sommaire.json')).json();
+      r.textContent = `${s.questions} questions · ${s.chapitres} chapitres`;
+    } catch (_) { r.textContent = 'du langage aux statistiques'; }
+  }
+}
+
+function brancherTransfert() {
+  const champ = document.getElementById('fichierProg');
+  if (!champ) return;
+
+  document.querySelectorAll('.bt-exporter').forEach(b => b.onclick = () => {
+    const n = Object.keys(progress).length;
+    if (!n) { dire('Rien à exporter pour l’instant.', true); return; }
+    const contenu = JSON.stringify({
+      format: FORMAT_PROG, version: 1, domaine: DOMAINE_PROG,
+      date: new Date().toISOString(),
+      exercices: progress,
+    }, null, 1);
+    const url = URL.createObjectURL(new Blob([contenu], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `codex-python-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    const faits = Object.values(progress).filter(v => v.ok).length;
+    dire(`Fichier créé : ${n} exercice${n > 1 ? 's' : ''} enregistré${n > 1 ? 's' : ''}, dont ${faits} réussi${faits > 1 ? 's' : ''}.`);
+  });
+
+  document.querySelectorAll('.bt-importer').forEach(b =>
+    b.onclick = () => { champ.value = ''; champ.click(); });
+
+  champ.onchange = async () => {
+    const f = champ.files[0];
+    if (!f) return;
+    let lu;
+    try { lu = JSON.parse(await f.text()); }
+    catch (_) { dire('Fichier illisible : ce n’est pas un export du Codex.', true); return; }
+    if (!lu || lu.format !== FORMAT_PROG || typeof lu.exercices !== 'object') {
+      dire('Ce fichier n’est pas un export du Codex.', true); return;
+    }
+    // les fichiers d'avant la séparation Python / SQL n'ont pas de domaine
+    if (lu.domaine && lu.domaine !== DOMAINE_PROG) {
+      dire('Ce fichier vient du Codex SQL : chargez-le depuis la page SQL.', true); return;
+    }
+    const r = fusionnerProgression(lu.exercices);
+    // la progression fusionnée change les compteurs et les barres : on redessine
+    if (document.getElementById('accueil').style.display !== 'none') afficherAccueil();
+    if (S.slug && S.data[S.slug]) renderList();
+    dire(r.ajoutes || r.completes
+      ? `Import terminé : ${r.ajoutes} exercice${r.ajoutes > 1 ? 's' : ''} ajouté${r.ajoutes > 1 ? 's' : ''}, ${r.completes} passé${r.completes > 1 ? 's' : ''} en réussi.`
+      : 'Import terminé : votre progression était déjà à jour.');
+  };
+}
+
+/* La fusion n'écrase jamais : une réussite déjà acquise le reste, et le code
+   présent sur ce poste est conservé s'il existe. */
+function fusionnerProgression(entrant) {
+  let ajoutes = 0, completes = 0;
+  for (const [id, v] of Object.entries(entrant)) {
+    if (!v || typeof v !== 'object') continue;
+    const actuel = progress[id];
+    if (!actuel) {
+      progress[id] = { ok: !!v.ok, code: typeof v.code === 'string' ? v.code : '' };
+      ajoutes++;
+      continue;
+    }
+    if (v.ok && !actuel.ok) { actuel.ok = true; completes++; }
+    if (!actuel.code && typeof v.code === 'string') actuel.code = v.code;
+  }
+  saveProgress();
+  return { ajoutes, completes };
+}
+
+async function ouvrirNiveau(slug) {
+  document.getElementById('accueil').style.display = 'none';
+  document.getElementById('travail').style.display = 'grid';
+  document.getElementById('fNiveau').value = slug;
+  await loadNiveau(slug);
+  document.getElementById('travail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function loadNiveau(slug) {
+  S.slug = slug;
+  await charger(slug);
+  S.cur = null;
+  document.getElementById('work').innerHTML =
+    '<div class="panel empty">Sélectionnez un exercice pour commencer.</div>';
+  remplirNotions();
+  renderList();
+}
+
+/* ───────────────── liste ───────────────── */
+/* Le nom d'une notion contient du balisage (<code>len()</code>) : on en tire un
+   libellé lisible pour la liste déroulante, qui sert aussi de clé de comparaison. */
+const texteBrut = h => String(h).replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+
+/* La liste des notions est reconstruite à chaque niveau : elle ne propose que
+   ce qui existe réellement, avec le nombre d'exercices concernés. */
+function remplirNotions() {
+  const sel = document.getElementById('fNotion');
+  const avant = sel.value;
+  const compte = new Map();
+  for (const e of S.data[S.slug].exercices)
+    for (const n of e.indice || []) {
+      const cle = texteBrut(n.nom);
+      compte.set(cle, (compte.get(cle) || 0) + 1);
+    }
+  const tri = [...compte.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
+  sel.innerHTML = '<option value="">Toutes les notions</option>' +
+    tri.map(([nom, k]) => `<option value="${esc(nom)}">${esc(nom)} (${k})</option>`).join('');
+  sel.value = [...compte.keys()].includes(avant) ? avant : '';
+}
+
+function filtered() {
+  const no = document.getElementById('fNotion').value;
+  const th = document.getElementById('fTheme').value;
+  const et = document.getElementById('fEtat').value;
+  const q  = document.getElementById('fSearch').value.trim().toLowerCase();
+  return S.data[S.slug].exercices.filter(e => {
+    if (th && e.theme !== th) return false;
+    if (no && !(e.indice || []).some(n => texteBrut(n.nom) === no)) return false;
+    const done = !!(progress[e.id] && progress[e.id].ok);
+    if (et === 'done' && !done) return false;
+    if (et === 'todo' && done) return false;
+    if (q && !e.titre.toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function renderList() {
+  const list = filtered();
+  const done = S.data[S.slug].exercices.filter(e => progress[e.id] && progress[e.id].ok).length;
+  document.getElementById('count').textContent =
+    `${list.length} affiché${list.length > 1 ? 's' : ''} · ${done}/${S.data[S.slug].exercices.length} réussis`;
+  document.getElementById('list').innerHTML = list.map(e => `
+    <div class="exo${S.cur && S.cur.id === e.id ? ' on' : ''}" data-id="${e.id}">
+      <span class="num">${String(e.id).padStart(3, '0')}</span>
+      <span class="ttl">${esc(e.titre)}</span>
+      <span class="mark">${progress[e.id] && progress[e.id].ok ? '✅' : ''}</span>
+    </div>`).join('') || '<div class="empty">Aucun exercice ne correspond.</div>';
+  document.querySelectorAll('.exo').forEach(el =>
+    el.onclick = () => openExo(+el.dataset.id));
+}
+['fTheme', 'fNotion', 'fEtat', 'fSearch'].forEach(id =>
+  document.getElementById(id).addEventListener('input', renderList));
+document.getElementById('retour').onclick = () => afficherAccueil();
+
+/* tirage au sort parmi les exercices du niveau qui ne sont pas encore réussis.
+   Rien d'autre que la progression déjà stockée dans le navigateur n'est consulté. */
+document.getElementById('hasard').onclick = () => {
+  if (!S.slug || !S.data[S.slug]) return;
+  const restants = S.data[S.slug].exercices.filter(e => !(progress[e.id] && progress[e.id].ok));
+  const zone = document.getElementById('count');
+  if (!restants.length) {
+    zone.textContent = 'Tous les exercices de ce niveau sont réussis 🎉';
+    return;
+  }
+  const tire = restants[Math.floor(Math.random() * restants.length)];
+  // les filtres sont remis à zéro, sinon l'exercice tiré peut rester masqué
+  document.getElementById('fTheme').value = '';
+  document.getElementById('fNotion').value = '';
+  document.getElementById('fEtat').value = '';
+  document.getElementById('fSearch').value = '';
+  renderList();
+  openExo(tire.id);
+  const ligne = document.querySelector('.exo[data-id="' + tire.id + '"]');
+  if (ligne) ligne.scrollIntoView({ block: 'center', behavior: 'smooth' });
+};
+
+/* ───────────────── exercice ───────────────── */
+function openExo(id) {
+  S.cur = S.data[S.slug].exercices.find(e => e.id === id);
+  renderList();
+  const e = S.cur;
+  const THEMES = { geologie:'Géologie', agronomie:'Agronomie',
+                   alim_sante:'Alimentation & Santé', autres:'Autres' };
+  const saved = progress[e.id] && progress[e.id].code;
+
+  document.getElementById('work').innerHTML = `
+    <div class="panel card">
+      <h2>${String(e.id).padStart(3,'0')} — ${esc(e.titre)}</h2>
+      <div class="meta">
+        <span class="chip">${THEMES[e.theme] || e.theme}</span>
+        <span class="chip">${e.points} pts · ${e.duree} min</span>
+        ${e.tags.map(t => `<span class="chip">${esc(t)}</span>`).join('')}
+      </div>
+      <div class="statement">${e.enonce}</div>
+      <div class="ligne-signaler">
+        <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+      </div>
+      ${e.entree ? `<div class="sub-h">♨ Entrée</div><div class="constraint">${esc(e.entree)}</div>` : ''}
+      ${e.sortie ? `<div class="sub-h">♨ Sortie</div><div class="constraint">${esc(e.sortie)}</div>` : ''}
+      ${e.contraintes ? `<div class="sub-h">📋 Contraintes</div><div class="constraint">${e.contraintes}</div>` : ''}
+      <div class="sub-h">⁝≡ Jeux d'essai</div>
+      <table class="tests" id="jeux">
+        <tr><th style="width:42%">Entrée</th><th>Sortie attendue</th><th style="width:78px"></th></tr>
+        ${e.tests.map((t, i) => `<tr>
+            <td><pre class="io">${show(t.stdin)}</pre></td>
+            <td><pre class="io">${showIO(t.attendu)}</pre></td>
+            <td><button class="mini" data-jeu="${i}" ${S.ready ? '' : 'disabled'}>▶ Tester</button></td>
+          </tr>`).join('')}
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="editor-head"><strong>Votre solution</strong>
+        <span class="hint">Lisez avec <code>input()</code>, écrivez avec <code>print()</code>
+          &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> pour tester</span>
+        <a class="fiche-mini" href="ressources/cheat-sheet-python.pdf" target="_blank"
+           rel="noopener">📄 Cheat Sheet</a></div>
+      <div class="editor-wrap">
+        <div class="gutter" id="gutter">1</div>
+        <textarea id="code" spellcheck="false" placeholder="# Votre code Python ici"></textarea>
+      </div>
+      <div class="actions">
+        <button class="primary" id="run" ${S.ready ? '' : 'disabled'}>▶▶ Tout tester</button>
+        <button id="reset">Effacer</button>
+        <span class="hint">Votre code est conservé dans ce navigateur.</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="console-head">
+        <strong>Console</strong>
+        <select id="cIn">
+          ${e.tests.map((t, i) =>
+            `<option value="${i}">Jeu d'essai ${i + 1} — ${esc(t.stdin.replace(/\n/g, ' ⏎ ').slice(0, 34))}</option>`).join('')}
+          <option value="libre">Entrée personnalisée…</option>
+        </select>
+        <button id="exec" ${S.ready ? '' : 'disabled'}>Exécuter</button>
+        <span class="hint">Sortie brute de votre programme.</span>
+      </div>
+      <textarea id="customIn" style="display:none" spellcheck="false"
+        placeholder="Une valeur par ligne, comme les jeux d'essai"></textarea>
+      <div class="console-body" id="cOut"><span class="cmt">Exécutez votre code pour voir ce qu'il affiche.</span></div>
+    </div>
+
+    ${e.indice && e.indice.length ? `<div class="panel" style="padding:0 18px 4px" id="indiceSeul">
+        ${indiceBlock(e)}</div>` : ''}
+
+    <div class="res panel" id="res" style="display:none"></div>`;
+
+  const ta = document.getElementById('code');
+  ta.value = saved || e.amorce || '';
+
+  // ── CodeMirror si disponible, sinon on garde le champ texte ──
+  if (S.cm) { try { S.cm.toTextArea(); } catch (_) {} S.cm = null; }
+  if (window.CodeMirror) {
+    document.getElementById('gutter').style.display = 'none';
+    S.cm = CodeMirror.fromTextArea(ta, {
+      mode: 'python', lineNumbers: true, indentUnit: 4, tabSize: 4,
+      indentWithTabs: false, smartIndent: true, viewportMargin: Infinity,
+      extraKeys: {
+        Tab: cm => cm.execCommand('insertSoftTab'),
+        'Ctrl-Enter': () => runTests(),
+        'Cmd-Enter': () => runTests(),
+      },
+    });
+    S.cm.setCursor(S.cm.lineCount(), 0);
+    setTimeout(() => S.cm && S.cm.refresh(), 0);
+    document.getElementById('run').onclick = runTests;
+    return finaliserExo(e);
+  }
+
+  const gutter = () => document.getElementById('gutter').innerHTML =
+    Array.from({ length: ta.value.split('\n').length }, (_, i) => i + 1).join('<br>');
+  gutter();
+  ta.addEventListener('input', gutter);
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); runTests(); }
+  });
+  // insertText passe par le moteur d'édition du navigateur : Ctrl-Z / Ctrl-Maj-Z
+  // continuent de fonctionner (contrairement à une écriture directe dans ta.value).
+  const saisir = txt => {
+    if (!document.execCommand('insertText', false, txt)) {
+      const s = ta.selectionStart, e2 = ta.selectionEnd;
+      ta.setRangeText(txt, s, e2, 'end');   // repli si execCommand indisponible
+      ta.dispatchEvent(new Event('input'));
+    }
+  };
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Tab') { ev.preventDefault(); saisir('    '); return; }
+    if (ev.key === 'Enter' && !ev.ctrlKey && !ev.metaKey) {   // ré-indentation automatique
+      const line = ta.value.slice(0, ta.selectionStart).split('\n').pop();
+      const ind = (line.match(/^\s*/) || [''])[0] + (line.trim().endsWith(':') ? '    ' : '');
+      if (ind) { ev.preventDefault(); saisir('\n' + ind); }
+    }
+  });
+  // « Effacer » reste annulable par Ctrl-Z : on remplace la sélection au lieu d'écraser
+  document.getElementById('reset').onclick = () => {
+    ta.focus(); ta.select(); saisir(e.amorce || '');
+    gutter(); ta.selectionStart = ta.selectionEnd = ta.value.length;
+  };
+  finaliserExo(e);
+  ta.selectionStart = ta.selectionEnd = ta.value.length;
+}
+
+/* code courant de l'éditeur, quel que soit le moteur actif */
+function getCode() {
+  return S.cm ? S.cm.getValue() : (document.getElementById('code') || {}).value || '';
+}
+
+/* branchements communs aux deux moteurs d'édition */
+/* ─────────────── signalement d'énoncé ─────────────── */
+/* Le service worker n'intercepte que les requêtes GET : ce POST part au réseau.
+   Hors connexion il échoue, et on le dit plutôt que de laisser croire à un envoi. */
+const TAILLE_MAX = 7 * 1024 * 1024;   // Netlify refuse les requêtes au-delà de 8 Mo
+
+async function envoyerSignalement(donnees, fichier) {
+  const corps = new FormData();
+  corps.append('form-name', 'signalement');
+  corps.append('bot-field', '');
+  for (const [cle, valeur] of Object.entries(donnees)) corps.append(cle, valeur);
+  if (fichier) corps.append('capture', fichier, fichier.name);
+  // pas d'en-tête Content-Type : le navigateur pose lui-même la frontière multipart
+  const rep = await fetch('/', { method: 'POST', body: corps });
+  if (!rep.ok) throw new Error('réponse ' + rep.status);
+}
+
+function ouvrirSignalement(e) {
+  const dlg = document.getElementById('signal');
+  const etat = document.getElementById('sigEtat');
+  const msg = document.getElementById('sigMsg');
+  const sug = document.getElementById('sigSug');
+  const fic = document.getElementById('sigFic');
+  const nature = document.getElementById('sigNature');
+  const envoi = document.getElementById('sigEnvoi');
+  document.getElementById('sigCtx').textContent =
+    `Exercice ${String(e.id).padStart(3, '0')} — ${e.titre} · ${S.data[S.slug].libelle}`;
+  msg.value = ''; sug.value = ''; fic.value = ''; nature.selectedIndex = 0;
+  etat.textContent = ''; etat.className = 'etat';
+  envoi.disabled = false;
+  dlg.showModal();
+  msg.focus();
+
+  envoi.onclick = async () => {
+    if (!msg.value.trim()) {
+      etat.textContent = 'Décrivez le problème avant d’envoyer.';
+      etat.className = 'etat ko'; msg.focus(); return;
+    }
+    const capture = fic.files[0] || null;
+    if (capture && capture.size > TAILLE_MAX) {
+      etat.textContent = 'Capture trop lourde (7 Mo maximum).';
+      etat.className = 'etat ko'; return;
+    }
+    envoi.disabled = true;
+    etat.textContent = capture ? 'Envoi de la capture…' : 'Envoi…'; etat.className = 'etat';
+    try {
+      await envoyerSignalement({
+        page: 'Codex Python',
+        exercice: `${String(e.id).padStart(3, '0')} — ${e.titre} (${S.data[S.slug].libelle})`,
+        nature: nature.value,
+        message: msg.value.trim(),
+        suggestion: sug.value.trim(),
+        // « subject » fixe l'objet du mail : le numéro doit être lisible depuis la boîte
+        subject: `[Codex] Exercice ${String(e.id).padStart(3, '0')} — ${nature.value}`,
+      }, capture);
+      etat.textContent = 'Merci, c’est transmis.';
+      setTimeout(() => dlg.close(), 1100);
+    } catch (err) {
+      envoi.disabled = false;
+      etat.className = 'etat ko';
+      etat.textContent = navigator.onLine
+        ? 'L’envoi a échoué. Réessayez plus tard.'
+        : 'Pas de connexion : le signalement n’est pas parti.';
+    }
+  };
+  document.getElementById('sigFermer').onclick = () => dlg.close();
+}
+
+function finaliserExo(e) {
+  const btnSignaler = document.getElementById('signalerExo');
+  if (btnSignaler) btnSignaler.onclick = () => ouvrirSignalement(e);
+  const sel = document.getElementById('cIn'), custom = document.getElementById('customIn');
+  sel.onchange = () => {
+    custom.style.display = sel.value === 'libre' ? 'block' : 'none';
+    if (sel.value === 'libre') custom.focus();
+  };
+  document.getElementById('exec').onclick = () => {
+    const stdin = sel.value === 'libre' ? custom.value : e.tests[+sel.value].stdin;
+    consoleRun(getCode(), stdin, sel.value === 'libre' ? null : e.tests[+sel.value].attendu);
+  };
+  document.getElementById('run').onclick = runTests;
+  document.querySelectorAll('#jeux button[data-jeu]').forEach(b =>
+    b.onclick = () => {
+      const i = +b.dataset.jeu;
+      sel.value = String(i);
+      custom.style.display = 'none';
+      consoleRun(getCode(), e.tests[i].stdin, e.tests[i].attendu);
+      document.getElementById('cOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  if (S.cm) {
+    document.getElementById('reset').onclick = () => {
+      S.cm.setValue(e.amorce || '');
+      S.cm.setCursor(S.cm.lineCount(), 0);
+      S.cm.focus();
+    };
+  }
+}
+
+/* ───────────────── console ───────────────── */
+function consoleRun(code, stdin, attendu) {
+  const out = document.getElementById('cOut');
+  const btn = document.getElementById('exec');
+  if (!code.trim()) {
+    out.innerHTML = '<span class="cmt">Écrivez d’abord du code.</span>'; return;
+  }
+  btn.disabled = true;
+  out.innerHTML = '<span class="cmt">Exécution…</span>';
+  execute(code, [{ stdin }], (r, err) => {
+    btn.disabled = false;
+    if (err) { out.innerHTML = `<span class="err">${esc(err)}</span>`; return; }
+    printConsole(r[0], stdin, attendu);
+  });
+}
+
+function printConsole(res, stdin, attendu) {
+  const out = document.getElementById('cOut');
+  let html = `<span class="cmt">$ python solution.py</span>\n`;
+  if (stdin.trim())
+    html += `<span class="cmt">entrée : ${esc(stdin.replace(/\n/g, ' ⏎ '))}</span>\n`;
+  if (res.stdout) html += esc(res.stdout) + '\n';
+  else if (!res.error) html += '<span class="cmt">(aucune sortie)</span>\n';
+  if (res.error) html += `<span class="err">${esc(res.error)}</span>\n`;
+  if (attendu !== null && attendu !== undefined && !res.error) {
+    const ok = res.stdout === attendu.replace(/\n+$/, '');
+    html += ok
+      ? `<span class="lbl">✓ conforme au jeu d’essai</span>`
+      : `<span class="err">✗ attendu : ${esc(attendu) || '(vide)'}</span>`;
+  }
+  out.innerHTML = html;
+}
+
+/* ───────────────── exécution ───────────────── */
+function runTests() {
+  const e = S.cur, code = getCode();
+  const box = document.getElementById('res');
+  const btn = document.getElementById('run');
+  if (!code.trim()) return;
+  btn.disabled = true; btn.textContent = '⏳ Exécution…';
+  const seul = document.getElementById('indiceSeul');
+  if (seul) seul.style.display = 'none';   // l'indice migre dans le bloc de résultats
+  box.style.display = 'block';
+  box.innerHTML = '<div class="verdict err">Exécution en cours…</div>';
+
+  // stopOnFail : les jeux sont joués dans l'ordre et l'on s'arrête au premier échec
+  execute(code, e.tests, (out, err) => {
+    btn.disabled = false; btn.textContent = '▶▶ Tout tester';
+    if (out) { /* résultats partiels possibles : arrêt au premier échec */ }
+    if (err) { box.innerHTML = `<div class="verdict err">${esc(err)}</div>`; return; }
+
+    const rows = out.map((r, i) => {
+      const t = e.tests[i];
+      const ok = !r.error && r.stdout === t.attendu.replace(/\n+$/, '');
+      return { ok, t, r };
+    });
+    const nOk = rows.filter(r => r.ok).length;
+    const all = nOk === e.tests.length;
+    const restants = e.tests.length - rows.length;
+
+    // la console pointe sur le premier échec (ou le 1er test si tout passe)
+    const idx = rows.findIndex(r => !r.ok);
+    const k = idx === -1 ? 0 : idx;
+    const sel = document.getElementById('cIn');
+    if (sel) { sel.value = String(k); document.getElementById('customIn').style.display = 'none'; }
+    if (out[k]) printConsole(out[k], e.tests[k].stdin, e.tests[k].attendu);
+
+    if (all) {
+      progress[e.id] = { ok: true, code };
+      saveProgress(); renderList();
+    } else if (progress[e.id]) {
+      progress[e.id].code = code; saveProgress();
+    } else {
+      progress[e.id] = { ok: false, code }; saveProgress();
+    }
+
+    box.innerHTML = `
+      <div class="verdict ${all ? 'ok' : 'ko'}">
+        ${all ? `✅ Réussi — les ${e.tests.length} jeux d'essai passent.`
+              : `❌ Arrêt au jeu d'essai n° ${rows.length} — ${nOk} validé${nOk > 1 ? 's' : ''} avant lui.`}
+      </div>
+      <table class="tests">
+        <tr><th></th><th>Entrée</th><th>Attendu</th><th>Obtenu</th></tr>
+        ${rows.map(({ ok, t, r }) => `
+          <tr class="${ok ? '' : 'fail'}">
+            <td><span class="badge ${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'}</span></td>
+            <td><pre class="io">${show(t.stdin)}</pre></td>
+            <td><pre class="io">${showIO(t.attendu)}</pre></td>
+            <td><pre class="io">${r.error
+                  ? `<span style="color:var(--ko)">${esc(r.error)}</span>`
+                  : showIO(r.stdout)}</pre></td>
+          </tr>`).join('')}
+        ${restants > 0 ? `<tr><td colspan="4" style="color:var(--muted);font-size:12.5px">
+            ${restants} jeu${restants > 1 ? 'x' : ''} d'essai non joué${restants > 1 ? 's' : ''} :
+            corrigez celui-ci d'abord.</td></tr>` : ''}
+      </table>
+      ${solutionBlock(e, all)}`;
+  }, true);
+}
+
+function lienCours(n) {
+  return n.url
+    ? `<a class="n-lien" href="${n.url}" target="_blank" rel="noopener">📘 ${esc(n.page)} — revoir le cours</a>`
+    : '';
+}
+
+function solBody(code, notions) {
+  return `<div class="inner">
+      <pre class="code">${esc(code)}</pre>
+      ${notions.length ? '<div class="sub-h" style="margin-top:0">Notions mobilisées</div>' : ''}
+      ${notions.map(n => `
+        <div class="notion">
+          <div class="n-name">${n.nom}</div>
+          <div class="n-syn">${esc(n.syntaxe)}</div>
+          <div class="n-ex">${n.exemple}</div>
+          ${n.note ? `<div class="n-note">${n.note}</div>` : ''}
+          ${lienCours(n)}
+        </div>`).join('')}
+    </div>`;
+}
+
+function indiceBlock(e) {
+  if (!e.indice || !e.indice.length) return '';
+  return `<details class="sol indice">
+      <summary>🔍 Besoin d'un indice ?</summary>
+      <div class="inner">
+        <p style="margin:0 0 11px;font-size:13.5px;color:var(--muted)">
+          Voici les notions à mobiliser pour cet exercice. Chacune renvoie à sa page de cours.</p>
+        ${e.indice.map(n => `
+          <div class="notion">
+            <div class="n-name">${n.nom}</div>
+            ${lienCours(n)}
+          </div>`).join('')}
+      </div>
+    </details>`;
+}
+
+function solutionBlock(e, unlocked) {
+  // e.expert vaut false quand la version experte est identique à la version simple
+  const bloc1 = `
+    <details class="sol" ${unlocked && !e.expert ? 'open' : ''}>
+      <summary>📗 Voir la solution</summary>
+      ${solBody(e.simple, e.notions_simple)}
+    </details>`;
+  if (!e.expert) return indiceBlock(e) + bloc1;
+  return indiceBlock(e) + bloc1 + `
+    <details class="sol" ${unlocked ? 'open' : ''}>
+      <summary>💡 ${unlocked ? 'Solution experte commentée' : 'Voir la solution experte'}</summary>
+      ${solBody(e.solution, e.notions)}
+    </details>`;
+}
+
+/* ───────────────── cache hors ligne ─────────────────
+   Le service worker exige HTTPS (ou localhost) : en file:// on l'ignore
+   silencieusement, l'app fonctionne simplement sans cache. */
+function initCacheHorsLigne() {
+  const zone = document.getElementById('offline');
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+
+  navigator.serviceWorker.register('sw.js').then(() => {
+    const demander = () => navigator.serviceWorker.controller &&
+      navigator.serviceWorker.controller.postMessage('etat-cache');
+    navigator.serviceWorker.addEventListener('message', ev => {
+      if (ev.data && ev.data.type === 'etat-cache') {
+        zone.textContent = ev.data.pyodide > 0 ? '✓ hors ligne' : '';
+        zone.style.color = 'var(--ok)';
+      }
+    });
+    demander();
+    // Pyodide n'est mis en cache qu'une fois chargé : on redemande après coup
+    setTimeout(demander, 8000);
+    setTimeout(demander, 25000);
+  }).catch(() => {});
+}
+initCacheHorsLigne();
+
+boot();
+</script>
+</body>
+</html>

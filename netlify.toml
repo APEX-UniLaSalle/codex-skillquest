@@ -1,0 +1,14 @@
+[build]
+  publish = "."
+
+# Pyodide télécharge ~10 Mo au premier lancement : on autorise le cache long
+# sur les données, court sur l'app elle-même (pour que vos mises à jour sortent vite).
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"

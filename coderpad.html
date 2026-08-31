@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — Préparation à l'examen CoderPad</title>
+<style>
+:root{
+  --fond:#FBF1C7; --fond2:#F2E5BC; --carte:#F9F5D7; --bord:#D5C4A1;
+  --texte:#3C3836; --doux:#7C6F64;
+  --rouge:#C14A4A; --vert:#6C782E; --orange:#AF3A03; --bleu:#45707A;
+  --sombre:#282828; --sombreTexte:#EBDBB2;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:20px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:13px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:14px}
+.fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
+   font-size:12.5px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+.fiche:hover{border-color:var(--orange);color:var(--orange)}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+h2{font-size:17px;margin:30px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
+.duo>div>h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux)}
+pre{margin:0;background:var(--sombre);color:var(--sombreTexte);padding:12px 14px;
+   border-radius:8px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+.ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
+   padding:16px 18px;margin:14px 0}
+.ex h3{margin:0 0 4px;font-size:16px}
+.ex .cons{color:var(--doux);font-size:14px;margin:0 0 10px}
+textarea{width:100%;min-height:150px;background:var(--sombre);color:var(--sombreTexte);
+   border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
+   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:14px}
+button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.sortie{margin-top:10px;background:var(--sombre);color:var(--sombreTexte);border-radius:8px;
+   padding:11px 14px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;display:none}
+.sortie.visible{display:block}
+.ok{color:#A9B665}.ko{color:#EA6962}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--bleu);font-size:14px}
+details pre{margin-top:8px}
+.etat{color:var(--doux);font-size:13px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:13px;
+   text-align:center}
+a{color:var(--orange)}
+</style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="retour">← Le Codex</a>
+  <h1>Préparation à l'examen CoderPad</h1>
+  <p>Passer d'un programme qui lit et affiche à une fonction qui reçoit et renvoie</p>
+  <a class="fiche" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener">📄 Cheat Sheet Python</a>
+</header>
+
+<main>
+  <div class="intro">
+    <p><strong>Sur le Codex</strong>, un exercice se résout en lisant les données avec
+    <code>input()</code> et en affichant le résultat avec <code>print()</code>.
+    <strong>Sur CoderPad</strong>, les données arrivent en paramètres et le résultat
+    se rend avec <code>return</code>.</p>
+    <p>L'algorithme est identique ; l'entrée et la sortie diffèrent.</p>
+  </div>
+
+  <h2>Le même exercice, des deux côtés</h2>
+  <div class="duo">
+    <div>
+      <h3>Codex — lecture et affichage</h3>
+<pre>nombre = int(input())
+total = 0
+for chiffre in str(nombre):
+    total = total + int(chiffre)
+print(total)</pre>
+    </div>
+    <div>
+      <h3>CoderPad — paramètre et retour</h3>
+<pre>def somme_chiffres(nombre):
+    total = 0
+    for chiffre in str(nombre):
+        total = total + int(chiffre)
+    return total</pre>
+    </div>
+  </div>
+  <div class="intro">
+    <p><strong>Trois règles de conversion.</strong> Chaque <code>input()</code> du
+    début devient un paramètre, et les <code>int(...)</code> de conversion
+    disparaissent : le type est celui annoncé par la docstring. Le
+    <code>print()</code> final devient <code>return</code>.</p>
+    <p>Une fonction qui n'exécute pas <code>return</code> renvoie <code>None</code> :
+    c'est <code>None</code> qui est comparé au résultat attendu, quel que soit ce qui
+    a été affiché. <code>print()</code> reste disponible pour observer l'exécution,
+    son affichage n'entre pas dans la correction.</p>
+  </div>
+
+  <h2>Exercices</h2>
+  <p class="etat" id="etat">Chargement de Python…</p>
+  <div id="exercices"></div>
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
+  <span id="tampon" style="opacity:.65">Version du 31 août 2026 · e70873a</span>
+</footer>
+
+<script>
+const EXERCICES = [
+  {
+    titre: "Valeur absolue",
+    consigne: "Renvoyez la valeur absolue de nombre, sans utiliser abs().",
+    fonction: "valeur_absolue",
+    params: ["nombre"],
+    depart: "def valeur_absolue(nombre):\n    \"\"\"\n    nombre : un nombre entier\n    La fonction doit renvoyer un nombre entier.\n    \"\"\"\n    return 0\n",
+    codex: "nombre = int(input())\nif nombre < 0:\n    print(-nombre)\nelse:\n    print(nombre)",
+    cas: [[[-5], 5], [[3], 3], [[0], 0], [[-100], 100]],
+    corrige: "def valeur_absolue(nombre):\n    if nombre < 0:\n        return -nombre\n    return nombre\n"
+  },
+  {
+    titre: "Trois derniers caractères",
+    consigne: "Renvoyez les trois derniers caractères de mot.",
+    fonction: "trois_derniers",
+    params: ["mot"],
+    depart: "def trois_derniers(mot):\n    \"\"\"\n    mot : une chaîne de caractères\n    La fonction doit renvoyer une chaîne de caractères.\n    \"\"\"\n    return ''\n",
+    codex: "mot = input()\nprint(mot[-3:])",
+    cas: [[["carotte"], "tte"], [["log"], "log"], [["quartz"], "rtz"], [["ab"], "ab"]],
+    corrige: "def trois_derniers(mot):\n    return mot[-3:]\n"
+  },
+  {
+    titre: "Compter les zéros",
+    consigne: "Les valeurs arrivent dans une liste : la boucle de lecture disparaît.",
+    fonction: "compter_zeros",
+    params: ["valeurs"],
+    depart: "def compter_zeros(valeurs):\n    \"\"\"\n    valeurs : une liste de nombres entiers\n    La fonction doit renvoyer un nombre entier.\n    \"\"\"\n    return 0\n",
+    codex: "n = int(input())\ncompteur = 0\nfor _ in range(n):\n    valeur = int(input())\n    if valeur == 0:\n        compteur = compteur + 1\nprint(compteur)",
+    cas: [[[[0, 1, 0, 2]], 2], [[[1, 2, 3]], 0], [[[0, 0, 0]], 3], [[[]], 0]],
+    corrige: "def compter_zeros(valeurs):\n    compteur = 0\n    for valeur in valeurs:\n        if valeur == 0:\n            compteur = compteur + 1\n    return compteur\n"
+  },
+  {
+    titre: "Compter les éléments au-dessus d'un seuil",
+    consigne: "Deux paramètres : l'ordre est celui de la signature.",
+    fonction: "compter_au_dessus",
+    params: ["valeurs", "seuil"],
+    depart: "def compter_au_dessus(valeurs, seuil):\n    \"\"\"\n    valeurs : une liste de nombres entiers\n    seuil : un nombre entier\n    La fonction doit renvoyer un nombre entier.\n    \"\"\"\n    return 0\n",
+    codex: "seuil = int(input())\nn = int(input())\ncompteur = 0\nfor _ in range(n):\n    valeur = int(input())\n    if valeur > seuil:\n        compteur = compteur + 1\nprint(compteur)",
+    cas: [[[[1, 5, 9], 4], 2], [[[1, 2], 10], 0], [[[7, 7, 7], 6], 3], [[[], 0], 0]],
+    corrige: "def compter_au_dessus(valeurs, seuil):\n    compteur = 0\n    for valeur in valeurs:\n        if valeur > seuil:\n            compteur = compteur + 1\n    return compteur\n"
+  },
+  {
+    titre: "Profondeurs de prélèvement",
+    consigne: "Plusieurs affichages côté Codex : on accumule, puis on renvoie une seule chaîne.",
+    fonction: "profondeurs",
+    params: ["espacement"],
+    depart: "def profondeurs(espacement):\n    \"\"\"\n    espacement : un nombre entier\n    La fonction doit renvoyer une chaîne de caractères.\n    \"\"\"\n    return ''\n",
+    codex: "espacement = int(input())\nfor i in range(1, 6):\n    print(espacement * i)",
+    cas: [[[15], "15 30 45 60 75"], [[1], "1 2 3 4 5"], [[10], "10 20 30 40 50"], [[7], "7 14 21 28 35"]],
+    corrige: "def profondeurs(espacement):\n    resultat = ''\n    for i in range(1, 6):\n        if i > 1:\n            resultat = resultat + ' '\n        resultat = resultat + str(espacement * i)\n    return resultat\n"
+  },
+  {
+    titre: "Médiane",
+    consigne: "La médiane d'un nombre pair de valeurs n'est pas entière : attention au type renvoyé.",
+    fonction: "mediane",
+    params: ["valeurs"],
+    depart: "def mediane(valeurs):\n    \"\"\"\n    valeurs : une liste de nombres entiers\n    La fonction doit renvoyer un nombre décimal.\n    \"\"\"\n    return 0.0\n",
+    codex: "n = int(input())\nvaleurs = []\nfor _ in range(n):\n    valeurs.append(int(input()))\nvaleurs.sort()\nmilieu = len(valeurs) // 2\nif len(valeurs) % 2 == 1:\n    print(valeurs[milieu])\nelse:\n    print((valeurs[milieu - 1] + valeurs[milieu]) / 2)",
+    cas: [[[[3, 1, 2]], 2.0], [[[4, 1, 2, 3]], 2.5], [[[5]], 5.0], [[[1, 1, 1, 1]], 1.0]],
+    corrige: "def mediane(valeurs):\n    tries = sorted(valeurs)\n    milieu = len(tries) // 2\n    if len(tries) % 2 == 1:\n        return float(tries[milieu])\n    return (tries[milieu - 1] + tries[milieu]) / 2\n"
+  }
+];
+
+let pyodide = null;
+
+function litteral(v){
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(litteral).join(', ') + ']';
+  return String(v);
+}
+
+function dessiner(){
+  document.getElementById('exercices').innerHTML = EXERCICES.map((e, i) => `
+    <div class="ex">
+      <h3>${i + 1}. ${e.titre}</h3>
+      <p class="cons">${e.consigne}</p>
+      <details><summary>Voir la version Codex, avec input() et print()</summary>
+        <pre>${e.codex.replace(/</g, '&lt;')}</pre></details>
+      <textarea id="code${i}" spellcheck="false">${e.depart}</textarea>
+      <div class="actions">
+        <button class="principal" data-i="${i}" disabled>Tester</button>
+        <button data-reset="${i}">Réinitialiser</button>
+        <span class="etat" id="verdict${i}"></span>
+      </div>
+      <div class="sortie" id="sortie${i}"></div>
+      <details><summary>Voir une solution</summary>
+        <pre>${e.corrige.replace(/</g, '&lt;')}</pre></details>
+    </div>`).join('');
+
+  document.querySelectorAll('button[data-i]').forEach(b =>
+    b.onclick = () => tester(+b.dataset.i));
+  document.querySelectorAll('button[data-reset]').forEach(b =>
+    b.onclick = () => {
+      const i = +b.dataset.reset;
+      document.getElementById('code' + i).value = EXERCICES[i].depart;
+      document.getElementById('sortie' + i).classList.remove('visible');
+      document.getElementById('verdict' + i).textContent = '';
+    });
+}
+
+async function tester(i){
+  const e = EXERCICES[i];
+  const code = document.getElementById('code' + i).value;
+  const sortie = document.getElementById('sortie' + i);
+  const verdict = document.getElementById('verdict' + i);
+  sortie.classList.add('visible');
+  sortie.textContent = 'Exécution…';
+
+  const appels = e.cas.map(c => `${e.fonction}(${c[0].map(litteral).join(', ')})`);
+  const attendus = e.cas.map(c => litteral(c[1]));
+  const programme = `
+${code}
+
+__resultats = []
+for __appel, __attendu in zip(${JSON.stringify(appels)}, [${attendus.join(', ')}]):
+    try:
+        __obtenu = eval(__appel)
+        __resultats.append((__appel, repr(__obtenu), repr(__attendu), __obtenu == __attendu))
+    except Exception as __err:
+        __resultats.append((__appel, type(__err).__name__ + ' : ' + str(__err), repr(__attendu), False))
+__resultats
+`;
+  try {
+    const res = await pyodide.runPythonAsync(programme);
+    const lignes = res.toJs({ create_proxies: false });
+    let reussis = 0;
+    sortie.innerHTML = lignes.map(([appel, obtenu, attendu, ok]) => {
+      if (ok) reussis++;
+      return ok
+        ? `<span class="ok">RÉUSSI</span>  ${appel} = ${obtenu}`
+        : `<span class="ko">ÉCHOUÉ</span>  ${appel} = ${obtenu}  — attendu ${attendu}`;
+    }).join('\n');
+    verdict.textContent = `${reussis} / ${lignes.length} cas réussis`;
+    verdict.style.color = reussis === lignes.length ? 'var(--vert)' : 'var(--rouge)';
+  } catch (err) {
+    sortie.innerHTML = `<span class="ko">${String(err).split('\n').slice(-6).join('\n')}</span>`;
+    verdict.textContent = 'erreur dans le code';
+    verdict.style.color = 'var(--rouge)';
+  }
+}
+
+(async () => {
+  dessiner();
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+  const echec = (detail) => {
+    const etat = document.getElementById('etat');
+    etat.innerHTML = 'Python n’a pas pu être chargé. Vérifiez votre connexion, puis '
+      + '<a href="#" id="reinit">rechargez la page en vidant le cache</a>.'
+      + (detail ? `<br><span style="font-size:12px">${detail}</span>` : '');
+    const lien = document.getElementById('reinit');
+    if (lien) lien.onclick = async (ev) => {
+      ev.preventDefault();
+      etat.textContent = 'Nettoyage du cache…';
+      try {
+        for (const n of await caches.keys()) await caches.delete(n);
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const r of regs) await r.unregister();
+      } catch (e) { /* rien à nettoyer */ }
+      location.reload();
+    };
+  };
+  script.onload = async () => {
+    try {
+      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    } catch (err) {
+      echec(String(err).split('\n')[0]);
+      return;
+    }
+    document.getElementById('etat').textContent =
+      'Python est prêt : écrivez votre fonction, puis cliquez sur Tester.';
+    document.querySelectorAll('button[data-i]').forEach(b => b.disabled = false);
+  };
+  script.onerror = () => echec('');
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>
