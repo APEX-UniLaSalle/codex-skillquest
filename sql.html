@@ -689,7 +689,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 septembre 2026 · 1335bd0</span>
+        <span id="tampon" style="opacity:.65">Version du 2 septembre 2026 · 00371a0</span>
       </div>
     </div>
   </div>
@@ -766,6 +766,23 @@ function tablesCitees(texte) {
     if (t && !vues.includes(t)) vues.push(t);
   }
   return vues.length ? vues : noms;
+}
+
+
+/* Le vide sous la dernière ligne appartient au conteneur de l'éditeur, qui n'y
+   place pas le curseur : cliquer là ne faisait rien, et il y a près de 200 px
+   de cette zone morte. Signalé le 27 août 2026. On y amène le curseur en fin de
+   texte, plutôt que d'ajouter des lignes vides à tous les énoncés pour offrir
+   une surface où cliquer. Un clic sur une ligne garde son sens : on sort avant. */
+function clicSousLeTexte(cm) {
+  cm.getWrapperElement().addEventListener('mousedown', ev => {
+    const dernier = cm.lastLine();
+    const fin = { line: dernier, ch: cm.getLine(dernier).length };
+    if (ev.clientY <= cm.charCoords(fin, 'window').bottom) return;
+    ev.preventDefault();
+    cm.focus();
+    cm.setCursor(fin);
+  });
 }
 
 function completer(cm, options) {
@@ -1347,6 +1364,8 @@ initSqlJs({ locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10
                    'Ctrl-Enter': () => tester(bases.map((_, i) => i)) },
       hintOptions: { tables: DICO }
     });
+    clicSousLeTexte(editeur);
+
     /* l'autocomplétion se déclenche à la frappe, sans attendre Ctrl-Espace */
     editeur.on('inputRead', (cm, ev) => {
       if (ev.text && /[\w.]/.test(ev.text[0]))

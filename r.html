@@ -699,7 +699,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 1 septembre 2026 · 1335bd0</span>
+        <span id="tampon" style="opacity:.65">Version du 2 septembre 2026 · 00371a0</span>
       </div>
     </div>
   </div>
@@ -744,10 +744,27 @@ const litteral = s => '"' + String(s || '')
   .replace(/\n/g, '\\n').replace(/\r/g, '') + '"';
 
 /* ── éditeur ─────────────────────────────────────────────────────────────── */
+/* Le vide sous la dernière ligne appartient au conteneur de l'éditeur, qui n'y
+   place pas le curseur : cliquer là ne faisait rien, et il y a près de 200 px
+   de cette zone morte. Signalé le 27 août 2026. On y amène le curseur en fin de
+   texte, plutôt que d'ajouter des lignes vides à tous les énoncés pour offrir
+   une surface où cliquer. Un clic sur une ligne garde son sens : on sort avant. */
+function clicSousLeTexte(cm) {
+  cm.getWrapperElement().addEventListener('mousedown', ev => {
+    const dernier = cm.lastLine();
+    const fin = { line: dernier, ch: cm.getLine(dernier).length };
+    if (ev.clientY <= cm.charCoords(fin, 'window').bottom) return;
+    ev.preventDefault();
+    cm.focus();
+    cm.setCursor(fin);
+  });
+}
+
 const editeur = CodeMirror.fromTextArea($('#code'), {
   mode: 'text/x-rsrc', lineNumbers: true, lineWrapping: true,
   viewportMargin: Infinity, indentUnit: 2,
 });
+clicSousLeTexte(editeur);
 
 /* ── banque ──────────────────────────────────────────────────────────────── */
 async function chargerBanque() {
