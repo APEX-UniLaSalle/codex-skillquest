@@ -176,9 +176,9 @@
    "titre": "Le volume d'une carotte",
    "duree": "00:04:00",
    "points": 50,
-   "enonce": "<p>Une carotte de sondage est un cylindre de <strong>4 cm de diamètre</strong> et <strong>85 cm de long</strong>.</p><p>Rangez le rayon en centimètres dans <code>rayon</code>, la longueur dans <code>longueur</code>, puis calculez le volume de la carotte en centimètres cubes. R connaît déjà <code>pi</code>.</p>",
+   "enonce": "<p>Une carotte de sondage est un cylindre de <strong>4 cm de diamètre</strong> et <strong>85 cm de long</strong>.</p><p>Rangez le rayon en centimètres dans <code>rayon</code>, la longueur dans <code>longueur</code>, puis calculez le volume de la carotte en centimètres cubes, <strong>arrondi à trois décimales</strong>. R connaît déjà <code>pi</code>.</p>",
    "depart": "rayon <- 2\n",
-   "reference": "rayon <- 2\nlongueur <- 85\npi * rayon^2 * longueur",
+   "reference": "rayon <- 2\nlongueur <- 85\nround(pi * rayon^2 * longueur, 3)",
    "comparer": "objet",
    "tags": [
     "affectation",
@@ -449,9 +449,9 @@
    "titre": "L'apport moyen d'une tablée",
    "duree": "00:04:00",
    "points": 50,
-   "enonce": "<p>Six convives d'une même tablée ont consommé <code>2450</code>, <code>3120</code>, <code>1980</code>, <code>2740</code>, <code>3310</code> et <code>2205</code> kilocalories.</p><p>Stockez ces valeurs dans un vecteur <code>kcal</code>, puis calculez leur <strong>moyenne</strong>.</p>",
+   "enonce": "<p>Six convives d'une même tablée ont consommé <code>2450</code>, <code>3120</code>, <code>1980</code>, <code>2740</code>, <code>3310</code> et <code>2205</code> kilocalories.</p><p>Stockez ces valeurs dans un vecteur <code>kcal</code>, puis calculez leur <strong>moyenne</strong>, <strong>arrondie à trois décimales</strong>.</p>",
    "depart": "kcal <- c(2450, 3120, 1980, 2740, 3310, 2205)\n",
-   "reference": "kcal <- c(2450, 3120, 1980, 2740, 3310, 2205)\nmean(kcal)",
+   "reference": "kcal <- c(2450, 3120, 1980, 2740, 3310, 2205)\nround(mean(kcal), 3)",
    "comparer": "objet",
    "tags": [
     "vecteur",
