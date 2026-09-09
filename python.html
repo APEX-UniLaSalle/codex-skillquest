@@ -406,7 +406,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 5 septembre 2026 · 1d1994c</span>
+        <span id="tampon" style="opacity:.65">Version du 9 septembre 2026 · 502af71</span>
       </div>
     </div>
   </div>
@@ -882,7 +882,7 @@ document.getElementById('hasard').onclick = () => {
   renderList();
   openExo(tire.id);
   const ligne = document.querySelector('.exo[data-id="' + tire.id + '"]');
-  if (ligne) ligne.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  if (ligne) ligne.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
 /* ───────────────── exercice ───────────────── */
@@ -957,6 +957,12 @@ function openExo(id) {
         ${indiceBlock(e)}</div>` : ''}
 
     <div class="res panel" id="res" style="display:none"></div>`;
+
+  /* La colonne de gauche défile pour elle-même : sans cela, choisir un exercice
+     depuis le bas de la liste laissait la fenêtre où elle était, c'est-à-dire
+     sur l'éditeur, et l'énoncé restait au-dessus de l'écran. On remonte en tête
+     de page, comme le font déjà les pages R et SQL. Signalé le 9 septembre 2026. */
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 
 
 /* Le vide sous la dernière ligne appartient au conteneur de l'éditeur, qui n'y
