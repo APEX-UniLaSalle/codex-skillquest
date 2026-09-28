@@ -131,13 +131,25 @@ lanceur, à côté du nom. Tout revient à la fin.
 
 Chaque participant soumet sa solution une fois, par le bouton de la barre : les tests
 sont joués une dernière fois, le code part au serveur, c'est définitif. Réussi si tous
-les tests passent à ce moment-là. « Tout tester » reste un contrôle libre. Le classement
-montre les réussites dans l'ordre des temps et se fige à la fin. Le code de ceux qui
-n'ont pas soumis est remis de lui-même à la fin du temps, sans compter comme réussite.
-« Quitter l'arène » retire de l'arène.
+les tests passent à ce moment-là. « Tout tester » reste un contrôle libre. La barre
+montre les réussites dans l'ordre des temps. Le code de ceux qui n'ont pas soumis est
+remis de lui-même à la fin du temps, sans compter comme réussite. « Quitter l'arène »
+retire de l'arène. Le lanceur peut prolonger le chrono d'une ou deux minutes en cours de
+manche.
 
-Le lanceur voit, par « 📋 Solutions », le code soumis par chacun, avec l'état et le
-temps, et la liste de ceux qui n'ont rien soumis.
+À la fin du temps : le lanceur voit le podium en grand, tous les participants classés par
+taux de tests réussis puis par temps, ceux qui n'ont rien remis en dernier ; chaque
+participant voit un bilan personnel, réussi ou non, tests passés, temps, rang, et le
+retour des indices, de la solution et de la liste.
+
+L'arène reste ouverte. Le lanceur ouvre un autre exercice et clique « ⚔️ Relancer l'arène
+sur cet exercice » : manche suivante, même code, mêmes participants, nouvelle durée. Autant
+de fois que voulu.
+
+Le lanceur voit, par « 📋 Solutions », le code soumis par chacun dans la manche en cours,
+avec l'état et le temps, et la liste de ceux qui n'ont rien soumis. Deux exports, toutes
+manches confondues : un Markdown lisible, tableau par manche puis le code de chacun ; un
+JSON brut. À faire avant 24 heures, après quoi l'arène s'efface.
 
 Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
 Blobs : l'exercice, la durée, les options, l'heure de départ, les prénoms et noms, les

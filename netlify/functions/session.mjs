@@ -29,7 +29,11 @@
      POST {action:'sortie', code, nom, jeton}                 → {session}
        le participant a quitté le plein écran ou l'onglet ; compté, montré au lanceur
      POST {action:'demarrer', code, cle}                      → {session}
-     POST {action:'soumettre', code, nom, jeton, source, ok, total[, auto]}
+     POST {action:'prolonger', code, cle, secondes}           → {session}
+     POST {action:'relancer', code, cle, niveau, exo, titre, duree} → {session}
+       manche suivante sur un autre exercice : les participants restent, les
+       soumissions de la manche close sont gardées pour l'export
+     POST {action:'soumettre', code, nom, jeton, source, ok, total[, auto, manche]}
                                                               → {soumission, session}
 */
 
@@ -63,7 +67,7 @@ const nettoyerNom = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60
 const cleId   = nom => encodeURIComponent(nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
 const cleMeta = code => `sess/${code}/meta`;
 const clePart = (code, nom) => `sess/${code}/p/${cleId(nom)}`;
-const cleSoum = (code, nom) => `sess/${code}/s/${cleId(nom)}`;
+const cleSoum = (code, manche, nom) => `sess/${code}/s/${manche}/${cleId(nom)}`;
 
 async function lireMeta(store, code) {
   if (!/^[A-Z2-9]{6}$/.test(code || '')) return null;
@@ -83,7 +87,7 @@ async function lireTous(store, prefix) {
 async function vue(store, meta, lanceur = false) {
   const [parts, soums] = await Promise.all([
     lireTous(store, `sess/${meta.code}/p/`),
-    lireTous(store, `sess/${meta.code}/s/`),
+    lireTous(store, `sess/${meta.code}/s/${meta.manche}/`),
   ]);
   const tri = (a, b) => a.localeCompare(b, 'fr');
   const participants = parts.map(p => p.nom).sort(tri);
@@ -97,11 +101,18 @@ async function vue(store, meta, lanceur = false) {
   const v = {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
-    participants, soumis, resultats,
+    manche: meta.manche, participants, soumis, resultats,
   };
   if (lanceur) {
     v.soumissions = soums.sort((a, b) => tri(a.nom, b.nom));
     v.sorties = Object.fromEntries(parts.filter(p => p.sorties).map(p => [p.nom, p.sorties]));
+    // toutes les manches, pour l'export : les closes viennent de l'historique
+    const toutes = await lireTous(store, `sess/${meta.code}/s/`);
+    const courante = { manche: meta.manche, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
+                       duree: meta.duree, debut: meta.debut, fin: meta.fin };
+    v.manches = [...(meta.historique || []), courante].map(m => ({
+      ...m, soumissions: toutes.filter(x => x.manche === m.manche).sort((a, b) => tri(a.nom, b.nom)),
+    }));
   }
   return v;
 }
@@ -157,6 +168,7 @@ export default async (req) => {
       code: nouveau, cle: tirerSecret(),
       page: corps.page, niveau, exo, titre: String(corps.titre || '').slice(0, 120),
       duree, pleinEcran: !!corps.pleinEcran, debut: null, fin: null,
+      manche: 1, historique: [],
       cree: Date.now(), expire: Date.now() + DUREE_VIE,
     };
     await store.setJSON(cleMeta(nouveau), meta);
@@ -190,7 +202,7 @@ export default async (req) => {
     const part = await store.get(clePart(code, nom), { type: 'json' });
     if (part && part.jeton === corps.jeton) {
       await store.delete(clePart(code, nom));
-      await store.delete(cleSoum(code, nom));
+      await store.delete(cleSoum(code, meta.manche, nom));
     }
     return repondre();
   }
@@ -214,29 +226,64 @@ export default async (req) => {
     return repondre();
   }
 
+  if (action === 'prolonger') {
+    if (!lanceur) return erreur('Seul le lanceur peut prolonger.', 403);
+    const sec = Math.round(Number(corps.secondes));
+    if (!(sec >= 30 && sec <= 600)) return erreur('Prolongation entre 30 secondes et 10 minutes.');
+    if (!meta.debut || Date.now() > meta.fin + TOLERANCE_FIN) return erreur('Rien à prolonger.', 409);
+    meta.fin += sec * 1000;
+    await store.setJSON(cleMeta(code), meta);
+    return repondre();
+  }
+
+  if (action === 'relancer') {
+    if (!lanceur) return erreur('Seul le lanceur peut relancer.', 403);
+    if (meta.debut && Date.now() <= meta.fin + TOLERANCE_FIN) return erreur('La manche en cours n’est pas finie.', 409);
+    const duree = Math.round(Number(corps.duree));
+    if (!Number.isFinite(duree) || duree < 30 || duree > 3 * 3600) return erreur('Durée entre 30 secondes et 3 heures.');
+    const niveau = String(corps.niveau || '').slice(0, 20);
+    const exo = typeof corps.exo === 'number' ? corps.exo : String(corps.exo || '').slice(0, 40);
+    if (!niveau || exo === '') return erreur('Exercice invalide.');
+    if (meta.debut) {
+      meta.historique = [...(meta.historique || []), { manche: meta.manche, niveau: meta.niveau, exo: meta.exo,
+        titre: meta.titre, duree: meta.duree, debut: meta.debut, fin: meta.fin }];
+      meta.manche += 1;
+    }
+    Object.assign(meta, { niveau, exo, titre: String(corps.titre || '').slice(0, 120), duree, debut: null, fin: null });
+    await store.setJSON(cleMeta(code), meta);
+    return repondre();
+  }
+
   if (action === 'soumettre') {
     const nom = nettoyerNom(corps.nom);
     const part = await store.get(clePart(code, nom), { type: 'json' });
     if (!part || part.jeton !== corps.jeton) return erreur('Participant inconnu.', 403);
-    if (!meta.debut) return erreur('La session n’a pas démarré.', 409);
     const maintenant = Date.now();
-    if (maintenant < meta.debut) return erreur('Le chrono n’a pas démarré.', 409);
     const auto = !!corps.auto;
-    if (maintenant > meta.fin + (auto ? TOLERANCE_AUTO : TOLERANCE_FIN)) return erreur('Temps écoulé.', 409);
-    const deja = await store.get(cleSoum(code, nom), { type: 'json' });
+    // Une remise automatique peut viser une manche déjà close, si le lanceur a
+    // relancé entre-temps : elle est rangée dans sa manche, code gardé, sans réussite.
+    const manche = Number(corps.manche) || meta.manche;
+    let cadre = meta;
+    if (manche < meta.manche) {
+      cadre = (meta.historique || []).find(h => h.manche === manche);
+      if (!cadre || !auto) return erreur('Manche close.', 409);
+    } else if (!meta.debut) return erreur('La manche n’a pas démarré.', 409);
+    if (maintenant < cadre.debut) return erreur('Le chrono n’a pas démarré.', 409);
+    if (maintenant > cadre.fin + (auto ? TOLERANCE_AUTO : TOLERANCE_FIN)) return erreur('Temps écoulé.', 409);
+    const deja = await store.get(cleSoum(code, cadre.manche || manche, nom), { type: 'json' });
     if (deja) return repondre({ soumission: deja });
     const total = Math.max(0, Math.round(Number(corps.total)) || 0);
     const ok = Math.min(total, Math.max(0, Math.round(Number(corps.ok)) || 0));
     // une remise automatique après la fin garde le code, mais ne réussit pas
-    const dansLeTemps = maintenant <= meta.fin + TOLERANCE_FIN;
+    const dansLeTemps = maintenant <= cadre.fin + TOLERANCE_FIN;
     const soumission = {
-      nom, auto,
-      temps: dansLeTemps ? Math.min(maintenant, meta.fin) - meta.debut : null,
+      nom, auto, manche: cadre.manche || manche,
+      temps: dansLeTemps ? Math.min(maintenant, cadre.fin) - cadre.debut : null,
       ok, total,
       reussi: dansLeTemps && total > 0 && ok === total,
       source: String(corps.source || '').slice(0, MAX_SOURCE),
     };
-    await store.setJSON(cleSoum(code, nom), soumission);
+    await store.setJSON(cleSoum(code, soumission.manche, nom), soumission);
     return repondre({ soumission });
   }
 

@@ -407,7 +407,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 906728a</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 502ef47</span>
       </div>
     </div>
   </div>
@@ -935,7 +935,8 @@ function openExo(id) {
       <div class="actions">
         <button class="primary" id="run" ${S.ready ? '' : 'disabled'}>▶▶ Tout tester</button>
         <button id="reset">Effacer</button>
-        ${window.Session && !Session.active ? '<button id="sessLancer" title="Mode arène : chrono commun et classement pour un groupe, sur cet exercice">⚔️ Lancer une arène</button>' : ''}
+        ${!window.Session ? '' : !Session.active ? '<button id="sessLancer" title="Mode arène : chrono commun et classement pour un groupe, sur cet exercice">⚔️ Lancer une arène</button>'
+          : Session.peutRelancer() ? '<button id="sessLancer" title="Manche suivante de l’arène, sur cet exercice">⚔️ Relancer l’arène sur cet exercice</button>' : ''}
         <span class="hint">Votre code est conservé dans ce navigateur.</span>
       </div>
     </div>
@@ -1127,7 +1128,7 @@ function finaliserExo(e) {
   };
   document.getElementById('run').onclick = runTests;
   const bl = document.getElementById('sessLancer');
-  if (bl) bl.onclick = () => Session.lancer();
+  if (bl) bl.onclick = () => Session.active ? Session.relancer() : Session.lancer();
   document.querySelectorAll('#jeux button[data-jeu]').forEach(b =>
     b.onclick = () => {
       const i = +b.dataset.jeu;
