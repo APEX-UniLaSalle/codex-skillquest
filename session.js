@@ -1,20 +1,25 @@
-/* Sessions chronométrées du Codex — côté navigateur.
+/* Mode arène du Codex — côté navigateur.
 
-   Un groupe fait le même exercice, avec un chrono commun. Chacun soumet sa
+   Une arène : un groupe fait le même exercice, avec un chrono commun. Chacun soumet sa
    solution, une fois ; le classement montre ceux qui ont réussi, l'enseignant
    voit toutes les solutions. Le serveur est netlify/functions/session.mjs,
    joint sur /api/session : c'est lui qui tient l'horloge et les soumissions.
 
    Ce fichier ne connaît pas la page qui l'accueille. Chaque page l'appelle
    avec quatre accroches :
-     Session.init({
+     Session.init({          // et un bouton par exercice qui appelle Session.lancer()
        page:    'python',                               // python, r ou sql
        courant: () => ({niveau, exo, titre, duree}) ou null,   // l'exercice ouvert
        ouvrir:  async (niveau, exo) => {...},           // ouvre l'exercice de la session
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
      });
-   et demande Session.verrouille() avant d'afficher un indice ou une solution :
-   vrai pendant la session, jusqu'à sa fin.
+   Pendant le verrou, la classe arene-verrou est posée sur body : la page marque
+   arene-cache ce qui doit disparaître (liste, filtres, retour) et arene-fige ce qui
+   doit rester visible sans répondre (lien vers l'accueil).
+   Elle demande Session.verrouille() avant d'afficher un indice ou une solution :
+   vrai pendant l'arène, jusqu'à sa fin, sauf pour le lanceur qui a gardé l'accès.
+   ouvrir() reçoit un troisième argument, depart : vrai au départ de l'arène,
+   pour repartir de l'amorce de l'exercice ; faux à la reprise après rechargement.
 
    Ce que le navigateur retient : sessionStorage garde le code, le nom, le
    jeton et, pour le lanceur, sa clé. Un rechargement de la page reprend la
@@ -25,7 +30,7 @@
 
 window.Session = (() => {
   const API = '/api/session';
-  const CLE = 'codex_session';
+  const CLE = 'codex_arene';
   const H = {};                 // accroches de la page
   let S = null;                 // {code, nom, jeton, cle} — la session suivie
   let vue = null;               // dernière vue serveur
@@ -81,13 +86,25 @@ window.Session = (() => {
   #sessBar .actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   #sessBar .msg{color:var(--muted);font-size:12.5px}
   #sessBtn{font-size:12.5px;padding:5px 11px}
+  body.arene-verrou .arene-cache{display:none !important}
+  body.arene-verrou .arene-fige{pointer-events:none;opacity:.45}
+  #sessGrand2{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:4vh;padding:4vh 6vw;text-align:center}
+  #sessGrand2.on{display:flex}
+  #sessGrand2 .g-titre{font-size:clamp(18px,3vw,34px);color:var(--muted)}
+  #sessGrand2 .g-titre b{color:var(--ink);font-weight:650}
+  #sessGrand2 .g-code{font-size:clamp(72px,22vw,300px);line-height:1;font-weight:800;letter-spacing:.12em;
+    color:var(--accent);font-family:ui-monospace,Menlo,monospace}
+  #sessGrand2 .g-lien{font-size:clamp(16px,2.6vw,30px);color:var(--ink)}
+  #sessGrand2 .g-parts{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center;max-width:90vw;font-size:clamp(14px,2vw,22px)}
+  #sessGrand2 .g-parts em{width:100%;color:var(--muted);font-style:normal;font-size:.8em}
+  #sessGrand2 .g-parts span{background:var(--code);border-radius:6px;padding:4px 12px}
+  #sessGrand2 .g-actions{display:flex;gap:12px}
+  #sessGrand2 .g-actions button{font-size:clamp(15px,1.8vw,20px);padding:10px 22px}
   dialog.sessDlg{border:1px solid var(--line);border-radius:6px;padding:0;max-width:460px;
     width:calc(100% - 32px);background:var(--panel);color:var(--ink);font:inherit}
   dialog.sessDlg::backdrop{background:rgba(60,56,54,.45)}
   dialog.sessDlg h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:15px;color:var(--accent)}
-  dialog.sessDlg .onglets{display:flex;border-bottom:1px solid var(--line)}
-  dialog.sessDlg .onglets button{flex:1;border:0;border-radius:0;background:none;padding:9px;font-weight:600;color:var(--muted)}
-  dialog.sessDlg .onglets button.on{color:var(--accent);box-shadow:inset 0 -2px 0 var(--accent)}
   dialog.sessDlg .corps{padding:14px 18px}
   dialog.sessDlg label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}
   dialog.sessDlg label:first-child{margin-top:0}
@@ -121,26 +138,24 @@ window.Session = (() => {
       <span class="msg" id="sessMsg"></span>
       <button class="primary" id="sessSoumettre" style="display:none">✔ Soumettre ma solution</button>
       <button id="sessVoir" style="display:none">📋 Solutions</button>
-      <button id="sessLien" title="Copier le lien de la session">🔗 Copier le lien</button>
+      <button id="sessGrand" style="display:none" title="Le code en grand, pour le vidéoprojecteur">🖥 Code en grand</button>
+      <button id="sessPlein" style="display:none" title="Repasser en plein écran">⛶ Plein écran</button>
+      <button id="sessLien" title="Copier le lien de l'arène">🔗 Copier le lien</button>
       <button class="primary" id="sessGo" style="display:none">▶ Démarrer</button>
-      <button id="sessQuit">Quitter</button>
+      <button id="sessQuit">Quitter l'arène</button>
     </span>
   </div>`;
 
   const DLG = `<dialog class="sessDlg" id="sessDlg">
-    <h3>Session chronométrée</h3>
-    <div class="onglets">
-      <button id="sessTabJ" class="on">Rejoindre</button>
-      <button id="sessTabL">Lancer</button>
-    </div>
+    <h3 id="sessDlgTitre">Mode arène</h3>
     <div class="corps" id="sessPanJ">
-      <label for="sessInCode">Code de la session</label>
+      <label for="sessInCode">Code de l'arène</label>
       <input class="code" id="sessInCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC234">
       <div class="deux">
         <div><label for="sessInPrenom">Prénom</label><input id="sessInPrenom" maxlength="30" autocomplete="given-name"></div>
         <div><label for="sessInNom">Nom</label><input id="sessInNom" maxlength="30" autocomplete="family-name"></div>
       </div>
-      <p class="aide">Votre nom sert au classement et à la remise de votre solution à l'enseignant. La session s'efface au bout de 24 heures.</p>
+      <p class="aide">Votre nom sert au classement et à la remise de votre solution à l'enseignant. L'arène s'efface au bout de 24 heures.</p>
     </div>
     <div class="corps" id="sessPanL" style="display:none">
       <div class="exo" id="sessExo"></div>
@@ -150,8 +165,11 @@ window.Session = (() => {
         <div><label for="sessInPrenomL">Prénom</label><input id="sessInPrenomL" maxlength="30" autocomplete="given-name"></div>
         <div><label for="sessInNomL">Nom</label><input id="sessInNomL" maxlength="30" autocomplete="family-name"></div>
       </div>
-      <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" style="width:auto;margin-right:6px">Je participe aussi</label>
-      <p class="aide">Vous recevez un code à donner au groupe. Le chrono démarre quand vous le décidez, après un compte à rebours de 10 secondes. Vous verrez qui a rejoint, puis les solutions soumises.</p>
+      <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
+      <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
+      <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInPlein" checked style="width:auto;margin-right:6px">Plein écran demandé à ceux qui rejoignent</label>
+      <p class="aide">Ceux qui rejoignent n'ont ni indice ni solution pendant l'arène, et ne peuvent pas en sortir pour parcourir le Codex. Le plein écran ne peut pas être imposé par le navigateur : une sortie est comptée et vous est montrée.</p>
+      <p class="aide">Vous recevez un code à afficher au groupe. Le chrono démarre quand vous le décidez, après un compte à rebours de 10 secondes. Vous verrez qui a rejoint, puis les solutions soumises.</p>
     </div>
     <div class="pied">
       <button class="primary" id="sessOk">Rejoindre</button>
@@ -165,10 +183,40 @@ window.Session = (() => {
     <div class="pied"><button id="sessSolFermer">Fermer</button><span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:12.5px;color:var(--muted)"></span></div>
   </dialog>`;
 
+  /* ───── le code en grand, pour le vidéoprojecteur ─────
+     Plein écran chez le lanceur, tant que l'arène attend. Le code, le lien,
+     la liste de ceux qui ont rejoint, le bouton de départ. Se ferme au départ. */
+  const GRAND = `<div id="sessGrand2">
+    <div class="g-titre" id="sessGrandTitre"></div>
+    <div class="g-code" id="sessGrandCode"></div>
+    <div class="g-lien" id="sessGrandLien"></div>
+    <div class="g-parts" id="sessGrandParts"></div>
+    <div class="g-actions">
+      <button class="primary" id="sessGrandGo">▶ Démarrer</button>
+      <button id="sessGrandFermer">Réduire</button>
+    </div>
+  </div>`;
+  function rendreGrand() {
+    const g = $('#sessGrand2');
+    if (!g.classList.contains('on') || !vue) return;
+    $('#sessGrandTitre').innerHTML = `Mode arène · <b>${esc(vue.titre || 'Exercice ' + vue.exo)}</b> · ${Math.round(vue.duree / 60)} min`;
+    $('#sessGrandCode').textContent = vue.code;
+    $('#sessGrandLien').textContent = `${location.host}${location.pathname} → ⚔️ Rejoindre une arène`;
+    const n = vue.participants.length;
+    $('#sessGrandParts').innerHTML = (n ? `<em>${n} dans l’arène</em>` : '<em>Personne n’a encore rejoint.</em>')
+      + vue.participants.map(p => `<span>${esc(p)}</span>`).join('');
+    $('#sessGrandGo').style.display = S.cle ? '' : 'none';
+  }
+  function montrerGrand(oui) {
+    $('#sessGrand2').classList.toggle('on', oui);
+    if (oui) rendreGrand();
+  }
+
   /* ───── rendu de la barre ───── */
   function rendre() {
     const bar = $('#sessBar');
-    if (!S || !vue) { bar.classList.remove('on'); return; }
+    $('#sessBtn').style.display = S ? 'none' : '';
+    if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); return; }
     bar.classList.add('on');
     const n = vue.participants.length, ns = vue.soumis.length;
     $('#sessCode').textContent = vue.code;
@@ -190,17 +238,22 @@ window.Session = (() => {
       const classes = vue.resultats.map((r, i) => `<span class="ok">${i + 1}. ${esc(r.nom)} ${mmss(r.temps)}</span>`);
       if (S.cle) {
         const reste = vue.participants.filter(p => !vue.resultats.some(r => meme(r.nom, p)));
-        classes.push(...reste.map(p => `<span class="${vue.soumis.some(s => meme(s, p)) ? 'soumis' : ''}">${esc(p)}${vue.soumis.some(s => meme(s, p)) ? ' · soumis' : ''}</span>`));
+        const sorties = vue.sorties || {};
+        classes.push(...reste.map(p => `<span class="${vue.soumis.some(s => meme(s, p)) ? 'soumis' : ''}">${esc(p)}${vue.soumis.some(s => meme(s, p)) ? ' · soumis' : ''}${sorties[p] ? ` · ⚠ ${sorties[p]} sortie${sorties[p] > 1 ? 's' : ''}` : ''}</span>`));
       }
       li.innerHTML = classes.join('') || (vue.etat === 'fini' ? '<em>Personne n’a réussi dans le temps.</em>' : '<em>Aucune réussite pour l’instant.</em>');
     }
 
     $('#sessGo').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';
+    $('#sessGrand').style.display = vue.etat === 'attente' ? '' : 'none';
+    $('#sessPlein').style.display = vue.pleinEcran && S.nom && !S.cle && vue.etat !== 'fini' && !document.fullscreenElement ? '' : 'none';
+    document.body.classList.toggle('arene-verrou', verrouille());
+    if (vue.etat !== 'attente') montrerGrand(false); else rendreGrand();
     $('#sessVoir').style.display = S.cle && vue.etat !== 'attente' ? '' : 'none';
     $('#sessVoir').textContent = `📋 Solutions (${ns})`;
     $('#sessSoumettre').style.display = S.nom && vue.etat === 'en_cours' && !moiSoumis() ? '' : 'none';
     $('#sessMsg').textContent = vue.etat === 'attente'
-      ? (S.cle ? 'Donnez le code au groupe, puis démarrez.' : 'En attente du départ…')
+      ? (S.cle ? 'Affichez le code au groupe, puis démarrez.' : 'En attente du départ…')
       : vue.etat === 'compte_a_rebours' ? 'Départ imminent…'
       : vue.etat === 'fini' ? 'Terminé. Classement figé.' : '';
     tic();
@@ -239,7 +292,7 @@ window.Session = (() => {
     if (vue.etat !== dernierEtat) {
       const demarre = vue.etat === 'compte_a_rebours' || vue.etat === 'en_cours';
       const arrive = dernierEtat !== 'compte_a_rebours' && dernierEtat !== 'en_cours';
-      if (demarre && arrive) await H.ouvrir(vue.niveau, vue.exo);
+      if (demarre && arrive) await H.ouvrir(vue.niveau, vue.exo, dernierEtat === 'attente');
       dernierEtat = vue.etat;
       programmer();
     }
@@ -264,10 +317,25 @@ window.Session = (() => {
     const ancien = S;
     clearInterval(minuterie); clearInterval(horloge); minuterie = horloge = null;
     S = null; vue = null; dernierEtat = null; stocker(); rendre();
-    if (location.search.includes('session=')) history.replaceState(null, '', location.pathname);
+    if (location.search.includes('arene=')) history.replaceState(null, '', location.pathname);
     if (prevenir && ancien && ancien.nom)
       fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'quitter', code: ancien.code, nom: ancien.nom, jeton: ancien.jeton }) }).catch(() => {});
+  }
+
+  /* ───── plein écran ─────
+     Le navigateur n'accorde le plein écran que sur un geste de l'utilisateur et
+     le rend sur Échap : on ne peut ni l'imposer ni le retenir. On le demande, et
+     chaque sortie, ou passage à un autre onglet, est comptée pour le lanceur. */
+  function pleinEcran() {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
+  }
+  let derniereSortie = 0;
+  function signalerSortie() {
+    if (Date.now() - derniereSortie < 3000) return;   // un seul signal par sortie
+    derniereSortie = Date.now();
+    appel('POST', { action: 'sortie', code: S.code, nom: S.nom, jeton: S.jeton }).catch(() => {});
   }
 
   /* ───── soumission ───── */
@@ -325,28 +393,31 @@ window.Session = (() => {
 
   function montrerOnglet(o) {
     onglet = o;
-    $('#sessTabJ').classList.toggle('on', o === 'J'); $('#sessTabL').classList.toggle('on', o === 'L');
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'L' ? '' : 'none';
     $('#sessEtat').textContent = '';
     if (o === 'L') {
       const c = H.courant();
-      $('#sessExo').innerHTML = c
-        ? `Exercice ouvert : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">Pour en changer, fermez cette fenêtre et ouvrez-en un autre, au choix ou 🎲 au hasard avec les filtres.</span>`
-        : `<span style="color:var(--muted)">Ouvrez d'abord un exercice, au choix dans la liste ou 🎲 au hasard avec les filtres. C'est lui que le groupe fera.</span>`;
+      $('#sessExo').innerHTML = `Exercice : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">C'est lui que le groupe fera. Pour en changer, fermez cette fenêtre et ouvrez-en un autre, au choix ou 🎲 au hasard avec les filtres.</span>`;
       if (c) $('#sessInDuree').value = c.duree || 10;   // la durée conseillée de l'exercice, qui dépend de son niveau
-      $('#sessOk').textContent = 'Créer la session'; $('#sessOk').disabled = !c;
+      $('#sessOk').textContent = 'Ouvrir l’arène'; $('#sessOk').disabled = !c;
     } else {
       $('#sessOk').textContent = 'Rejoindre'; $('#sessOk').disabled = false;
     }
   }
 
-  function ouvrirDialogue(codePrerempli) {
+  /* Deux entrées, jamais de choix à faire dans la fenêtre : « Rejoindre » depuis
+     l'en-tête, « Lancer en groupe » depuis l'exercice ouvert. Un bouton de
+     lancement hors exercice serait un cul-de-sac. */
+  function ouvrirDialogue(codePrerempli, mode = 'J') {
     if (S) { $('#sessBar').scrollIntoView({ behavior: 'smooth' }); return; }
+    if (mode === 'L' && !H.courant()) return;
     if (codePrerempli) $('#sessInCode').value = codePrerempli;
-    montrerOnglet(codePrerempli || !H.courant() ? 'J' : 'L');
+    montrerOnglet(mode);
+    $('#sessDlgTitre').textContent = mode === 'L' ? 'Lancer une arène sur cet exercice' : 'Rejoindre une arène';
     const d = $('#sessDlg'); if (!d.open) d.showModal();
-    (codePrerempli ? $('#sessInPrenom') : onglet === 'J' ? $('#sessInCode') : $('#sessInDuree')).focus();
+    (codePrerempli ? $('#sessInPrenom') : mode === 'J' ? $('#sessInCode') : $('#sessInDuree')).focus();
   }
+  const lancer = () => ouvrirDialogue(null, 'L');
 
   async function valider() {
     const etat = $('#sessEtat'); etat.textContent = '';
@@ -360,17 +431,19 @@ window.Session = (() => {
         const d = await appel('POST', { action: 'rejoindre', code, nom });
         $('#sessDlg').close();
         suivre({ code, nom, jeton: d.jeton });
+        if (vue.pleinEcran) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
         const nom = nomSaisi('L');
-        const joue = $('#sessInJoue').checked;
-        const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60) });
+        const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked, pleinEcran = $('#sessInPlein').checked;
+        const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), pleinEcran });
         let jeton = null;
         if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom })).jeton;
         $('#sessDlg').close();
-        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton });
+        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices });
+        montrerGrand(true);
       }
     } catch (e) { S = null; etat.textContent = e.message; }
     ok.disabled = false;
@@ -384,10 +457,10 @@ window.Session = (() => {
   }
 
   function lien() {
-    const url = `${location.origin}${location.pathname}?session=${S.code}`;
+    const url = `${location.origin}${location.pathname}?arene=${S.code}`;
     const fait = () => { $('#sessMsg').textContent = 'Lien copié.'; setTimeout(rendre, 2500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(fait, () => prompt('Lien de la session', url));
-    else prompt('Lien de la session', url);
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(fait, () => prompt('Lien de l’arène', url));
+    else prompt('Lien de l’arène', url);
   }
 
   /* ───── mise en place ───── */
@@ -402,30 +475,41 @@ window.Session = (() => {
     caler(); window.addEventListener('resize', caler);
     document.body.insertAdjacentHTML('beforeend', DLG);
     const btn = document.createElement('button');
-    btn.id = 'sessBtn'; btn.textContent = '👥 Session'; btn.title = 'Lancer ou rejoindre un exercice chronométré en groupe';
-    btn.onclick = () => ouvrirDialogue();
+    btn.id = 'sessBtn'; btn.textContent = '⚔️ Rejoindre une arène'; btn.title = 'Rejoindre un exercice chronométré en groupe, avec le code affiché';
+    btn.onclick = () => ouvrirDialogue(null, 'J');
     const zone = document.getElementById('status') || entete;
     zone.insertBefore(btn, zone.firstChild);
 
-    $('#sessTabJ').onclick = () => montrerOnglet('J'); $('#sessTabL').onclick = () => montrerOnglet('L');
     $('#sessOk').onclick = valider; $('#sessAnnul').onclick = () => $('#sessDlg').close();
     $('#sessDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); valider(); } });
     $('#sessGo').onclick = demarrer; $('#sessLien').onclick = lien;
+    document.body.insertAdjacentHTML('beforeend', GRAND);
+    $('#sessGrand').onclick = () => montrerGrand(true);
+    $('#sessPlein').onclick = pleinEcran;
+    document.addEventListener('fullscreenchange', () => {
+      if (!document.fullscreenElement && S && S.nom && !S.cle && vue && vue.pleinEcran && vue.etat === 'en_cours') signalerSortie();
+      rendre();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && S && S.nom && !S.cle && vue && vue.pleinEcran && vue.etat === 'en_cours') signalerSortie();
+    });
+    $('#sessGrandFermer').onclick = () => montrerGrand(false);
+    $('#sessGrandGo').onclick = demarrer;
     $('#sessSoumettre').onclick = confirmerSoumission;
     $('#sessVoir').onclick = voirSolutions; $('#sessSolFermer').onclick = () => $('#sessSol').close();
     $('#sessQuit').onclick = () => {
-      if (!vue || vue.etat === 'fini' || confirm(S.cle ? 'Quitter la session ? Elle continue sans vous ; vous ne verrez plus les solutions.' : 'Quitter la session ? Vous en serez retiré.')) quitter(true);
+      if (!vue || vue.etat === 'fini' || confirm(S.cle ? 'Quitter l’arène ? Elle continue sans vous ; vous ne verrez plus les solutions.' : 'Quitter l’arène ? Vous en serez retiré.')) quitter(true);
     };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && S) rafraichir(); });
 
-    const code = new URLSearchParams(location.search).get('session');
+    const code = new URLSearchParams(location.search).get('arene');
     const st0 = lireStock();
     if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) suivre(st0);
     else if (code) ouvrirDialogue(code.toUpperCase());
   }
 
   /* Vrai tant que la session cache indices et solutions : du compte à rebours à la fin. */
-  const verrouille = () => !!(S && vue && (vue.etat === 'compte_a_rebours' || vue.etat === 'en_cours'));
+  const verrouille = () => !!(S && vue && !S.indices && (vue.etat === 'compte_a_rebours' || vue.etat === 'en_cours'));
 
-  return { init, verrouille, ouvrirDialogue, get active() { return !!S; } };
+  return { init, verrouille, lancer, ouvrirDialogue, get active() { return !!S; } };
 })();

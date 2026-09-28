@@ -20,12 +20,14 @@
    qui écrivent en même temps ne s'écrasent pas.
 
    Appels, tous sur /api/session :
-     POST {action:'creer', page, niveau, exo, titre, duree}   → {code, cle, session}
+     POST {action:'creer', page, niveau, exo, titre, duree[, pleinEcran]} → {code, cle, session}
        page : python, r ou sql — la page qui ouvrira l'exercice
      GET  ?code=ABC234[&cle=…]                                → {session, maintenant}
        avec la clé du lanceur, la vue porte aussi les soumissions et leur code
      POST {action:'rejoindre', code, nom[, jeton]}            → {jeton, session}
      POST {action:'quitter', code, nom, jeton}                → {session}
+     POST {action:'sortie', code, nom, jeton}                 → {session}
+       le participant a quitté le plein écran ou l'onglet ; compté, montré au lanceur
      POST {action:'demarrer', code, cle}                      → {session}
      POST {action:'soumettre', code, nom, jeton, source, ok, total[, auto]}
                                                               → {soumission, session}
@@ -94,10 +96,13 @@ async function vue(store, meta, lanceur = false) {
              : maintenant < meta.fin ? 'en_cours' : 'fini';
   const v = {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
-    duree: meta.duree, debut: meta.debut, fin: meta.fin, etat,
+    duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
     participants, soumis, resultats,
   };
-  if (lanceur) v.soumissions = soums.sort((a, b) => tri(a.nom, b.nom));
+  if (lanceur) {
+    v.soumissions = soums.sort((a, b) => tri(a.nom, b.nom));
+    v.sorties = Object.fromEntries(parts.filter(p => p.sorties).map(p => [p.nom, p.sorties]));
+  }
   return v;
 }
 
@@ -151,7 +156,7 @@ export default async (req) => {
     const meta = {
       code: nouveau, cle: tirerSecret(),
       page: corps.page, niveau, exo, titre: String(corps.titre || '').slice(0, 120),
-      duree, debut: null, fin: null,
+      duree, pleinEcran: !!corps.pleinEcran, debut: null, fin: null,
       cree: Date.now(), expire: Date.now() + DUREE_VIE,
     };
     await store.setJSON(cleMeta(nouveau), meta);
@@ -186,6 +191,16 @@ export default async (req) => {
     if (part && part.jeton === corps.jeton) {
       await store.delete(clePart(code, nom));
       await store.delete(cleSoum(code, nom));
+    }
+    return repondre();
+  }
+
+  if (action === 'sortie') {
+    const nom = nettoyerNom(corps.nom);
+    const part = await store.get(clePart(code, nom), { type: 'json' });
+    if (part && part.jeton === corps.jeton && meta.debut && Date.now() < meta.fin) {
+      part.sorties = (part.sorties || 0) + 1;
+      await store.setJSON(clePart(code, nom), part);
     }
     return repondre();
   }

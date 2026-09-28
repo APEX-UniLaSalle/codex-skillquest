@@ -19,8 +19,8 @@ Moodle requis.
 ├── sql.html            requêtes SELECT sur cinq bases, avec explorateur et MCD
 ├── r.html              60 questions, trois jeux de données, un seul niveau
 ├── coderpad.html       préparation à l'examen (6 exercices input() → fonction)
-├── session.js          sessions chronométrées en groupe, côté navigateur
-├── netlify/functions/  session.mjs, la seule fonction serveur : horloge et classement des sessions
+├── session.js          mode arène, côté navigateur
+├── netlify/functions/  session.mjs, la seule fonction serveur : horloge, classement et soumissions des arènes
 ├── package.json        sa dépendance, @netlify/blobs, installée par Netlify au déploiement
 ├── sw.js               cache hors ligne
 ├── netlify.toml        en-têtes de cache, dossier des fonctions
@@ -102,46 +102,62 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 - **Anti-blocage** : le code tourne dans un *web worker*. Une boucle infinie est
   interrompue à 10 s et le moteur redémarre automatiquement — la page ne fige jamais.
 - **Progression** : code et exercices réussis conservés dans le navigateur de l'étudiant
-  (`localStorage`). Rien n'est envoyé sur un serveur, hors sessions chronométrées.
+  (`localStorage`). Rien n'est envoyé sur un serveur, hors mode arène.
 - **SQL** : la plateforme n'accepte que des requêtes `SELECT`. Toute instruction
   d'écriture est refusée, sur demande du responsable de la compétence.
 
-## Sessions chronométrées en groupe
+## Mode arène
 
-Page Python seulement, pour l'instant. Le bouton « 👥 Session » de l'en-tête ouvre deux
-voies : rejoindre avec un code de six caractères, son prénom et son nom ; ou lancer depuis
-l'exercice ouvert, choisi dans la liste ou tiré au hasard avec les filtres. Le lanceur
-fixe la durée, préremplie avec la durée conseillée de l'exercice, qui dépend de son niveau
-(5, 10, 15 ou 20 minutes). Il reçoit un code et un lien, voit qui a rejoint, puis démarre
-quand il veut : compte à rebours de dix secondes, même exercice ouvert sur tous les postes,
-chrono commun. Enseignant ou étudiant, n'importe qui peut lancer ; le lanceur participe
-s'il coche la case.
+Page Python seulement, pour l'instant. Une arène : un groupe fait le même exercice, avec
+un chrono commun, un classement et la remise des solutions au lanceur.
 
-Pendant la session, indices et solutions sont masqués ; ils reviennent à la fin. Chaque
-participant soumet sa solution une fois, par le bouton de la barre : les tests sont joués
-une dernière fois, le code part au serveur, c'est définitif. Réussi si tous les tests
-passent à ce moment-là. Le classement montre les réussites dans l'ordre des temps et se
-fige à la fin. Le code de ceux qui n'ont pas soumis est remis de lui-même à la fin du
-temps, sans compter comme réussite. « Quitter » retire de la session.
+Deux entrées. « ⚔️ Lancer une arène », sur l'exercice ouvert, choisi dans la liste ou tiré
+au hasard avec les filtres : le lanceur saisit prénom et nom, la durée, préremplie avec la
+durée conseillée de l'exercice, qui dépend de son niveau (5, 10, 15 ou 20 minutes), et
+trois options cochées par défaut : il participe aussi, il garde l'accès aux indices et aux
+solutions, le plein écran est demandé à ceux qui rejoignent. « ⚔️ Rejoindre une arène »,
+dans l'en-tête : code de six caractères, prénom et nom.
+
+Le lanceur obtient le code, affiché en grand pour le vidéoprojecteur avec la liste de ceux
+qui ont rejoint, et démarre quand il veut : compte à rebours de dix secondes, même
+exercice ouvert sur tous les postes, à partir de son amorce, chrono commun. Enseignant ou
+étudiant, n'importe qui peut lancer.
+
+Pour ceux qui ont rejoint, pendant l'arène : ni indice ni solution ; la liste des
+exercices et les filtres disparaissent, le lien vers l'accueil ne répond plus ; le plein
+écran est demandé au moment de rejoindre. Le navigateur ne permet ni de l'imposer ni de
+le retenir : chaque sortie du plein écran ou de l'onglet est comptée et montrée au
+lanceur, à côté du nom. Tout revient à la fin.
+
+Chaque participant soumet sa solution une fois, par le bouton de la barre : les tests
+sont joués une dernière fois, le code part au serveur, c'est définitif. Réussi si tous
+les tests passent à ce moment-là. « Tout tester » reste un contrôle libre. Le classement
+montre les réussites dans l'ordre des temps et se fige à la fin. Le code de ceux qui
+n'ont pas soumis est remis de lui-même à la fin du temps, sans compter comme réussite.
+« Quitter l'arène » retire de l'arène.
 
 Le lanceur voit, par « 📋 Solutions », le code soumis par chacun, avec l'état et le
 temps, et la liste de ceux qui n'ont rien soumis.
 
 Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
-Blobs : l'exercice, la durée, l'heure de départ, les prénoms et noms, les soumissions. Le
-temps est mesuré sur l'horloge du serveur à la réception de la soumission. Une session
-s'efface au bout de 24 heures, avec les noms et les codes. Aucun compte.
+Blobs : l'exercice, la durée, les options, l'heure de départ, les prénoms et noms, les
+sorties, les soumissions. Le temps est mesuré sur l'horloge du serveur à la réception de
+la soumission. Une arène s'efface au bout de 24 heures, avec les noms et les codes. Aucun
+compte.
 
 Ce qu'il ne garantit pas : les tests sont joués par le navigateur, le serveur ne les
-rejoue pas. Cela vaut pour l'entraînement, pas pour une évaluation.
+rejoue pas ; un participant qui trafique la page peut déclarer ce qu'il veut. Cela vaut
+pour l'entraînement, pas pour une évaluation.
 
-Le rechargement de la page reprend la session en cours (`sessionStorage`). Fermer l'onglet
-l'oublie. En `file://`, le bouton n'apparaît pas : il n'y a pas de serveur.
+Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le code en
+cours. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas : il n'y a
+pas de serveur.
 
 Transposer à R ou SQL : inclure `session.js`, appeler `Session.init({page, courant,
-ouvrir, tester})` en fin de script, et masquer indices et solutions quand
-`Session.verrouille()` est vrai. `tester()` joue tous les tests sur la réponse en cours et
-rend `{ok, total, source}`.
+ouvrir, tester})` en fin de script, poser un bouton `Session.lancer()` sur l'exercice
+ouvert, masquer indices et solutions quand `Session.verrouille()` est vrai, et marquer
+`arene-cache` ce que le verrou doit masquer, `arene-fige` ce qu'il doit figer. `tester()`
+joue tous les tests sur la réponse en cours et rend `{ok, total, source}`.
 
 ## Cache hors ligne (service worker)
 

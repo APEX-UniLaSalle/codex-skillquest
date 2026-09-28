@@ -47,6 +47,7 @@
   .dot.ready{background:var(--ok)} .dot.load{background:var(--warn);animation:pulse 1.1s infinite}
   @keyframes pulse{50%{opacity:.35}}
 
+  body.arene-verrou main{grid-template-columns:minmax(0,1fr)}   /* la liste est masquée pendant l'arène */
   main{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;
        max-width:none;margin:0}
   @media(max-width:900px){main{grid-template-columns:1fr}}
@@ -305,7 +306,7 @@
 </form>
 
 <header>
-  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+  <a href="index.html" id="marque" class="arene-fige" title="Revenir au choix des parcours">
     <h1>Le Codex</h1>
     <span class="sub">Python — lecture et écriture de code</span>
   </a>
@@ -323,7 +324,7 @@
 <section class="accueil" id="accueil"></section>
 
 <main id="travail" style="display:none">
-  <aside class="panel">
+  <aside class="panel arene-cache">
     <div class="filters">
       <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil</button>
       <select id="fNiveau"></select>
@@ -406,7 +407,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 339ba76</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · dd30c0b</span>
       </div>
     </div>
   </div>
@@ -934,6 +935,7 @@ function openExo(id) {
       <div class="actions">
         <button class="primary" id="run" ${S.ready ? '' : 'disabled'}>▶▶ Tout tester</button>
         <button id="reset">Effacer</button>
+        ${window.Session && !Session.active ? '<button id="sessLancer" title="Mode arène : chrono commun et classement pour un groupe, sur cet exercice">⚔️ Lancer une arène</button>' : ''}
         <span class="hint">Votre code est conservé dans ce navigateur.</span>
       </div>
     </div>
@@ -1124,6 +1126,8 @@ function finaliserExo(e) {
     consoleRun(getCode(), stdin, sel.value === 'libre' ? null : e.tests[+sel.value].attendu);
   };
   document.getElementById('run').onclick = runTests;
+  const bl = document.getElementById('sessLancer');
+  if (bl) bl.onclick = () => Session.lancer();
   document.querySelectorAll('#jeux button[data-jeu]').forEach(b =>
     b.onclick = () => {
       const i = +b.dataset.jeu;
@@ -1262,7 +1266,7 @@ function solBody(code, notions) {
     </div>`;
 }
 
-/* Pendant une session chronométrée, ni indice ni solution : ils reviennent à la fin. */
+/* Dans l'arène, ni indice ni solution : ils reviennent à la fin. */
 const enSession = () => window.Session && Session.verrouille();
 
 function indiceBlock(e) {
@@ -1324,17 +1328,23 @@ initCacheHorsLigne();
 
 const BOOT = boot();
 
-/* Sessions chronométrées en groupe : voir session.js. La page ne fournit que
-   l'exercice ouvert et le moyen d'en ouvrir un. */
+/* Mode arène, chrono commun pour un groupe : voir session.js. La page ne
+   fournit que l'exercice ouvert, le moyen d'en ouvrir un et le jeu des tests. */
 const DUREE_NIVEAU = { prog1: 5, prog2: 10, prog3: 15, prog4: 20 };   // minutes, si l'exercice n'en porte pas
 Session.init({
   page: 'python',
   courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre,
                            duree: S.cur.duree || DUREE_NIVEAU[S.slug] || 10 } : null,
-  ouvrir: async (niveau, exo) => {
+  ouvrir: async (niveau, exo, depart) => {
     await BOOT;   // les banques sont chargées
     if (S.slug !== niveau || document.getElementById('travail').style.display === 'none') await ouvrirNiveau(niveau);
     openExo(exo);
+    // au départ, tout le monde part de l'amorce, les lignes input() comprises ;
+    // à la reprise après un rechargement, le code en cours reste
+    if (depart && S.cur) {
+      if (S.cm) { S.cm.setValue(S.cur.amorce || ''); S.cm.setCursor(S.cm.lineCount(), 0); }
+      else document.getElementById('code').value = S.cur.amorce || '';
+    }
   },
   // joue tous les jeux d'essai sur le code en cours, sans s'arrêter au premier échec
   tester: () => new Promise(resoudre => {
