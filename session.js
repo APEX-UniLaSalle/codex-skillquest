@@ -12,6 +12,7 @@
        courant: () => ({niveau, exo, titre, duree}) ou null,   // l'exercice ouvert
        ouvrir:  async (niveau, exo) => {...},           // ouvre l'exercice de la session
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
+       deverrouiller: () => {...},                       // facultatif : réaffiche indices et solutions, code en place
      });
    Pendant le verrou, la classe arene-verrou est posée sur body : la page marque
    arene-cache ce qui doit disparaître (liste, filtres, retour) et arene-fige ce qui
@@ -37,6 +38,7 @@ window.Session = (() => {
   let decalage = 0;             // horloge serveur − horloge locale
   let minuterie = null, horloge = null;
   let maSoumission = null;      // la réponse du serveur à ma soumission de la manche en cours
+  let verrouPrec = false;
   let manchePrec = null;        // pour remettre à zéro ce qui dépend de la manche
 
   const $ = s => document.querySelector(s);
@@ -46,6 +48,7 @@ window.Session = (() => {
   const maintenant = () => Date.now() + decalage;
   const meme = (a, b) => a && b && a.localeCompare(b, 'fr', { sensitivity: 'base' }) === 0;
   const moiSoumis = () => !!(S && S.nom && vue && vue.soumis.some(n => meme(n, S.nom)));
+  const enEpreuve = e => e === 'en_cours' || e === 'pause';
 
   const lireStock = () => { try { return JSON.parse(sessionStorage.getItem(CLE)) || null; } catch { return null; } };
   const stocker = () => { try { S ? sessionStorage.setItem(CLE, JSON.stringify(S)) : sessionStorage.removeItem(CLE); } catch {} };
@@ -53,6 +56,7 @@ window.Session = (() => {
   async function appel(methode, corps) {
     const url = methode === 'GET'
       ? `${API}?code=${encodeURIComponent(S.code)}${S.cle ? '&cle=' + encodeURIComponent(S.cle) : ''}`
+        + (S.nom && S.jeton ? `&nom=${encodeURIComponent(S.nom)}&jeton=${encodeURIComponent(S.jeton)}` : '')
       : API;
     const rep = await fetch(url, {
       method: methode, cache: 'no-store',
@@ -109,6 +113,20 @@ window.Session = (() => {
   #sessGrand2 .g-podium small{font-size:.6em;color:var(--muted);font-weight:400}
   #sessGrand2 .g-suite{font-size:clamp(14px,1.8vw,20px);color:var(--muted);margin:.8em 0 0}
   #sessGrand2 .g-actions{display:flex;gap:12px}
+  #sessAttente{position:fixed;inset:0;z-index:35;background:var(--bg);display:none;flex-direction:column;align-items:center;
+    justify-content:center;gap:3vh;padding:4vh 6vw;text-align:center}
+  #sessAttente.on{display:flex}
+  #sessAttente .a-titre{font-size:clamp(20px,3vw,32px);color:var(--accent);font-weight:650}
+  #sessAttente .a-moi{font-size:clamp(15px,2vw,22px)}
+  #sessAttente .a-chrono{font-size:clamp(40px,8vw,96px);font-weight:700;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;line-height:1}
+  #sessAttente .a-class{width:min(90vw,640px);max-height:40vh;overflow:auto}
+  #sessAttente .a-class table{width:100%;border-collapse:collapse;font-size:clamp(14px,1.8vw,20px)}
+  #sessAttente .a-class td,#sessAttente .a-class th{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+  #sessAttente .a-class th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:.3px}
+  #sessAttente .a-class tr.moi td{color:var(--ok);font-weight:600}
+  #sessAttente .a-class em{color:var(--muted);font-style:normal;display:block;padding:.6em}
+  #sessAttente .a-note{color:var(--muted);font-size:13.5px;margin:0}
+
   #sessFin .bilan{font-size:15px;line-height:1.6}
   #sessFin .bilan b{font-weight:650}
   #sessFin .bilan .ok{color:var(--ok)} #sessFin .bilan .ko{color:var(--ko)}
@@ -155,6 +173,8 @@ window.Session = (() => {
       <button id="sessPlein" style="display:none" title="Repasser en plein écran">⛶ Plein écran</button>
       <button id="sessLien" title="Copier le lien de l'arène">🔗 Copier le lien</button>
       <button class="primary" id="sessGo" style="display:none">▶ Démarrer</button>
+      <button id="sessPause" style="display:none" title="Arrêter le chrono pour tout le monde">⏸ Pause</button>
+      <button class="primary" id="sessReprendre" style="display:none" title="Le chrono repart, la fin recule d'autant">▶ Reprendre</button>
       <button id="sessPlus1" style="display:none" title="Prolonger le chrono d'une minute">+1 min</button>
       <button id="sessPlus2" style="display:none" title="Prolonger le chrono de deux minutes">+2 min</button>
       <button id="sessPodium" style="display:none" title="Le classement en grand, pour le vidéoprojecteur">🏆 Podium</button>
@@ -175,6 +195,8 @@ window.Session = (() => {
     </div>
     <div class="corps" id="sessPanL" style="display:none">
       <div class="sess-exo" id="sessExo"></div>
+      <label for="sessInMdp">Mot de passe enseignant</label>
+      <input id="sessInMdp" type="password" autocomplete="current-password">
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
@@ -183,8 +205,11 @@ window.Session = (() => {
       </div>
       <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
       <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
-      <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInPlein" checked style="width:auto;margin-right:6px">Plein écran demandé à ceux qui rejoignent</label>
-      <p class="aide">Ceux qui rejoignent n'ont ni indice ni solution pendant l'arène, et ne peuvent pas en sortir pour parcourir le Codex. Le plein écran ne peut pas être imposé par le navigateur : une sortie est comptée et vous est montrée.</p>
+      <div class="modes" style="margin-top:10px">
+        <label style="font-weight:400;margin:0"><input type="radio" name="sessMode" value="eval" checked style="width:auto;margin-right:6px"><b>Évaluation</b> — plein écran demandé, sorties décomptées, score sur 20 et médaille cumulés sur les manches, solutions réservées au lanceur</label>
+        <label style="font-weight:400;margin:6px 0 0"><input type="radio" name="sessMode" value="entrainement" style="width:auto;margin-right:6px"><b>Entraînement</b> — sans plein écran ni score ; qui a soumis voit les solutions des autres</label>
+      </div>
+      <p class="aide">Dans les deux modes, ceux qui rejoignent n'ont ni indice ni solution pendant la manche et ne peuvent pas parcourir le Codex. Le plein écran ne peut pas être imposé par le navigateur : une sortie est comptée et vous est montrée ; en évaluation, la soumission de la manche n'est pas comptée, sauf si vous en décidez autrement.</p>
       <p class="aide">Vous recevez un code à afficher au groupe. Le chrono démarre quand vous le décidez, après un compte à rebours de 10 secondes. Vous verrez qui a rejoint, puis les solutions soumises.</p>
     </div>
     <div class="pied">
@@ -201,6 +226,13 @@ window.Session = (() => {
       <button id="sessExpJson" title="Toutes les manches, données brutes">⤓ JSON</button>
       <span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:12.5px;color:var(--muted)"></span></div>
   </dialog>
+  <div id="sessAttente">
+    <div class="a-titre">Solution soumise</div>
+    <div class="a-moi" id="sessAttMoi"></div>
+    <div class="a-chrono" id="sessAttChrono"></div>
+    <div class="a-class" id="sessAttClass"></div>
+    <p class="a-note">Votre code reste caché jusqu'à la fin de la manche. Le classement se met à jour tout seul.</p>
+  </div>
   <dialog class="sessDlg" id="sessFin">
     <h3>Arène terminée</h3>
     <div class="corps" id="sessFinCorps"></div>
@@ -246,12 +278,15 @@ window.Session = (() => {
     if (podium) {
       const sorties = vue.sorties || {};
       const l = classement();
+      const ev = vue.mode === 'eval', sc = vue.scores || [];
+      const score = nom => sc.find(x => meme(x.nom, nom));
       $('#sessGrandPodium').innerHTML = `<table>
-        <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th></tr>
-        ${l.map((x, i) => `<tr class="${x.s && x.s.reussi ? 'ok' : ''}">
+        <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Score</th><th>Médaille</th>' : ''}</tr>
+        ${l.map((x, i) => { const k = score(x.nom); return `<tr class="${x.s && x.s.reussi && x.s.compte !== false ? 'ok' : ''}">
           <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}</td>
-          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}</td>
-          <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td></tr>`).join('')}
+          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}</td>
+          <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td>
+          ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : '—'}</td>` : ''}</tr>`; }).join('')}
       </table>
       <p class="g-suite">${l.length ? `${l.filter(x => x.s && x.s.reussi).length} réussite${l.filter(x => x.s && x.s.reussi).length > 1 ? 's' : ''} sur ${l.length}. ` : ''}Pour une nouvelle manche : ouvrez un autre exercice, puis ⚔️ Relancer l’arène.</p>`;
       return;
@@ -271,11 +306,11 @@ window.Session = (() => {
   function rendre() {
     const bar = $('#sessBar');
     $('#sessBtn').style.display = S ? 'none' : '';
-    if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); return; }
+    if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); $('#sessAttente').classList.remove('on'); return; }
     bar.classList.add('on');
     const n = vue.participants.length, ns = vue.soumis.length;
     $('#sessCode').textContent = vue.code;
-    $('#sessTitre').innerHTML = `<b>${esc(vue.titre || 'Exercice ' + vue.exo)}</b> · ${Math.round(vue.duree / 60)} min · ${n} participant${n > 1 ? 's' : ''}`
+    $('#sessTitre').innerHTML = `<b>${esc(vue.titre || 'Exercice ' + vue.exo)}</b> · ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}${vue.manche > 1 ? ` · manche ${vue.manche}` : ''} · ${Math.round(vue.duree / 60)} min · ${n} participant${n > 1 ? 's' : ''}`
       + (vue.etat === 'attente' ? '' : ` · ${ns} soumis`);
 
     // moi
@@ -301,18 +336,26 @@ window.Session = (() => {
 
     if (vue.manche !== manchePrec) { maSoumission = null; manchePrec = vue.manche; }
     $('#sessGo').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';
-    for (const id of ['sessPlus1', 'sessPlus2']) $('#' + id).style.display = S.cle && vue.etat === 'en_cours' ? '' : 'none';
+    for (const id of ['sessPlus1', 'sessPlus2']) $('#' + id).style.display = S.cle && enEpreuve(vue.etat) ? '' : 'none';
+    $('#sessPause').style.display = S.cle && vue.etat === 'en_cours' ? '' : 'none';
+    $('#sessReprendre').style.display = S.cle && vue.etat === 'pause' ? '' : 'none';
+    rendreAttente();
     $('#sessPodium').style.display = S.cle && vue.etat === 'fini' ? '' : 'none';
     $('#sessGrand').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';   // le lanceur seul
     $('#sessPlein').style.display = vue.pleinEcran && S.nom && !S.cle && vue.etat !== 'fini' && !document.fullscreenElement ? '' : 'none';
-    document.body.classList.toggle('arene-verrou', verrouille());
+    const v = verrouille();
+    document.body.classList.toggle('arene-verrou', v);
+    if (verrouPrec && !v && H.deverrouiller) H.deverrouiller();   // indices et solutions reviennent
+    verrouPrec = v;
     if (vue.etat === 'attente' || vue.etat === 'fini') rendreGrand(); else montrerGrand(false);
-    $('#sessVoir').style.display = S.cle && vue.etat !== 'attente' ? '' : 'none';
-    $('#sessVoir').textContent = `📋 Solutions (${ns})`;
+    const autres = !S.cle && vue.mode === 'entrainement' && moiSoumis();
+    $('#sessVoir').style.display = (S.cle && vue.etat !== 'attente') || autres ? '' : 'none';
+    $('#sessVoir').textContent = autres ? `📋 Solutions des autres (${Math.max(0, ns - 1)})` : `📋 Solutions (${ns})`;
     $('#sessSoumettre').style.display = S.nom && vue.etat === 'en_cours' && !moiSoumis() ? '' : 'none';
     $('#sessMsg').textContent = vue.etat === 'attente'
       ? (S.cle ? 'Affichez le code au groupe, puis démarrez.' : (vue.manche > 1 ? `Manche ${vue.manche} : en attente du départ…` : 'En attente du départ…'))
       : vue.etat === 'compte_a_rebours' ? 'Départ imminent…'
+      : vue.etat === 'pause' ? 'Chrono en pause.'
       : vue.etat === 'fini' ? 'Terminé. Classement figé.' : '';
     tic();
   }
@@ -320,11 +363,13 @@ window.Session = (() => {
   function tic() {
     const el = $('#sessChrono');
     if (!vue || !vue.debut) { el.textContent = mmss(vue ? vue.duree * 1000 : 0); el.classList.remove('fin'); return; }
+    if (vue.pause) { el.textContent = '⏸ ' + mmss(vue.fin - vue.pause); el.classList.remove('fin'); $('#sessAttChrono').textContent = el.textContent; return; }
     const t = maintenant();
     if (t < vue.debut) { el.textContent = '− ' + Math.ceil((vue.debut - t) / 1000); el.classList.remove('fin'); return; }
     if (vue.etat === 'compte_a_rebours') { vue.etat = 'en_cours'; rendre(); return; }   // sans attendre le prochain appel
     const reste = vue.fin - t;
     el.textContent = mmss(reste);
+    $('#sessAttChrono').textContent = el.textContent;
     el.classList.toggle('fin', reste <= 0);
     if (reste <= 0 && vue.etat !== 'fini') { vue.etat = 'fini'; rendre(); finDuTemps(); }
   }
@@ -355,10 +400,33 @@ window.Session = (() => {
           ? `<p class="ok"><b>Réussi</b> en ${mmss(m.temps)}${rang >= 0 ? `, ${rang + 1}${rang === 0 ? 'er' : 'e'} sur ${vue.resultats.length} réussite${vue.resultats.length > 1 ? 's' : ''}` : ''}.</p>`
           : `<p class="ko"><b>Non réussi</b> : ${m.ok} test${m.ok > 1 ? 's' : ''} sur ${m.total}${m.auto ? '. Votre code a été remis à la fin du temps' : m.temps != null ? `, soumis en ${mmss(m.temps)}` : ''}.</p>`)
       : (rang >= 0 ? `<p class="ok"><b>Réussi</b>, ${rang + 1}${rang === 0 ? 'er' : 'e'} sur ${vue.resultats.length}.</p>` : `<p>Votre solution a été remise à l’enseignant.</p>`);
-    $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}
+    const k = vue.monScore;
+    const scoreTxt = vue.mode === 'eval' && k
+      ? `<p><b>Score</b> : ${k.note}/20 sur ${vue.manche > 1 ? `les ${vue.manche} manches` : 'cette manche'} — ${k.medaille ? `niveau <b>${k.medaille}</b>` : 'sous le seuil Bronze (10/20)'}.</p>` : '';
+    $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}${scoreTxt}
       <p>Les indices, la solution et la liste des exercices sont de nouveau accessibles.</p>
       <p style="color:var(--muted);font-size:13px">Restez dans l’arène : le lanceur peut ouvrir une nouvelle manche sur un autre exercice.</p></div>`;
     const d = $('#sessFin'); if (!d.open) d.showModal();
+  }
+
+  /* Le participant qui a soumis ne revoit plus son code avant la fin : ses
+     voisins n'ont rien à copier. Il suit le chrono et le classement. */
+  function rendreAttente() {
+    const a = $('#sessAttente');
+    const on = !!(S && S.nom && !S.cle && vue && vue.mode === 'eval' && moiSoumis() && enEpreuve(vue.etat));
+    a.classList.toggle('on', on);
+    if (!on) return;
+    const m = maSoumission;
+    $('#sessAttMoi').innerHTML = m
+      ? (m.reussi ? `<b>${esc(S.nom)}</b> · réussi en ${mmss(m.temps)}` : `<b>${esc(S.nom)}</b> · ${m.ok}/${m.total} test${m.total > 1 ? 's' : ''}${m.temps != null ? ` · soumis en ${mmss(m.temps)}` : ''}`)
+      : `<b>${esc(S.nom)}</b> · solution soumise`;
+    const enCours = vue.participants.filter(p => !vue.soumis.some(x => meme(x, p)));
+    $('#sessAttClass').innerHTML = `<table>
+      <tr><th></th><th>Réussi</th><th>Temps</th></tr>
+      ${vue.resultats.map((r, i) => `<tr class="${meme(r.nom, S.nom) ? 'moi' : ''}"><td>${i + 1}</td><td>${esc(r.nom)}</td><td>${mmss(r.temps)}</td></tr>`).join('')}
+      </table>${vue.resultats.length ? '' : '<em>Aucune réussite pour l’instant.</em>'}
+      <em>${vue.soumis.length} soumis sur ${vue.participants.length}${enCours.length ? ` · encore en cours : ${enCours.map(esc).join(', ')}` : ''}</em>`
+;
   }
 
   /* ───── suivi ───── */
@@ -373,10 +441,10 @@ window.Session = (() => {
       return;
     }
     if (vue.etat !== dernierEtat) {
-      const demarre = vue.etat === 'compte_a_rebours' || vue.etat === 'en_cours';
-      const arrive = dernierEtat !== 'compte_a_rebours' && dernierEtat !== 'en_cours';
+      const demarre = vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat);
+      const arrive = dernierEtat !== 'compte_a_rebours' && !enEpreuve(dernierEtat);
       if (demarre && arrive) await H.ouvrir(vue.niveau, vue.exo, dernierEtat === 'attente');
-      const finit = vue.etat === 'fini' && (dernierEtat === 'en_cours' || dernierEtat === 'compte_a_rebours');
+      const finit = vue.etat === 'fini' && (enEpreuve(dernierEtat) || dernierEtat === 'compte_a_rebours');
       dernierEtat = vue.etat;
       programmer();
       rendre();
@@ -390,7 +458,7 @@ window.Session = (() => {
     clearInterval(minuterie); minuterie = null;
     if (!S || !vue) return;
     const delai = vue.etat === 'attente' ? 3000 : vue.etat === 'compte_a_rebours' ? 2000
-                : vue.etat === 'en_cours' ? 10000 : 5000;   // fini : une manche peut suivre
+                : vue.etat === 'en_cours' ? 10000 : 5000;   // pause et fini : une reprise ou une manche peut suivre
     if (delai) minuterie = setInterval(rafraichir, delai);
   }
 
@@ -418,8 +486,9 @@ window.Session = (() => {
     const el = document.documentElement;
     if (el.requestFullscreen) el.requestFullscreen({ navigationUI: 'hide' }).catch(() => {});
   }
-  let derniereSortie = 0;
+  let derniereSortie = 0, treve = 0;
   function signalerSortie() {
+    if (Date.now() < treve) return;                   // une boîte de dialogue de la page n'est pas une sortie
     if (Date.now() - derniereSortie < 3000) return;   // un seul signal par sortie
     derniereSortie = Date.now();
     appel('POST', { action: 'sortie', code: S.code, nom: S.nom, jeton: S.jeton }).catch(() => {});
@@ -443,6 +512,7 @@ window.Session = (() => {
   }
 
   async function confirmerSoumission() {
+    treve = Date.now() + 5000;
     if (!confirm('Soumettre votre solution ? C’est définitif : les tests sont joués une dernière fois et votre code est remis à l’enseignant.')) return;
     await soumettre(false);
   }
@@ -454,21 +524,40 @@ window.Session = (() => {
     if (!d.open) d.showModal();
     try { await appel('GET'); } catch (e) { corps.innerHTML = `<p class="vide">${esc(e.message)}</p>`; return; }
     rendre();
+    if (!S.cle) {   // participant en entraînement : les solutions des autres, sans export ni décision
+      const so = (vue.solutions || []).filter(x => !meme(x.nom, S.nom));
+      $('#sessSolTitre').textContent = `Solutions des autres — ${vue.titre || 'exercice ' + vue.exo}`;
+      $('#sessSolMsg').textContent = ''; $('#sessExpMd').style.display = 'none'; $('#sessExpJson').style.display = 'none';
+      corps.innerHTML = so.length ? `<table><tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
+        ${so.map(x => `<tr><td>${esc(x.nom)}</td><td class="etat ${x.reussi ? 'ok' : 'ko'}">${x.reussi ? 'Réussi' : `${x.ok}/${x.total} tests`}</td>
+          <td>${x.temps == null ? '—' : mmss(x.temps)}</td><td><pre>${esc(x.source || '(vide)')}</pre></td></tr>`).join('')}</table>`
+        : '<p class="vide">Personne d’autre n’a encore soumis.</p>';
+      return;
+    }
+    $('#sessExpMd').style.display = ''; $('#sessExpJson').style.display = '';
     const so = vue.soumissions || [];
     $('#sessSolTitre').textContent = `Solutions soumises — ${vue.titre || 'exercice ' + vue.exo}`;
     const manquent = vue.participants.filter(p => !so.some(s => meme(s.nom, p)));
     $('#sessSolMsg').textContent = `${so.length} soumise${so.length > 1 ? 's' : ''} sur ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}`
       + (manquent.length ? ` · sans soumission : ${manquent.join(', ')}` : '');
     if (!so.length) { corps.innerHTML = '<p class="vide">Aucune soumission pour l’instant.</p>'; return; }
+    const ev = vue.mode === 'eval';
     corps.innerHTML = `<table>
       <tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
       ${so.map(s => `<tr>
-        <td>${esc(s.nom)}</td>
-        <td class="etat ${s.reussi ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}</td>
+        <td>${esc(s.nom)}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
+          ${ev && s.sorties ? `<br><button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Ne pas compter' : 'Compter quand même'}</button>` : ''}</td>
+        <td class="etat ${s.reussi && s.compte !== false ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}${s.compte === false ? '<br><small>non comptée</small>' : ''}</td>
         <td>${s.temps == null ? '—' : mmss(s.temps)}</td>
         <td><pre>${esc(s.source || '(vide)')}</pre></td>
       </tr>`).join('')}
     </table>`;
+    corps.querySelectorAll('button[data-compter]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { await appel('POST', { action: 'compter', code: S.code, cle: S.cle, nom: b.dataset.compter, manche: vue.manche, compte: b.dataset.valeur === '1' }); }
+      catch (e) { $('#sessSolMsg').textContent = e.message; }
+      voirSolutions();
+    });
   }
 
   /* ───── dialogue ───── */
@@ -484,7 +573,7 @@ window.Session = (() => {
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'J' ? 'none' : '';
     $('#sessEtat').textContent = '';
     // relance : seuls l'exercice et la durée changent, le reste appartient à l'arène
-    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .aide'))
+    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide, label[for=sessInMdp], #sessInMdp'))
       el.style.display = o === 'R' ? 'none' : '';
     if (o === 'R') {
       const c = H.courant();
@@ -497,6 +586,7 @@ window.Session = (() => {
       const c = H.courant();
       $('#sessExo').innerHTML = `Exercice : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">C'est lui que le groupe fera. Pour en changer, fermez cette fenêtre et ouvrez-en un autre, au choix ou 🎲 au hasard avec les filtres.</span>`;
       if (c) $('#sessInDuree').value = c.duree || 10;   // la durée conseillée de l'exercice, qui dépend de son niveau
+      try { if (!$('#sessInMdp').value) $('#sessInMdp').value = localStorage.getItem('codex_arene_mdp') || ''; } catch {}
       $('#sessOk').textContent = 'Ouvrir l’arène'; $('#sessOk').disabled = !c;
     } else {
       $('#sessOk').textContent = 'Rejoindre'; $('#sessOk').disabled = false;
@@ -526,7 +616,7 @@ window.Session = (() => {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
-        await appel('POST', { action: 'relancer', code: S.code, cle: S.cle, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60) });
+        await appel('POST', { action: 'relancer', code: S.code, cle: S.cle, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0 });
         $('#sessDlg').close();
         finVue = null; dernierEtat = null;
         await rafraichir();
@@ -548,8 +638,12 @@ window.Session = (() => {
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
         const nom = nomSaisi('L');
-        const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked, pleinEcran = $('#sessInPlein').checked;
-        const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), pleinEcran });
+        const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked;
+        const mode = (document.querySelector('input[name=sessMode]:checked') || {}).value || 'eval';
+        const mdp = $('#sessInMdp').value;
+        if (!mdp) throw new Error('Le mot de passe enseignant est demandé pour ouvrir une arène.');
+        const d = await appel('POST', { action: 'creer', mdp, page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0, mode });
+        try { localStorage.setItem('codex_arene_mdp', mdp); } catch {}   // retenu sur ce poste, pour les fois suivantes
         let jeton = null;
         if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom })).jeton;
         $('#sessDlg').close();
@@ -565,6 +659,11 @@ window.Session = (() => {
     try { await appel('POST', { action: 'demarrer', code: S.code, cle: S.cle }); await rafraichir(); }
     catch (e) { $('#sessMsg').textContent = e.message; }
     b.disabled = false;
+  }
+
+  async function pause(action) {
+    try { await appel('POST', { action, code: S.code, cle: S.cle }); dernierEtat = vue.etat; programmer(); rendre(); }
+    catch (e) { $('#sessMsg').textContent = e.message; }
   }
 
   async function prolonger(secondes) {
@@ -588,23 +687,27 @@ window.Session = (() => {
     try { await appel('GET'); } catch (e) { $('#sessSolMsg').textContent = e.message; return; }
     const manches = vue.manches || [];
     if (format === 'json') {
-      telecharger(nomFichier('json'), JSON.stringify({ code: vue.code, page: H.page, exporte: new Date().toISOString(),
-        participants: vue.participants, sorties: vue.sorties || {}, manches }, null, 2), 'application/json');
+      telecharger(nomFichier('json'), JSON.stringify({ code: vue.code, page: H.page, mode: vue.mode, exporte: new Date().toISOString(),
+        participants: vue.participants, scores: vue.scores || null, manches }, null, 2), 'application/json');
       return;
     }
     const date = d => d ? new Date(d).toLocaleString('fr-FR') : '—';
-    const md = [`# Arène ${vue.code} — ${H.page}`, '', `Exporté le ${date(Date.now())}. ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}.`, ''];
+    const md = [`# Arène ${vue.code} — ${H.page} — ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}`, '', `Exporté le ${date(Date.now())}. ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}.`, ''];
+    if (vue.scores) {
+      md.push('## Scores cumulés', '', '| Nom | Points | Maximum | Note /20 | Médaille |', '|---|---|---|---|---|');
+      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom} | ${k.points} | ${k.max} | ${k.note} | ${k.medaille || '—'} |`);
+      md.push('');
+    }
     for (const m of manches) {
       md.push(`## Manche ${m.manche} — ${m.titre || 'exercice ' + m.exo}`, '',
         `- Exercice : ${m.niveau} / ${m.exo}`, `- Durée : ${Math.round(m.duree / 60)} min`, `- Départ : ${date(m.debut)}`, '',
         '| Nom | État | Tests | Temps | Sorties |', '|---|---|---|---|---|');
-      const sorties = vue.sorties || {};
       const so = m.soumissions || [];
       const lignes = vue.participants.map(p => ({ nom: p, s: so.find(x => meme(x.nom, p)) }))
         .sort((a, b) => ((b.s && b.s.total ? b.s.ok / b.s.total : 0) - (a.s && a.s.total ? a.s.ok / a.s.total : 0))
           || ((a.s && a.s.temps != null ? a.s.temps : Infinity) - (b.s && b.s.temps != null ? b.s.temps : Infinity)));
       for (const { nom, s: x } of lignes)
-        md.push(`| ${nom} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${sorties[nom] || 0} |`);
+        md.push(`| ${nom} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'}${x && x.compte === false ? ', non comptée' : ''} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${x && x.sorties || 0} |`);
       md.push('');
       for (const x of so) md.push(`### ${x.nom}`, '', '```', (x.source || '').replace(/```/g, '` ` `'), '```', '');
     }
@@ -642,11 +745,11 @@ window.Session = (() => {
     $('#sessGrand').onclick = () => montrerGrand(true);
     $('#sessPlein').onclick = pleinEcran;
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && S && S.nom && !S.cle && vue && vue.pleinEcran && vue.etat === 'en_cours') signalerSortie();
+      if (!document.fullscreenElement && S && S.nom && !S.cle && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
       rendre();
     });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden && S && S.nom && !S.cle && vue && vue.pleinEcran && vue.etat === 'en_cours') signalerSortie();
+      if (document.hidden && S && S.nom && !S.cle && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
     });
     $('#sessGrandFermer').onclick = () => montrerGrand(false);
     $('#sessGrandGo').onclick = demarrer;
@@ -655,6 +758,7 @@ window.Session = (() => {
     $('#sessExpMd').onclick = () => exporter('md'); $('#sessExpJson').onclick = () => exporter('json');
     $('#sessFinFermer').onclick = () => $('#sessFin').close();
     $('#sessPlus1').onclick = () => prolonger(60); $('#sessPlus2').onclick = () => prolonger(120);
+    $('#sessPause').onclick = () => pause('pause'); $('#sessReprendre').onclick = () => pause('reprendre');
     $('#sessPodium').onclick = () => montrerGrand(true);
     $('#sessQuit').onclick = () => {
       if (!vue || vue.etat === 'fini' || confirm(S.cle ? 'Quitter l’arène ? Elle continue sans vous ; vous ne verrez plus les solutions.' : 'Quitter l’arène ? Vous en serez retiré.')) quitter(true);
@@ -668,7 +772,9 @@ window.Session = (() => {
   }
 
   /* Vrai tant que la session cache indices et solutions : du compte à rebours à la fin. */
-  const verrouille = () => !!(S && vue && !S.indices && (vue.etat === 'compte_a_rebours' || vue.etat === 'en_cours'));
+  /* En entraînement, qui a soumis retrouve indices et solutions sans attendre la fin. */
+  const verrouille = () => !!(S && vue && !S.indices && (vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat))
+    && !(vue.mode === 'entrainement' && moiSoumis()));
 
   return { init, verrouille, lancer, relancer, peutRelancer, ouvrirDialogue, get active() { return !!S; } };
 })();

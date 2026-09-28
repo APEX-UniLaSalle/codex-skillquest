@@ -407,7 +407,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 502ef47</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · d76214d</span>
       </div>
     </div>
   </div>
@@ -1334,7 +1334,7 @@ const BOOT = boot();
 const DUREE_NIVEAU = { prog1: 5, prog2: 10, prog3: 15, prog4: 20 };   // minutes, si l'exercice n'en porte pas
 Session.init({
   page: 'python',
-  courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre,
+  courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre, points: S.cur.points || 0,
                            duree: S.cur.duree || DUREE_NIVEAU[S.slug] || 10 } : null,
   ouvrir: async (niveau, exo, depart) => {
     await BOOT;   // les banques sont chargées
@@ -1346,6 +1346,13 @@ Session.init({
       if (S.cm) { S.cm.setValue(S.cur.amorce || ''); S.cm.setCursor(S.cm.lineCount(), 0); }
       else document.getElementById('code').value = S.cur.amorce || '';
     }
+  },
+  // le verrou tombe (entraînement, après soumission) : l'exercice est réaffiché avec ses indices, le code en place
+  deverrouiller: () => {
+    if (!S.cur) return;
+    const code = getCode(), id = S.cur.id;
+    openExo(id);
+    if (S.cm) { S.cm.setValue(code); S.cm.setCursor(S.cm.lineCount(), 0); } else document.getElementById('code').value = code;
   },
   // joue tous les jeux d'essai sur le code en cours, sans s'arrêter au premier échec
   tester: () => new Promise(resoudre => {

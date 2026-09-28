@@ -20,16 +20,31 @@
    qui écrivent en même temps ne s'écrasent pas.
 
    Appels, tous sur /api/session :
-     POST {action:'creer', page, niveau, exo, titre, duree[, pleinEcran]} → {code, cle, session}
+     POST {action:'creer', mdp, page, niveau, exo, titre, duree, points, mode} → {code, cle, session}
+       mdp : le mot de passe enseignant, variable d'environnement ARENE_MDP sur
+       Netlify, jamais dans le dépôt. Le site est public : sans lui, n'importe
+       qui pourrait ouvrir des arènes et consommer les crédits du compte.
        page : python, r ou sql — la page qui ouvrira l'exercice
+       mode : 'eval' — plein écran demandé, sorties décomptées, score cumulé sur
+              les manches, solutions réservées au lanceur ;
+              'entrainement' — rien de tout cela, et chacun voit les solutions
+              des autres une fois la sienne soumise
+     GET  ?code=…&nom=…&jeton=…                               → vue d'un participant :
+       son score, et en entraînement les solutions déjà soumises
      GET  ?code=ABC234[&cle=…]                                → {session, maintenant}
        avec la clé du lanceur, la vue porte aussi les soumissions et leur code
      POST {action:'rejoindre', code, nom[, jeton]}            → {jeton, session}
      POST {action:'quitter', code, nom, jeton}                → {session}
      POST {action:'sortie', code, nom, jeton}                 → {session}
-       le participant a quitté le plein écran ou l'onglet ; compté, montré au lanceur
+       le participant a quitté le plein écran ou l'onglet ; compté par manche,
+       montré au lanceur ; sa soumission de la manche n'est pas comptée, sauf
+       décision du lanceur :
+     POST {action:'compter', code, cle, nom, manche, compte}  → {session}
      POST {action:'demarrer', code, cle}                      → {session}
      POST {action:'prolonger', code, cle, secondes}           → {session}
+     POST {action:'pause', code, cle} / {action:'reprendre', code, cle} → {session}
+       le chrono s'arrête ; à la reprise, la fin recule d'autant ; le temps des
+       soumissions ne compte pas les pauses
      POST {action:'relancer', code, cle, niveau, exo, titre, duree} → {session}
        manche suivante sur un autre exercice : les participants restent, les
        soumissions de la manche close sont gardées pour l'export
@@ -60,6 +75,9 @@ const tirerCode = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(6)), o => ALPHABET[o % ALPHABET.length]).join('');
 const tirerSecret = () => crypto.randomUUID();
 
+/* Seuils du socle pour un savoir-faire : Bronze 10/20, Argent 15/20, Or 20/20. */
+const medaille = note => note >= 20 ? 'Or' : note >= 15 ? 'Argent' : note >= 10 ? 'Bronze' : null;
+
 const nettoyerNom = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
 /* « Léa Martin » et « léa martin » sont la même personne : la clé est en
@@ -84,7 +102,7 @@ async function lireTous(store, prefix) {
 
 /* Vue d'une session. Sans la clé du lanceur : ni jetons, ni code soumis.
    Avec elle : les soumissions complètes, pour l'enseignant. */
-async function vue(store, meta, lanceur = false) {
+async function vue(store, meta, lanceur = false, participant = null) {
   const [parts, soums] = await Promise.all([
     lireTous(store, `sess/${meta.code}/p/`),
     lireTous(store, `sess/${meta.code}/s/${meta.manche}/`),
@@ -92,22 +110,61 @@ async function vue(store, meta, lanceur = false) {
   const tri = (a, b) => a.localeCompare(b, 'fr');
   const participants = parts.map(p => p.nom).sort(tri);
   const soumis = soums.map(s => s.nom).sort(tri);
-  const resultats = soums.filter(s => s.reussi).sort((a, b) => a.temps - b.temps)
+  const sortiesDe = (p, manche) => (p.sortiesParManche || {})[manche] || 0;
+  // une soumission compte si son auteur n'est pas sorti du plein écran pendant
+  // la manche, ou si le lanceur a décidé de la compter malgré tout
+  const compte = s => {
+    if (meta.mode !== 'eval') return true;
+    if (typeof s.compte === 'boolean') return s.compte;
+    const p = parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0);
+    return !p || sortiesDe(p, s.manche) === 0;
+  };
+  const resultats = soums.filter(s => s.reussi && compte(s)).sort((a, b) => a.temps - b.temps)
     .map(s => ({ nom: s.nom, temps: s.temps }));
+  const eval_ = meta.mode === 'eval';
+  // Score cumulé sur les manches closes et la manche en cours : chaque exercice
+  // rapporte ses points au prorata des tests passés, comme un validateur CoderPad.
+  // Une soumission non comptée rapporte 0. Note sur 20 = points / maximum × 20.
+  const manchesToutes = [...(meta.historique || []), { manche: meta.manche, points: meta.points }];
+  const maxPoints = manchesToutes.reduce((t, m) => t + (m.points || 0), 0);
+  let scores = null;
+  if (eval_ && meta.debut) {
+    const toutes = await lireTous(store, `sess/${meta.code}/s/`);
+    scores = participants.map(nom => {
+      const pts = toutes.filter(x => x.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0 && compte(x))
+        .reduce((t, x) => { const m = manchesToutes.find(mm => mm.manche === x.manche); return t + (m && m.points && x.total ? m.points * x.ok / x.total : 0); }, 0);
+      const note = maxPoints ? Math.round(pts / maxPoints * 20 * 10) / 10 : 0;
+      return { nom, points: Math.round(pts * 10) / 10, max: maxPoints, note, medaille: medaille(note) };
+    });
+  }
   const maintenant = Date.now();
   const etat = !meta.debut ? 'attente'
              : maintenant < meta.debut ? 'compte_a_rebours'
+             : meta.pause ? 'pause'
              : maintenant < meta.fin ? 'en_cours' : 'fini';
   const v = {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
-    manche: meta.manche, participants, soumis, resultats,
+    pause: meta.pause || null, manche: meta.manche, mode: meta.mode, participants, soumis, resultats,
+    maxPoints,
   };
+  if (participant) {
+    const p = parts.find(x => x.nom.localeCompare(participant.nom, 'fr', { sensitivity: 'base' }) === 0);
+    if (p && p.jeton === participant.jeton) {
+      if (scores) v.monScore = scores.find(x => x.nom === p.nom) || null;
+      // en entraînement, qui a soumis voit les solutions des autres
+      if (!eval_ && soums.some(x => x.nom === p.nom))
+        v.solutions = soums.map(x => ({ nom: x.nom, ok: x.ok, total: x.total, temps: x.temps, reussi: x.reussi, source: x.source }))
+          .sort((a, b) => tri(a.nom, b.nom));
+    }
+  }
   if (lanceur) {
-    v.soumissions = soums.sort((a, b) => tri(a.nom, b.nom));
-    v.sorties = Object.fromEntries(parts.filter(p => p.sorties).map(p => [p.nom, p.sorties]));
+    v.scores = scores;
+    const enrichir = s => ({ ...s, compte: compte(s), sorties: sortiesDe(parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0) || {}, s.manche) });
+    v.soumissions = soums.map(enrichir).sort((a, b) => tri(a.nom, b.nom));
+    v.sorties = Object.fromEntries(parts.filter(p => sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));
     // toutes les manches, pour l'export : les closes viennent de l'historique
-    const toutes = await lireTous(store, `sess/${meta.code}/s/`);
+    const toutes = (await lireTous(store, `sess/${meta.code}/s/`)).map(enrichir);
     const courante = { manche: meta.manche, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
                        duree: meta.duree, debut: meta.debut, fin: meta.fin };
     v.manches = [...(meta.historique || []), courante].map(m => ({
@@ -140,7 +197,8 @@ export default async (req) => {
     const meta = await lireMeta(store, String(u.searchParams.get('code') || '').toUpperCase());
     if (!meta) return erreur('Session inconnue ou expirée.', 404);
     const lanceur = !!u.searchParams.get('cle') && u.searchParams.get('cle') === meta.cle;
-    return json({ session: await vue(store, meta, lanceur), maintenant: Date.now() });
+    const nom = nettoyerNom(u.searchParams.get('nom')), jeton = u.searchParams.get('jeton');
+    return json({ session: await vue(store, meta, lanceur, nom && jeton ? { nom, jeton } : null), maintenant: Date.now() });
   }
 
   if (req.method !== 'POST') return erreur('Méthode non prise en charge.', 405);
@@ -151,6 +209,9 @@ export default async (req) => {
   const code = String(corps.code || '').toUpperCase();
 
   if (action === 'creer') {
+    const attendu = process.env.ARENE_MDP;
+    if (!attendu) return erreur('Ouverture d’arène non configurée sur le site : variable ARENE_MDP absente.', 503);
+    if (String(corps.mdp || '') !== attendu) return erreur('Mot de passe enseignant incorrect.', 403);
     const duree = Math.round(Number(corps.duree));
     if (!Number.isFinite(duree) || duree < 30 || duree > 3 * 3600)
       return erreur('Durée entre 30 secondes et 3 heures.');
@@ -158,6 +219,7 @@ export default async (req) => {
     const niveau = String(corps.niveau || '').slice(0, 20);
     const exo = typeof corps.exo === 'number' ? corps.exo : String(corps.exo || '').slice(0, 40);
     if (!niveau || exo === '') return erreur('Exercice invalide.');
+    const mode = corps.mode === 'entrainement' ? 'entrainement' : 'eval';
     purger(store).catch(() => {});
     let nouveau;
     for (let i = 0; i < 5; i++) {
@@ -167,7 +229,8 @@ export default async (req) => {
     const meta = {
       code: nouveau, cle: tirerSecret(),
       page: corps.page, niveau, exo, titre: String(corps.titre || '').slice(0, 120),
-      duree, pleinEcran: !!corps.pleinEcran, debut: null, fin: null,
+      duree, mode, pleinEcran: mode === 'eval', points: Math.max(0, Number(corps.points) || 0),
+      debut: null, fin: null, pause: null, pauses: 0,
       manche: 1, historique: [],
       cree: Date.now(), expire: Date.now() + DUREE_VIE,
     };
@@ -178,7 +241,9 @@ export default async (req) => {
   const meta = await lireMeta(store, code);
   if (!meta) return erreur('Session inconnue ou expirée.', 404);
   const lanceur = !!corps.cle && corps.cle === meta.cle;
-  const repondre = async (extra = {}) => json({ ...extra, session: await vue(store, meta, lanceur), maintenant: Date.now() });
+  const repondre = async (extra = {}) => json({ ...extra,
+    session: await vue(store, meta, lanceur, corps.nom && corps.jeton ? { nom: nettoyerNom(corps.nom), jeton: corps.jeton } : null),
+    maintenant: Date.now() });
 
   if (action === 'rejoindre') {
     const nom = nettoyerNom(corps.nom);
@@ -210,10 +275,22 @@ export default async (req) => {
   if (action === 'sortie') {
     const nom = nettoyerNom(corps.nom);
     const part = await store.get(clePart(code, nom), { type: 'json' });
-    if (part && part.jeton === corps.jeton && meta.debut && Date.now() < meta.fin) {
-      part.sorties = (part.sorties || 0) + 1;
+    if (part && part.jeton === corps.jeton && meta.debut && (meta.pause || Date.now() < meta.fin)) {
+      part.sortiesParManche = part.sortiesParManche || {};
+      part.sortiesParManche[meta.manche] = (part.sortiesParManche[meta.manche] || 0) + 1;
       await store.setJSON(clePart(code, nom), part);
     }
+    return repondre();
+  }
+
+  if (action === 'compter') {
+    if (!lanceur) return erreur('Seul le lanceur décide.', 403);
+    const nom = nettoyerNom(corps.nom);
+    const manche = Number(corps.manche) || meta.manche;
+    const soum = await store.get(cleSoum(code, manche, nom), { type: 'json' });
+    if (!soum) return erreur('Soumission inconnue.', 404);
+    soum.compte = !!corps.compte;
+    await store.setJSON(cleSoum(code, manche, nom), soum);
     return repondre();
   }
 
@@ -226,11 +303,24 @@ export default async (req) => {
     return repondre();
   }
 
+  if (action === 'pause' || action === 'reprendre') {
+    if (!lanceur) return erreur('Seul le lanceur peut mettre en pause.', 403);
+    const maintenant = Date.now();
+    if (!meta.debut || maintenant < meta.debut || (!meta.pause && maintenant > meta.fin)) return erreur('Rien à mettre en pause.', 409);
+    if (action === 'pause' && !meta.pause) meta.pause = maintenant;
+    if (action === 'reprendre' && meta.pause) {
+      const duree = maintenant - meta.pause;
+      meta.fin += duree; meta.pauses = (meta.pauses || 0) + duree; meta.pause = null;
+    }
+    await store.setJSON(cleMeta(code), meta);
+    return repondre();
+  }
+
   if (action === 'prolonger') {
     if (!lanceur) return erreur('Seul le lanceur peut prolonger.', 403);
     const sec = Math.round(Number(corps.secondes));
     if (!(sec >= 30 && sec <= 600)) return erreur('Prolongation entre 30 secondes et 10 minutes.');
-    if (!meta.debut || Date.now() > meta.fin + TOLERANCE_FIN) return erreur('Rien à prolonger.', 409);
+    if (!meta.debut || (!meta.pause && Date.now() > meta.fin + TOLERANCE_FIN)) return erreur('Rien à prolonger.', 409);
     meta.fin += sec * 1000;
     await store.setJSON(cleMeta(code), meta);
     return repondre();
@@ -238,7 +328,7 @@ export default async (req) => {
 
   if (action === 'relancer') {
     if (!lanceur) return erreur('Seul le lanceur peut relancer.', 403);
-    if (meta.debut && Date.now() <= meta.fin + TOLERANCE_FIN) return erreur('La manche en cours n’est pas finie.', 409);
+    if (meta.debut && (meta.pause || Date.now() <= meta.fin + TOLERANCE_FIN)) return erreur('La manche en cours n’est pas finie.', 409);
     const duree = Math.round(Number(corps.duree));
     if (!Number.isFinite(duree) || duree < 30 || duree > 3 * 3600) return erreur('Durée entre 30 secondes et 3 heures.');
     const niveau = String(corps.niveau || '').slice(0, 20);
@@ -246,10 +336,11 @@ export default async (req) => {
     if (!niveau || exo === '') return erreur('Exercice invalide.');
     if (meta.debut) {
       meta.historique = [...(meta.historique || []), { manche: meta.manche, niveau: meta.niveau, exo: meta.exo,
-        titre: meta.titre, duree: meta.duree, debut: meta.debut, fin: meta.fin }];
+        titre: meta.titre, duree: meta.duree, debut: meta.debut, fin: meta.fin, pauses: meta.pauses || 0, points: meta.points || 0 }];
       meta.manche += 1;
     }
-    Object.assign(meta, { niveau, exo, titre: String(corps.titre || '').slice(0, 120), duree, debut: null, fin: null });
+    Object.assign(meta, { niveau, exo, titre: String(corps.titre || '').slice(0, 120), duree, debut: null, fin: null, pause: null, pauses: 0,
+      points: Math.max(0, Number(corps.points) || 0) });
     await store.setJSON(cleMeta(code), meta);
     return repondre();
   }
@@ -268,6 +359,7 @@ export default async (req) => {
       cadre = (meta.historique || []).find(h => h.manche === manche);
       if (!cadre || !auto) return erreur('Manche close.', 409);
     } else if (!meta.debut) return erreur('La manche n’a pas démarré.', 409);
+    else if (meta.pause && !auto) return erreur('Le chrono est en pause.', 409);
     if (maintenant < cadre.debut) return erreur('Le chrono n’a pas démarré.', 409);
     if (maintenant > cadre.fin + (auto ? TOLERANCE_AUTO : TOLERANCE_FIN)) return erreur('Temps écoulé.', 409);
     const deja = await store.get(cleSoum(code, cadre.manche || manche, nom), { type: 'json' });
@@ -278,7 +370,7 @@ export default async (req) => {
     const dansLeTemps = maintenant <= cadre.fin + TOLERANCE_FIN;
     const soumission = {
       nom, auto, manche: cadre.manche || manche,
-      temps: dansLeTemps ? Math.min(maintenant, cadre.fin) - cadre.debut : null,
+      temps: dansLeTemps ? Math.min(maintenant, cadre.fin) - cadre.debut - (cadre.pauses || 0) : null,
       ok, total,
       reussi: dansLeTemps && total > 0 && ok === total,
       source: String(corps.source || '').slice(0, MAX_SOURCE),

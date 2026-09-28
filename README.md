@@ -109,67 +109,77 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 ## Mode arène
 
 Page Python seulement, pour l'instant. Une arène : un groupe fait le même exercice, avec
-un chrono commun, un classement et la remise des solutions au lanceur.
+un chrono commun, un classement et la remise des solutions au lanceur. Elle reste ouverte
+pour enchaîner des manches sur d'autres exercices.
 
 Deux entrées. « ⚔️ Lancer une arène », sur l'exercice ouvert, choisi dans la liste ou tiré
-au hasard avec les filtres : le lanceur saisit prénom et nom, la durée, préremplie avec la
-durée conseillée de l'exercice, qui dépend de son niveau (5, 10, 15 ou 20 minutes), et
-trois options cochées par défaut : il participe aussi, il garde l'accès aux indices et aux
-solutions, le plein écran est demandé à ceux qui rejoignent. « ⚔️ Rejoindre une arène »,
-dans l'en-tête : code de six caractères, prénom et nom.
+au hasard avec les filtres : mot de passe enseignant, prénom et nom, durée préremplie avec
+la durée conseillée de l'exercice (5, 10, 15 ou 20 minutes selon le niveau), deux options
+cochées par défaut, participer soi-même et garder l'accès aux indices et aux solutions, et
+le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, prénom et nom.
+
+Le mot de passe enseignant est la variable d'environnement `ARENE_MDP` du site Netlify. Il
+n'est dans aucun fichier. Sans lui, le site étant public, n'importe qui pourrait ouvrir des
+arènes et consommer les crédits du compte. Le navigateur du lanceur le retient.
+
+Deux modes. **Évaluation** : plein écran demandé à ceux qui rejoignent ; chaque sortie du
+plein écran ou de l'onglet est comptée et montrée au lanceur, et la soumission de la manche
+n'est pas comptée, sauf si le lanceur décide de la compter, depuis « Solutions » ; après
+sa soumission, le participant ne revoit plus son code, il suit le chrono et le classement
+sur un écran d'attente ; à la fin, score sur 20 et médaille, cumulés sur les manches.
+**Entraînement** : ni plein écran ni score ; après sa soumission, le participant retrouve
+les indices, la solution et la liste, et voit les solutions des autres.
+
+Dans les deux modes, pendant la manche, ceux qui ont rejoint n'ont ni indice ni solution,
+la liste des exercices et les filtres disparaissent, le lien vers l'accueil ne répond plus.
+Le lanceur qui a gardé l'accès voit tout.
 
 Le lanceur obtient le code, affiché en grand pour le vidéoprojecteur avec la liste de ceux
-qui ont rejoint, et démarre quand il veut : compte à rebours de dix secondes, même
-exercice ouvert sur tous les postes, à partir de son amorce, chrono commun. Enseignant ou
-étudiant, n'importe qui peut lancer.
+qui ont rejoint, et démarre quand il veut : compte à rebours de dix secondes, même exercice
+ouvert sur tous les postes, à partir de son amorce, chrono commun. En cours de manche, il
+peut mettre le chrono en pause, le reprendre, le prolonger d'une ou deux minutes. Les pauses
+ne comptent pas dans les temps.
 
-Pour ceux qui ont rejoint, pendant l'arène : ni indice ni solution ; la liste des
-exercices et les filtres disparaissent, le lien vers l'accueil ne répond plus ; le plein
-écran est demandé au moment de rejoindre. Le navigateur ne permet ni de l'imposer ni de
-le retenir : chaque sortie du plein écran ou de l'onglet est comptée et montrée au
-lanceur, à côté du nom. Tout revient à la fin.
+Chaque participant soumet sa solution une fois : les tests sont joués une dernière fois, le
+code part au serveur, c'est définitif. Réussi si tous les tests passent. « Tout tester »
+reste un contrôle libre. Le code de ceux qui n'ont pas soumis est remis de lui-même à la fin
+du temps, sans compter comme réussite. « Quitter l'arène » retire de l'arène.
 
-Chaque participant soumet sa solution une fois, par le bouton de la barre : les tests
-sont joués une dernière fois, le code part au serveur, c'est définitif. Réussi si tous
-les tests passent à ce moment-là. « Tout tester » reste un contrôle libre. La barre
-montre les réussites dans l'ordre des temps. Le code de ceux qui n'ont pas soumis est
-remis de lui-même à la fin du temps, sans compter comme réussite. « Quitter l'arène »
-retire de l'arène. Le lanceur peut prolonger le chrono d'une ou deux minutes en cours de
-manche.
+À la fin : le lanceur voit le podium en grand, classé par taux de tests réussis puis par
+temps, ceux qui n'ont rien remis en dernier, avec score et médaille en évaluation ; chaque
+participant voit un bilan personnel. Puis le lanceur ouvre un autre exercice et clique
+« ⚔️ Relancer l'arène sur cet exercice » : manche suivante, même code, mêmes participants.
 
-À la fin du temps : le lanceur voit le podium en grand, tous les participants classés par
-taux de tests réussis puis par temps, ceux qui n'ont rien remis en dernier ; chaque
-participant voit un bilan personnel, réussi ou non, tests passés, temps, rang, et le
-retour des indices, de la solution et de la liste.
+Score en évaluation : chaque exercice rapporte ses points, ceux de la banque, 5, 10, 15 ou
+20 selon le niveau, au prorata des tests passés, comme les validateurs de CoderPad ; note
+sur 20 = points obtenus / points possibles × 20 ; médaille aux seuils du socle pour un
+savoir-faire, Bronze 10, Argent 15, Or 20. L'équivalence avec l'épreuve réelle tient à la
+composition de l'arène : mêmes niveaux, même nombre d'exercices que l'épreuve.
 
-L'arène reste ouverte. Le lanceur ouvre un autre exercice et clique « ⚔️ Relancer l'arène
-sur cet exercice » : manche suivante, même code, mêmes participants, nouvelle durée. Autant
-de fois que voulu.
-
-Le lanceur voit, par « 📋 Solutions », le code soumis par chacun dans la manche en cours,
-avec l'état et le temps, et la liste de ceux qui n'ont rien soumis. Deux exports, toutes
-manches confondues : un Markdown lisible, tableau par manche puis le code de chacun ; un
-JSON brut. À faire avant 24 heures, après quoi l'arène s'efface.
+« 📋 Solutions » montre au lanceur le code soumis par chacun dans la manche en cours, et
+deux exports, toutes manches confondues : un Markdown lisible, scores puis tableau par
+manche puis le code de chacun ; un JSON brut. À faire avant 24 heures, après quoi l'arène
+s'efface, avec les noms et les codes.
 
 Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
-Blobs : l'exercice, la durée, les options, l'heure de départ, les prénoms et noms, les
-sorties, les soumissions. Le temps est mesuré sur l'horloge du serveur à la réception de
-la soumission. Une arène s'efface au bout de 24 heures, avec les noms et les codes. Aucun
-compte.
+Blobs : l'exercice, la durée, le mode, l'heure de départ, les pauses, les prénoms et noms,
+les sorties, les soumissions. Le temps est mesuré sur l'horloge du serveur à la réception de
+la soumission. Aucun compte.
 
 Ce qu'il ne garantit pas : les tests sont joués par le navigateur, le serveur ne les
-rejoue pas ; un participant qui trafique la page peut déclarer ce qu'il veut. Cela vaut
-pour l'entraînement, pas pour une évaluation.
+rejoue pas ; un participant qui trafique la page peut déclarer ce qu'il veut ; le plein
+écran ne peut être ni imposé ni retenu par le navigateur. Cela vaut pour l'entraînement,
+pas pour une évaluation certificative, qui reste sur SEB.
 
 Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le code en
-cours. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas : il n'y a
-pas de serveur.
+cours. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
 
 Transposer à R ou SQL : inclure `session.js`, appeler `Session.init({page, courant,
-ouvrir, tester})` en fin de script, poser un bouton `Session.lancer()` sur l'exercice
-ouvert, masquer indices et solutions quand `Session.verrouille()` est vrai, et marquer
-`arene-cache` ce que le verrou doit masquer, `arene-fige` ce qu'il doit figer. `tester()`
-joue tous les tests sur la réponse en cours et rend `{ok, total, source}`.
+ouvrir, tester, deverrouiller})` en fin de script, poser un bouton `Session.lancer()` ou
+`Session.relancer()` sur l'exercice ouvert, masquer indices et solutions quand
+`Session.verrouille()` est vrai, et marquer `arene-cache` ce que le verrou doit masquer,
+`arene-fige` ce qu'il doit figer. `courant()` rend aussi `points`. `tester()` joue tous
+les tests sur la réponse en cours et rend `{ok, total, source}`.
 
 ## Cache hors ligne (service worker)
 
