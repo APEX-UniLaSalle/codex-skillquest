@@ -20,10 +20,9 @@
    qui écrivent en même temps ne s'écrasent pas.
 
    Appels, tous sur /api/session :
-     POST {action:'creer', mdp, page, niveau, exo, titre, duree, points, mode} → {code, cle, session}
-       mdp : le mot de passe enseignant, variable d'environnement ARENE_MDP sur
-       Netlify, jamais dans le dépôt. Le site est public : sans lui, n'importe
-       qui pourrait ouvrir des arènes et consommer les crédits du compte.
+     POST {action:'creer', page, niveau, exo, titre, duree, points, mode} → {code, cle, session}
+       Ouverte à tous, sans mot de passe : décision du 28 septembre 2026, une
+       arène coûte moins d'un crédit Netlify sur les 3 000 du mois.
        page : python, r ou sql — la page qui ouvrira l'exercice
        mode : 'eval' — plein écran demandé, sorties décomptées, score cumulé sur
               les manches, solutions réservées au lanceur ;
@@ -209,9 +208,6 @@ export default async (req) => {
   const code = String(corps.code || '').toUpperCase();
 
   if (action === 'creer') {
-    const attendu = process.env.ARENE_MDP;
-    if (!attendu) return erreur('Ouverture d’arène non configurée sur le site : variable ARENE_MDP absente.', 503);
-    if (String(corps.mdp || '') !== attendu) return erreur('Mot de passe enseignant incorrect.', 403);
     const duree = Math.round(Number(corps.duree));
     if (!Number.isFinite(duree) || duree < 30 || duree > 3 * 3600)
       return erreur('Durée entre 30 secondes et 3 heures.');

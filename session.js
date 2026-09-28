@@ -195,8 +195,6 @@ window.Session = (() => {
     </div>
     <div class="corps" id="sessPanL" style="display:none">
       <div class="sess-exo" id="sessExo"></div>
-      <label for="sessInMdp">Mot de passe enseignant</label>
-      <input id="sessInMdp" type="password" autocomplete="current-password">
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
@@ -573,7 +571,7 @@ window.Session = (() => {
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'J' ? 'none' : '';
     $('#sessEtat').textContent = '';
     // relance : seuls l'exercice et la durée changent, le reste appartient à l'arène
-    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide, label[for=sessInMdp], #sessInMdp'))
+    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide, '))
       el.style.display = o === 'R' ? 'none' : '';
     if (o === 'R') {
       const c = H.courant();
@@ -586,7 +584,6 @@ window.Session = (() => {
       const c = H.courant();
       $('#sessExo').innerHTML = `Exercice : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">C'est lui que le groupe fera. Pour en changer, fermez cette fenêtre et ouvrez-en un autre, au choix ou 🎲 au hasard avec les filtres.</span>`;
       if (c) $('#sessInDuree').value = c.duree || 10;   // la durée conseillée de l'exercice, qui dépend de son niveau
-      try { if (!$('#sessInMdp').value) $('#sessInMdp').value = localStorage.getItem('codex_arene_mdp') || ''; } catch {}
       $('#sessOk').textContent = 'Ouvrir l’arène'; $('#sessOk').disabled = !c;
     } else {
       $('#sessOk').textContent = 'Rejoindre'; $('#sessOk').disabled = false;
@@ -640,10 +637,7 @@ window.Session = (() => {
         const nom = nomSaisi('L');
         const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked;
         const mode = (document.querySelector('input[name=sessMode]:checked') || {}).value || 'eval';
-        const mdp = $('#sessInMdp').value;
-        if (!mdp) throw new Error('Le mot de passe enseignant est demandé pour ouvrir une arène.');
-        const d = await appel('POST', { action: 'creer', mdp, page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0, mode });
-        try { localStorage.setItem('codex_arene_mdp', mdp); } catch {}   // retenu sur ce poste, pour les fois suivantes
+        const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0, mode });
         let jeton = null;
         if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom })).jeton;
         $('#sessDlg').close();

@@ -113,14 +113,13 @@ un chrono commun, un classement et la remise des solutions au lanceur. Elle rest
 pour enchaîner des manches sur d'autres exercices.
 
 Deux entrées. « ⚔️ Lancer une arène », sur l'exercice ouvert, choisi dans la liste ou tiré
-au hasard avec les filtres : mot de passe enseignant, prénom et nom, durée préremplie avec
+au hasard avec les filtres : prénom et nom, durée préremplie avec
 la durée conseillée de l'exercice (5, 10, 15 ou 20 minutes selon le niveau), deux options
 cochées par défaut, participer soi-même et garder l'accès aux indices et aux solutions, et
 le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, prénom et nom.
 
-Le mot de passe enseignant est la variable d'environnement `ARENE_MDP` du site Netlify. Il
-n'est dans aucun fichier. Sans lui, le site étant public, n'importe qui pourrait ouvrir des
-arènes et consommer les crédits du compte. Le navigateur du lanceur le retient.
+L'ouverture est libre, sans mot de passe : une arène coûte moins d'un crédit Netlify sur
+les 3 000 du mois, décision du 28 septembre 2026.
 
 Deux modes. **Évaluation** : plein écran demandé à ceux qui rejoignent ; chaque sortie du
 plein écran ou de l'onglet est comptée et montrée au lanceur, et la soumission de la manche
