@@ -246,7 +246,7 @@ window.Session = (() => {
     }
 
     $('#sessGo').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';
-    $('#sessGrand').style.display = vue.etat === 'attente' ? '' : 'none';
+    $('#sessGrand').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';   // le lanceur seul
     $('#sessPlein').style.display = vue.pleinEcran && S.nom && !S.cle && vue.etat !== 'fini' && !document.fullscreenElement ? '' : 'none';
     document.body.classList.toggle('arene-verrou', verrouille());
     if (vue.etat !== 'attente') montrerGrand(false); else rendreGrand();
