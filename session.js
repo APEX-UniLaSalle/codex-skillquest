@@ -115,8 +115,9 @@ window.Session = (() => {
   dialog.sessDlg .aide{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
   dialog.sessDlg .pied{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
   dialog.sessDlg .etat{font-size:12.5px;color:var(--ko);margin-left:auto}
-  dialog.sessDlg .exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:13px}
-  dialog.sessDlg .exo b{font-weight:600}
+  dialog.sessDlg .sess-exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:13px}
+  dialog.sessDlg .sess-exo b{font-weight:600}
+  dialog.sessDlg input[type=checkbox]{accent-color:var(--accent)}
   dialog#sessSol{max-width:960px}
   #sessSol .corps{max-height:70vh;overflow:auto}
   #sessSol table{width:100%;border-collapse:collapse;font-size:13px}
@@ -158,7 +159,7 @@ window.Session = (() => {
       <p class="aide">Votre nom sert au classement et à la remise de votre solution à l'enseignant. L'arène s'efface au bout de 24 heures.</p>
     </div>
     <div class="corps" id="sessPanL" style="display:none">
-      <div class="exo" id="sessExo"></div>
+      <div class="sess-exo" id="sessExo"></div>
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
