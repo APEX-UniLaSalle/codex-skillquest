@@ -49,6 +49,7 @@ window.Session = (() => {
   const meme = (a, b) => a && b && a.localeCompare(b, 'fr', { sensitivity: 'base' }) === 0;
   const moiSoumis = () => !!(S && S.nom && vue && vue.soumis.some(n => meme(n, S.nom)));
   const enEpreuve = e => e === 'en_cours' || e === 'pause';
+  const moiEnEval = () => !!(S && S.nom && !S.cle && vue && vue.mode === 'eval' && S.eval !== false);
 
   const lireStock = () => { try { return JSON.parse(sessionStorage.getItem(CLE)) || null; } catch { return null; } };
   const stocker = () => { try { S ? sessionStorage.setItem(CLE, JSON.stringify(S)) : sessionStorage.removeItem(CLE); } catch {} };
@@ -191,6 +192,10 @@ window.Session = (() => {
         <div><label for="sessInPrenom">Prénom</label><input id="sessInPrenom" maxlength="30" autocomplete="given-name"></div>
         <div><label for="sessInNom">Nom</label><input id="sessInNom" maxlength="30" autocomplete="family-name"></div>
       </div>
+      <div class="modes" id="sessChoixEval" style="display:none;margin-top:10px">
+        <label style="font-weight:400;margin:0"><input type="radio" name="sessEval" value="1" checked style="width:auto;margin-right:6px"><b>En évaluation</b> — plein écran, sorties décomptées, note et médaille</label>
+        <label style="font-weight:400;margin:6px 0 0"><input type="radio" name="sessEval" value="0" style="width:auto;margin-right:6px"><b>Hors évaluation</b> — sans plein écran ni note ; indices et solution après votre soumission</label>
+      </div>
       <p class="aide">Votre nom sert au classement et à la remise de votre solution à l'enseignant. L'arène s'efface au bout de 24 heures.</p>
     </div>
     <div class="corps" id="sessPanL" style="display:none">
@@ -281,7 +286,7 @@ window.Session = (() => {
       $('#sessGrandPodium').innerHTML = `<table>
         <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Moyenne</th><th>Médaille</th>' : ''}</tr>
         ${l.map((x, i) => { const k = score(x.nom); return `<tr class="${x.s && x.s.reussi && x.s.compte !== false ? 'ok' : ''}">
-          <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}</td>
+          <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}${(vue.horsEval || []).some(h => meme(h, x.nom)) ? ' <small>hors évaluation</small>' : ''}</td>
           <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}</td>
           <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td>
           ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : k && !k.valide ? '<small>pas encore</small>' : '—'}</td>` : ''}</tr>`; }).join('')}
@@ -314,10 +319,11 @@ window.Session = (() => {
 
     // moi
     const moi = S.nom ? vue.resultats.findIndex(r => meme(r.nom, S.nom)) : -1;
+    const he = vue.horsEval || [];
     $('#sessMoi').innerHTML = !S.nom ? (S.cle ? '<span class="titre">Lanceur</span>' : '')
       : moi >= 0 ? `<span class="moi ok">${esc(S.nom)} · ${moi + 1}${moi === 0 ? 'er' : 'e'} en ${mmss(vue.resultats[moi].temps)}</span>`
       : moiSoumis() && vue.etat !== 'attente' ? `<span class="moi ko">${esc(S.nom)} · soumis, non réussi</span>`
-      : `<span class="moi">${esc(S.nom)}</span>`;
+      : `<span class="moi">${esc(S.nom)}${S.eval === false && vue.mode === 'eval' ? ' · hors évaluation' : ''}</span>`;
 
     // liste : les participants en attente ; ensuite le classement, puis les autres
     const li = $('#sessListe');
@@ -341,7 +347,7 @@ window.Session = (() => {
     rendreAttente();
     $('#sessPodium').style.display = S.cle && vue.etat === 'fini' ? '' : 'none';
     $('#sessGrand').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';   // le lanceur seul
-    $('#sessPlein').style.display = vue.pleinEcran && S.nom && !S.cle && vue.etat !== 'fini' && !document.fullscreenElement ? '' : 'none';
+    $('#sessPlein').style.display = vue.pleinEcran && moiEnEval() && vue.etat !== 'fini' && !document.fullscreenElement ? '' : 'none';
     const v = verrouille();
     document.body.classList.toggle('arene-verrou', v);
     if (verrouPrec && !v && H.deverrouiller) H.deverrouiller();   // indices et solutions reviennent
@@ -400,7 +406,7 @@ window.Session = (() => {
           : `<p class="ko"><b>Non réussi</b> : ${m.ok} test${m.ok > 1 ? 's' : ''} sur ${m.total}${m.auto ? '. Votre code a été remis à la fin du temps' : m.temps != null ? `, soumis en ${mmss(m.temps)}` : ''}.</p>`)
       : (rang >= 0 ? `<p class="ok"><b>Réussi</b>, ${rang + 1}${rang === 0 ? 'er' : 'e'} sur ${vue.resultats.length}.</p>` : `<p>Votre solution a été remise à l’enseignant.</p>`);
     const k = vue.monScore;
-    const scoreTxt = vue.mode === 'eval' && k
+    const scoreTxt = moiEnEval() && k
       ? `<p><b>Note</b> : ${k.note}/20, moyenne des tests réussis sur ${k.manches > 1 ? `les ${k.manches} manches` : 'cette manche'}. ${
           k.valide ? (k.medaille ? `Niveau <b>${k.medaille}</b>.` : 'Sous le seuil Bronze (10/20).')
                    : `${Math.round(k.dureeTotale / 60)} min d’exercices sur 60 : jouez encore ${k.manque} min d’exercices pour valider la compétence.`}</p>` : '';
@@ -414,7 +420,7 @@ window.Session = (() => {
      voisins n'ont rien à copier. Il suit le chrono et le classement. */
   function rendreAttente() {
     const a = $('#sessAttente');
-    const on = !!(S && S.nom && !S.cle && vue && vue.mode === 'eval' && moiSoumis() && enEpreuve(vue.etat));
+    const on = !!(moiEnEval() && moiSoumis() && enEpreuve(vue.etat));
     a.classList.toggle('on', on);
     if (!on) return;
     const m = maSoumission;
@@ -628,11 +634,12 @@ window.Session = (() => {
         const code = $('#sessInCode').value.trim().toUpperCase();
         if (!/^[A-Z2-9]{6}$/.test(code)) throw new Error('Le code fait six lettres ou chiffres.');
         const nom = nomSaisi('');
+        const evalOui = $('#sessChoixEval').style.display === 'none' || (document.querySelector('input[name=sessEval]:checked') || {}).value !== '0';
         S = { code };   // appel() lit S.code
-        const d = await appel('POST', { action: 'rejoindre', code, nom });
+        const d = await appel('POST', { action: 'rejoindre', code, nom, eval: evalOui });
         $('#sessDlg').close();
-        suivre({ code, nom, jeton: d.jeton });
-        if (vue.pleinEcran) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
+        suivre({ code, nom, jeton: d.jeton, eval: evalOui });
+        if (vue.pleinEcran && evalOui) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
@@ -695,6 +702,7 @@ window.Session = (() => {
       md.push('## Scores', '', `Moyenne des tests réussis sur ${k0 ? k0.manches : 0} manche(s), ${Math.round(vue.dureeTotale / 60)} min d'exercices${vue.valide ? '' : ' : sous l’heure requise, aucune médaille'}.`, '',
         '| Nom | Moyenne | Note /20 | Médaille |', '|---|---|---|---|');
       for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
+      if ((vue.horsEval || []).length) md.push('', `Hors évaluation : ${vue.horsEval.join(', ')}.`);
       md.push('');
     }
     for (const m of manches) {
@@ -738,17 +746,27 @@ window.Session = (() => {
     zone.insertBefore(btn, zone.firstChild);
 
     $('#sessOk').onclick = valider; $('#sessAnnul').onclick = () => $('#sessDlg').close();
+    $('#sessInCode').addEventListener('input', async () => {
+      const code = $('#sessInCode').value.trim().toUpperCase();
+      $('#sessChoixEval').style.display = 'none';
+      if (!/^[A-Z2-9]{6}$/.test(code)) return;
+      try {
+        const rep = await fetch(`${API}?code=${code}`, { cache: 'no-store' });
+        const d = await rep.json();
+        if (rep.ok && d.session && d.session.mode === 'eval') $('#sessChoixEval').style.display = '';
+      } catch {}
+    });
     $('#sessDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); valider(); } });
     $('#sessGo').onclick = demarrer; $('#sessLien').onclick = lien;
     document.body.insertAdjacentHTML('beforeend', GRAND);
     $('#sessGrand').onclick = () => montrerGrand(true);
     $('#sessPlein').onclick = pleinEcran;
     document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement && S && S.nom && !S.cle && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
+      if (!document.fullscreenElement && moiEnEval() && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
       rendre();
     });
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden && S && S.nom && !S.cle && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
+      if (document.hidden && moiEnEval() && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
     });
     $('#sessGrandFermer').onclick = () => montrerGrand(false);
     $('#sessGrandGo').onclick = demarrer;
@@ -773,7 +791,7 @@ window.Session = (() => {
   /* Vrai tant que la session cache indices et solutions : du compte à rebours à la fin. */
   /* En entraînement, qui a soumis retrouve indices et solutions sans attendre la fin. */
   const verrouille = () => !!(S && vue && !S.indices && (vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat))
-    && !(vue.mode === 'entrainement' && moiSoumis()));
+    && !((vue.mode === 'entrainement' || (S.nom && !S.cle && S.eval === false)) && moiSoumis()));
 
   return { init, verrouille, lancer, relancer, peutRelancer, ouvrirDialogue, get active() { return !!S; } };
 })();

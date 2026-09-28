@@ -108,7 +108,7 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 
 ## Mode arène
 
-Page Python seulement, pour l'instant. Une arène : un groupe fait le même exercice, avec
+Pages Python, R et SQL. Une arène : un groupe fait le même exercice, avec
 un chrono commun, un classement et la remise des solutions au lanceur. Elle reste ouverte
 pour enchaîner des manches sur d'autres exercices.
 
@@ -116,7 +116,10 @@ Deux entrées. « ⚔️ Lancer une arène », sur l'exercice ouvert, choisi dan
 au hasard avec les filtres : prénom et nom, durée préremplie avec
 la durée conseillée de l'exercice (5, 10, 15 ou 20 minutes selon le niveau), deux options
 cochées par défaut, participer soi-même et garder l'accès aux indices et aux solutions, et
-le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, prénom et nom.
+le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, prénom et nom ;
+si l'arène est en évaluation, le participant choisit de la passer en évaluation ou hors
+évaluation, sans plein écran ni note, avec indices et solution après sa soumission. Le
+choix est définitif.
 
 L'ouverture est libre, sans mot de passe : une arène coûte moins d'un crédit Netlify sur
 les 3 000 du mois, décision du 28 septembre 2026.
@@ -150,7 +153,8 @@ participant voit un bilan personnel. Puis le lanceur ouvre un autre exercice et 
 « ⚔️ Relancer l'arène sur cet exercice » : manche suivante, même code, mêmes participants.
 
 Score en évaluation, règle du 28 septembre 2026 : tous les exercices de l'arène sont du
-même niveau, I à IV, le serveur refuse une relance sur un autre niveau ; la note sur 20 est
+même niveau, I à IV en Python, 1 à 3 en SQL, un seul en R, le serveur refuse une relance
+sur un autre niveau ; la note sur 20 est
 la moyenne, sur les manches jouées, du pourcentage de tests passés, une soumission absente
 ou non comptée valant 0 ; la médaille suit les seuils du socle pour un savoir-faire, Bronze
 10, Argent 15, Or 20, et n'est donnée qu'au bout d'une heure d'exercices cumulée sur
@@ -175,12 +179,13 @@ pas pour une évaluation certificative, qui reste sur SEB.
 Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le code en
 cours. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
 
-Transposer à R ou SQL : inclure `session.js`, appeler `Session.init({page, courant,
-ouvrir, tester, deverrouiller})` en fin de script, poser un bouton `Session.lancer()` ou
-`Session.relancer()` sur l'exercice ouvert, masquer indices et solutions quand
-`Session.verrouille()` est vrai, et marquer `arene-cache` ce que le verrou doit masquer,
-`arene-fige` ce qu'il doit figer. `courant()` rend aussi `points`. `tester()` joue tous
-les tests sur la réponse en cours et rend `{ok, total, source}`.
+Chaque page fournit à `session.js` quatre accroches, `Session.init({page, courant,
+ouvrir, tester, deverrouiller})`, un bouton `Session.lancer()` ou `Session.relancer()` sur
+l'exercice ouvert, masque indices et solutions quand `Session.verrouille()` est vrai, et
+marque `arene-cache` ce que le verrou doit masquer, `arene-fige` ce qu'il doit figer.
+`tester()` joue tous les tests sur la réponse en cours et rend `{ok, total, source}` : en
+Python et SQL, les jeux d'essai ; en R, la réponse unique, un test réussi ou non. La page R
+est produite par `r/construire_page_r.py` : c'est lui qui porte ces accroches.
 
 ## Cache hors ligne (service worker)
 

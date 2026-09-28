@@ -53,6 +53,7 @@ header .sub{color:var(--muted);font-size:12.5px}
 
 /* ── Gabarit : liste à gauche, travail à droite ─────────────────────────── */
 .page{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start}
+body.arene-verrou .page{grid-template-columns:minmax(0,1fr)}   /* mode arène : la liste est masquée */
 main{min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
 aside.liste{background:var(--panel2);border:1px solid var(--line);border-radius:3px;
@@ -512,7 +513,7 @@ canvas.trace.actif{display:block}
 </form>
 
 <header>
-  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+  <a href="index.html" id="marque" class="arene-fige" title="Revenir au choix des parcours">
     <h1>Le Codex</h1>
     <span class="sub">R — manipuler les données</span>
   </a>
@@ -522,7 +523,7 @@ canvas.trace.actif{display:block}
 </header>
 
 <div class="page">
-<aside class="liste">
+<aside class="liste arene-cache">
   <div class="filtres">
     <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex R</button>
     <select id="fChap"><option value="">Tous les chapitres</option></select>
@@ -563,6 +564,7 @@ canvas.trace.actif{display:block}
     <button class="principal" id="run" disabled>&#9654; Exécuter</button>
     <button id="verif" disabled>Vérifier ma réponse</button>
     <button id="reset">Effacer</button>
+    <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
   </div>
 
   <div class="console-r" id="sortie"><span class="cmt">Exécutez votre code pour voir ce qu'il renvoie.</span></div>
@@ -570,7 +572,7 @@ canvas.trace.actif{display:block}
   <div id="verdict"></div>
   <div class="attendu" id="attendu" hidden></div>
 
-  <details class="indice">
+  <details class="indice arene-cache">
     <summary>&#128269; Besoin d'un indice&#8239;?</summary>
     <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
        sur laquelle vous butez — chacune renvoie à son chapitre de cours.</p>
@@ -578,7 +580,7 @@ canvas.trace.actif{display:block}
     <div id="notions"></div>
   </details>
 
-  <details class="solution" id="bloc-solution">
+  <details class="solution arene-cache" id="bloc-solution">
     <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — exécutez d'abord votre code</span></summary>
     <pre id="solution"></pre>
     <div class="actions" style="margin-top:10px">
@@ -699,13 +701,14 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · bf66f37</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 7d1b818</span>
       </div>
     </div>
   </div>
 </footer>
 
 
+<script src="session.js"></script>
 <script type="module">
 import { WebR, ChannelType } from 'https://webr.r-wasm.org/latest/webr.mjs';
 
@@ -912,7 +915,19 @@ function ouvrirQuestion(id) {
      superposent au code. Un refresh une fois la colonne visible remet les
      largeurs d'aplomb. Même remède que sur la page SQL. */
   requestAnimationFrame(() => editeur.refresh());
+  majBoutonArene();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Mode arène : le bouton de la question lance une arène, ou relance la manche
+   suivante quand le lanceur en a une ouverte. Voir session.js. */
+function majBoutonArene() {
+  const b = $('#sessLancer');
+  if (!window.Session) { b.hidden = true; return; }
+  const relance = Session.active && Session.peutRelancer();
+  b.hidden = !(relance || !Session.active);
+  b.textContent = relance ? '⚔️ Relancer l’arène sur cette question' : '⚔️ Lancer une arène';
+  b.onclick = () => Session.active ? Session.relancer() : Session.lancer();
 }
 
 function remplirNotions() {
@@ -1246,6 +1261,35 @@ const OUTILS = String.raw`
   if (identical(a, b)) "ok" else "faux"
 }
 `;
+
+/* Mode arène, chrono commun pour un groupe : voir session.js. La page ne fournit
+   que la question ouverte, le moyen d'en ouvrir une et le contrôle de la réponse.
+   Une question R a une seule réponse : un test, réussi ou non. Un seul niveau : r. */
+const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? r() : setTimeout(t, 200); t(); });
+const minutesNombre = d => { const m = /^(\d+):(\d+):/.exec(d || ''); return m ? +m[1] * 60 + +m[2] : 0; };
+Session.init({
+  page: 'r',
+  courant: () => Q ? { niveau: 'r', exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 5 } : null,
+  ouvrir: async (niveau, exo, depart) => {
+    await attendreBanque();
+    ouvrirQuestion(exo);
+    if (depart) editeur.setValue(Q.depart || '');   // tout le monde part du même point de départ
+  },
+  tester: async () => {
+    const code = editeur.getValue();
+    if (!pret || !Q) return { ok: 0, total: 1, source: code };
+    try {
+      let etat;
+      if (Q.comparer === 'graphique') etat = await verifierGraphique(code);
+      else {
+        const appel = Q.comparer === 'sortie' ? '.codex_compare_sortie' : '.codex_compare';
+        etat = await webR.evalRString(`${appel}(${litteral(Q.prelude)}, ${litteral(code)}, ${litteral(Q.reference)})`);
+      }
+      return { ok: etat === 'ok' ? 1 : 0, total: 1, source: code };
+    } catch (e) { return { ok: 0, total: 1, source: code }; }
+  },
+  deverrouiller: () => majBoutonArene(),
+});
 
 (async () => {
   try { await chargerBanque(); }

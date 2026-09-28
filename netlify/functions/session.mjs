@@ -32,7 +32,10 @@
        son score, et en entraînement les solutions déjà soumises
      GET  ?code=ABC234[&cle=…]                                → {session, maintenant}
        avec la clé du lanceur, la vue porte aussi les soumissions et leur code
-     POST {action:'rejoindre', code, nom[, jeton]}            → {jeton, session}
+     POST {action:'rejoindre', code, nom[, jeton, eval]}      → {jeton, session}
+       eval:false — dans une arène d'évaluation, le participant la passe hors
+       évaluation : sans plein écran, sans score, indices et solution après
+       sa soumission. Choix fait en rejoignant, définitif.
      POST {action:'quitter', code, nom, jeton}                → {session}
      POST {action:'sortie', code, nom, jeton}                 → {session}
        le participant a quitté le plein écran ou l'onglet ; compté par manche,
@@ -113,12 +116,15 @@ async function vue(store, meta, lanceur = false, participant = null) {
   const sortiesDe = (p, manche) => (p.sortiesParManche || {})[manche] || 0;
   // une soumission compte si son auteur n'est pas sorti du plein écran pendant
   // la manche, ou si le lanceur a décidé de la compter malgré tout
+  const partDe = nom => parts.find(x => x.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0);
+  const enEval = nom => { const p = partDe(nom); return !!p && p.eval !== false; };
   const compte = s => {
-    if (meta.mode !== 'eval') return true;
+    if (meta.mode !== 'eval' || !enEval(s.nom)) return true;
     if (typeof s.compte === 'boolean') return s.compte;
-    const p = parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0);
+    const p = partDe(s.nom);
     return !p || sortiesDe(p, s.manche) === 0;
   };
+  const horsEval = meta.mode === 'eval' ? parts.filter(p => p.eval === false).map(p => p.nom).sort(tri) : [];
   const resultats = soums.filter(s => s.reussi && compte(s)).sort((a, b) => a.temps - b.temps)
     .map(s => ({ nom: s.nom, temps: s.temps }));
   const eval_ = meta.mode === 'eval';
@@ -133,7 +139,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
   let scores = null;
   if (eval_ && manchesToutes.length) {
     const toutes = await lireTous(store, `sess/${meta.code}/s/`);
-    scores = participants.map(nom => {
+    scores = participants.filter(enEval).map(nom => {
       const taux = manchesToutes.map(m => {
         const x = toutes.find(y => y.manche === m.manche && y.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0);
         return x && compte(x) && x.total ? x.ok / x.total : 0;
@@ -154,11 +160,12 @@ async function vue(store, meta, lanceur = false, participant = null) {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
     pause: meta.pause || null, manche: meta.manche, mode: meta.mode, participants, soumis, resultats,
-    dureeTotale, valide,
+    horsEval, dureeTotale, valide,
   };
   if (participant) {
     const p = parts.find(x => x.nom.localeCompare(participant.nom, 'fr', { sensitivity: 'base' }) === 0);
     if (p && p.jeton === participant.jeton) {
+      v.monEval = p.eval !== false;
       if (scores) v.monScore = scores.find(x => x.nom === p.nom) || null;
       // en entraînement, qui a soumis voit les solutions des autres
       if (!eval_ && soums.some(x => x.nom === p.nom))
@@ -263,7 +270,7 @@ export default async (req) => {
     const { blobs } = await store.list({ prefix: `sess/${code}/p/` });
     if (blobs.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
     const jeton = tirerSecret();
-    await store.setJSON(clePart(code, nom), { nom, jeton, rejoint: Date.now() });
+    await store.setJSON(clePart(code, nom), { nom, jeton, rejoint: Date.now(), eval: corps.eval !== false });
     return repondre({ jeton });
   }
 

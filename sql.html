@@ -56,6 +56,7 @@ header .sub{color:var(--muted);font-size:12.5px}
 
 /* ── Gabarit : liste à gauche, travail à droite ─────────────────────────── */
 .page{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start}
+body.arene-verrou .page{grid-template-columns:minmax(0,1fr)}   /* mode arène : la liste est masquée */
 main{min-width:0}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:3px}
 aside.liste{background:var(--panel2);border:1px solid var(--line);border-radius:3px;
@@ -482,7 +483,7 @@ footer a:hover{text-decoration:underline}
   <input type="text" name="bot-field">
 </form>
 <header>
-  <a href="index.html" id="marque" title="Revenir au choix des parcours">
+  <a href="index.html" id="marque" class="arene-fige" title="Revenir au choix des parcours">
     <h1>Le Codex</h1>
     <span class="sub">SQL — requêtes de sélection</span>
   </a>
@@ -494,7 +495,7 @@ footer a:hover{text-decoration:underline}
 </header>
 
 <div class="page">
-<aside class="liste">
+<aside class="liste arene-cache">
   <div class="filtres">
     <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex SQL</button>
     <select id="fBase"><option value="">Tous les thèmes</option></select>
@@ -559,6 +560,7 @@ FROM CONCERT;</textarea>
   <div class="actions">
     <button class="principal" id="run" disabled>&#9654;&#9654; Tout tester</button>
     <button id="reset">Effacer</button>
+    <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
     <span class="syntaxe" id="syntaxe"></span>
   </div>
 
@@ -572,7 +574,7 @@ FROM CONCERT;</textarea>
     <div class="console-body" id="cOut"><span class="cmt">Exécutez votre requête pour voir ce qu'elle renvoie.</span></div>
   </div>
 
-  <details class="indice">
+  <details class="indice arene-cache">
     <summary>&#128269; Besoin d'un indice&#8239;?</summary>
     <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
        sur laquelle vous butez — chacune renvoie à sa page de cours.</p>
@@ -580,7 +582,7 @@ FROM CONCERT;</textarea>
     <div id="notions"></div>
   </details>
 
-  <details class="solution" id="bloc-solution">
+  <details class="solution arene-cache" id="bloc-solution">
     <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — testez d'abord votre requête</span></summary>
     <pre id="solution"></pre>
     <div class="actions" style="margin-top:10px">
@@ -689,13 +691,14 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · bf66f37</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 7d1b818</span>
       </div>
     </div>
   </div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+<script src="session.js"></script>
 <script>
 /* La banque porte plusieurs bases de données ; chaque question désigne la sienne.
    SCHEMA et DATA reflètent la base de la question ouverte. */
@@ -2014,7 +2017,19 @@ function ouvrirQuestion(id) {
   requestAnimationFrame(() => editeur.refresh());
   afficherEtapeSuivante();
   dessinerListe();
+  majBoutonArene();
   document.getElementById('travail').scrollIntoView({ block: 'start' });
+}
+
+/* Mode arène : le bouton de l'exercice lance une arène, ou relance la manche
+   suivante quand le lanceur en a une ouverte. Voir session.js. */
+function majBoutonArene() {
+  const b = document.getElementById('sessLancer');
+  if (!window.Session) { b.hidden = true; return; }
+  const relance = Session.active && Session.peutRelancer();
+  b.hidden = !(relance || !Session.active);
+  b.textContent = relance ? '⚔️ Relancer l’arène sur cette question' : '⚔️ Lancer une arène';
+  b.onclick = () => Session.active ? Session.relancer() : Session.lancer();
 }
 
 /* Les enquêtes se lisent dans l'ordre : chaque question renvoie à la suivante.
@@ -2055,6 +2070,28 @@ document.getElementById('schema').addEventListener('click', ev => {
   document.getElementById('cOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
 document.getElementById('reset').onclick = () => { editeur.setValue(DEPART); editeur.focus(); };
+
+/* Mode arène, chrono commun pour un groupe : voir session.js. La page ne fournit
+   que la question ouverte, le moyen d'en ouvrir une et le jeu des jeux d'essai. */
+const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? r() : setTimeout(t, 200); t(); });
+const minutesNombre = d => { const m = /^(\d+):(\d+):/.exec(d || ''); return m ? +m[1] * 60 + +m[2] : 0; };
+Session.init({
+  page: 'sql',
+  courant: () => Q ? { niveau: Q.niveau, exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 10 } : null,
+  ouvrir: async (niveau, exo, depart) => {
+    await attendreBanque();
+    ouvrirQuestion(exo);
+    if (depart) editeur.setValue(DEPART);   // tout le monde part de la même requête de départ
+  },
+  // joue tous les jeux d'essai sur la requête en cours, sans rien afficher
+  tester: async () => {
+    const req = lireCode();
+    if (!Q || motInterdit(req)) return { ok: 0, total: bases.length, source: req };
+    const ok = bases.filter(b => { const o = jouer(b, req); return !o.err && comparer(b.attendu, o.r).ok; }).length;
+    return { ok, total: bases.length, source: req };
+  },
+  deverrouiller: () => majBoutonArene(),
+});
 </script>
 </body>
 </html>
