@@ -1,30 +1,34 @@
 /* Sessions chronométrées du Codex — fonction serveur.
 
-   Pourquoi : un chrono commun à un groupe et un classement ont besoin d'une
-   horloge de référence et d'un endroit où chaque poste dépose son résultat.
-   Le site est statique ; cette fonction est le seul code qui tourne côté
-   serveur. Elle vit sur le même compte Netlify que le site, avec Netlify
-   Blobs comme stockage. Aucun autre fournisseur.
+   Pourquoi : un chrono commun à un groupe, un classement et la remise des
+   solutions à l'enseignant ont besoin d'une horloge de référence et d'un
+   endroit où chaque poste dépose son résultat. Le site est statique ; cette
+   fonction est le seul code qui tourne côté serveur. Elle vit sur le même
+   compte Netlify que le site, avec Netlify Blobs comme stockage. Aucun autre
+   fournisseur.
 
    Ce qu'elle tient : une session = un exercice, une durée, un départ commun,
-   des participants sous pseudo libre, les temps de ceux qui ont réussi.
-   Aucune donnée nominative n'est demandée. Une session s'efface 24 h après
-   sa création.
+   des participants identifiés par prénom et nom, une soumission par
+   participant (code, tests passés, temps). Une session s'efface 24 h après
+   sa création. Les noms et les codes soumis disparaissent avec elle.
 
-   Ce qu'elle ne garantit pas : la réussite est déclarée par le navigateur,
-   qui exécute les tests. Elle vaut pour l'entraînement, pas pour une
-   évaluation. Seul le temps est mesuré ici, sur l'horloge du serveur.
+   Ce qu'elle ne garantit pas : le nombre de tests passés est déclaré par le
+   navigateur, qui exécute les tests. Elle vaut pour l'entraînement, pas pour
+   une évaluation. Seul le temps est mesuré ici, sur l'horloge du serveur.
 
-   Chaque participant et chaque résultat est un blob distinct : deux postes
+   Chaque participant et chaque soumission est un blob distinct : deux postes
    qui écrivent en même temps ne s'écrasent pas.
 
    Appels, tous sur /api/session :
-     POST {action:'creer', page, niveau, exo, titre, duree} → {code, cle, session}
+     POST {action:'creer', page, niveau, exo, titre, duree}   → {code, cle, session}
        page : python, r ou sql — la page qui ouvrira l'exercice
-     GET  ?code=ABC234                                  → {session, maintenant}
-     POST {action:'rejoindre', code, pseudo}            → {jeton, session}
-     POST {action:'demarrer', code, cle}                → {session}
-     POST {action:'reussir', code, pseudo, jeton}       → {temps, session}
+     GET  ?code=ABC234[&cle=…]                                → {session, maintenant}
+       avec la clé du lanceur, la vue porte aussi les soumissions et leur code
+     POST {action:'rejoindre', code, nom[, jeton]}            → {jeton, session}
+     POST {action:'quitter', code, nom, jeton}                → {session}
+     POST {action:'demarrer', code, cle}                      → {session}
+     POST {action:'soumettre', code, nom, jeton, source, ok, total[, auto]}
+                                                              → {soumission, session}
 */
 
 import { getStore } from '@netlify/blobs';
@@ -34,8 +38,10 @@ export const config = { path: '/api/session' };
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // ni 0/O, ni 1/I
 const DUREE_VIE = 24 * 3600 * 1000;
 const COMPTE_A_REBOURS = 10 * 1000;
-const TOLERANCE_FIN = 3 * 1000;   // le dernier « Tout tester » peut arriver juste après la fin
+const TOLERANCE_FIN = 3 * 1000;      // une soumission cliquée juste avant la fin peut arriver juste après
+const TOLERANCE_AUTO = 90 * 1000;    // la page envoie d'elle-même le code de ceux qui n'ont pas soumis
 const MAX_PARTICIPANTS = 200;
+const MAX_SOURCE = 20000;
 
 const json = (corps, statut = 200) =>
   new Response(JSON.stringify(corps), {
@@ -48,14 +54,14 @@ const tirerCode = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(6)), o => ALPHABET[o % ALPHABET.length]).join('');
 const tirerSecret = () => crypto.randomUUID();
 
-const nettoyerPseudo = p => String(p || '').replace(/\s+/g, ' ').trim().slice(0, 24);
+const nettoyerNom = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
+/* « Léa Martin » et « léa martin » sont la même personne : la clé est en
+   minuscules sans accents, le blob garde la graphie saisie. */
+const cleId   = nom => encodeURIComponent(nom.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''));
 const cleMeta = code => `sess/${code}/meta`;
-/* « Léa » et « léa » sont le même participant : la clé est en minuscules,
-   le blob garde la graphie saisie. */
-const cleId   = pseudo => encodeURIComponent(pseudo.toLowerCase());
-const clePart = (code, pseudo) => `sess/${code}/p/${cleId(pseudo)}`;
-const cleRes  = (code, pseudo) => `sess/${code}/r/${cleId(pseudo)}`;
+const clePart = (code, nom) => `sess/${code}/p/${cleId(nom)}`;
+const cleSoum = (code, nom) => `sess/${code}/s/${cleId(nom)}`;
 
 async function lireMeta(store, code) {
   if (!/^[A-Z2-9]{6}$/.test(code || '')) return null;
@@ -65,27 +71,34 @@ async function lireMeta(store, code) {
   return meta;
 }
 
-/* Vue publique d'une session : sans la clé du lanceur ni les jetons. */
-async function vue(store, meta) {
-  const [parts, res] = await Promise.all([
-    store.list({ prefix: `sess/${meta.code}/p/` }),
-    store.list({ prefix: `sess/${meta.code}/r/` }),
+async function lireTous(store, prefix) {
+  const { blobs } = await store.list({ prefix });
+  return (await Promise.all(blobs.map(b => store.get(b.key, { type: 'json' })))).filter(Boolean);
+}
+
+/* Vue d'une session. Sans la clé du lanceur : ni jetons, ni code soumis.
+   Avec elle : les soumissions complètes, pour l'enseignant. */
+async function vue(store, meta, lanceur = false) {
+  const [parts, soums] = await Promise.all([
+    lireTous(store, `sess/${meta.code}/p/`),
+    lireTous(store, `sess/${meta.code}/s/`),
   ]);
-  const participants = (await Promise.all(parts.blobs.map(b => store.get(b.key, { type: 'json' }))))
-    .filter(Boolean).map(p => p.pseudo)
-    .sort((a, b) => a.localeCompare(b, 'fr'));
-  const resultats = (await Promise.all(res.blobs.map(b => store.get(b.key, { type: 'json' }))))
-    .filter(Boolean)
-    .sort((a, b) => a.temps - b.temps);
+  const tri = (a, b) => a.localeCompare(b, 'fr');
+  const participants = parts.map(p => p.nom).sort(tri);
+  const soumis = soums.map(s => s.nom).sort(tri);
+  const resultats = soums.filter(s => s.reussi).sort((a, b) => a.temps - b.temps)
+    .map(s => ({ nom: s.nom, temps: s.temps }));
   const maintenant = Date.now();
   const etat = !meta.debut ? 'attente'
              : maintenant < meta.debut ? 'compte_a_rebours'
              : maintenant < meta.fin ? 'en_cours' : 'fini';
-  return {
+  const v = {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
     duree: meta.duree, debut: meta.debut, fin: meta.fin, etat,
-    participants, resultats,
+    participants, soumis, resultats,
   };
+  if (lanceur) v.soumissions = soums.sort((a, b) => tri(a.nom, b.nom));
+  return v;
 }
 
 /* Les sessions périmées sont effacées au passage, lors d'une création :
@@ -107,10 +120,11 @@ export default async (req) => {
   const store = getStore({ name: 'sessions', consistency: 'strong' });
 
   if (req.method === 'GET') {
-    const code = new URL(req.url).searchParams.get('code');
-    const meta = await lireMeta(store, String(code || '').toUpperCase());
+    const u = new URL(req.url);
+    const meta = await lireMeta(store, String(u.searchParams.get('code') || '').toUpperCase());
     if (!meta) return erreur('Session inconnue ou expirée.', 404);
-    return json({ session: await vue(store, meta), maintenant: Date.now() });
+    const lanceur = !!u.searchParams.get('cle') && u.searchParams.get('cle') === meta.cle;
+    return json({ session: await vue(store, meta, lanceur), maintenant: Date.now() });
   }
 
   if (req.method !== 'POST') return erreur('Méthode non prise en charge.', 405);
@@ -141,52 +155,74 @@ export default async (req) => {
       cree: Date.now(), expire: Date.now() + DUREE_VIE,
     };
     await store.setJSON(cleMeta(nouveau), meta);
-    return json({ code: nouveau, cle: meta.cle, session: await vue(store, meta), maintenant: Date.now() });
+    return json({ code: nouveau, cle: meta.cle, session: await vue(store, meta, true), maintenant: Date.now() });
   }
 
   const meta = await lireMeta(store, code);
   if (!meta) return erreur('Session inconnue ou expirée.', 404);
+  const lanceur = !!corps.cle && corps.cle === meta.cle;
+  const repondre = async (extra = {}) => json({ ...extra, session: await vue(store, meta, lanceur), maintenant: Date.now() });
 
   if (action === 'rejoindre') {
-    const pseudo = nettoyerPseudo(corps.pseudo);
-    if (pseudo.length < 2) return erreur('Pseudo de deux caractères au moins.');
+    const nom = nettoyerNom(corps.nom);
+    if (nom.length < 3 || !nom.includes(' ')) return erreur('Prénom et nom, séparés par un espace.');
     if (meta.debut && Date.now() > meta.fin) return erreur('Cette session est terminée.', 409);
-    const existant = await store.get(clePart(code, pseudo), { type: 'json' });
+    const existant = await store.get(clePart(code, nom), { type: 'json' });
     if (existant) {
-      // même pseudo depuis le même navigateur : on rend le jeton connu
-      if (corps.jeton && corps.jeton === existant.jeton)
-        return json({ jeton: existant.jeton, session: await vue(store, meta), maintenant: Date.now() });
-      return erreur('Ce pseudo est déjà pris dans cette session.', 409);
+      // même personne depuis le même navigateur : on lui rend son jeton
+      if (corps.jeton && corps.jeton === existant.jeton) return repondre({ jeton: existant.jeton });
+      return erreur('Ce nom est déjà pris dans cette session.', 409);
     }
     const { blobs } = await store.list({ prefix: `sess/${code}/p/` });
     if (blobs.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
     const jeton = tirerSecret();
-    await store.setJSON(clePart(code, pseudo), { pseudo, jeton, rejoint: Date.now() });
-    return json({ jeton, session: await vue(store, meta), maintenant: Date.now() });
+    await store.setJSON(clePart(code, nom), { nom, jeton, rejoint: Date.now() });
+    return repondre({ jeton });
+  }
+
+  if (action === 'quitter') {
+    const nom = nettoyerNom(corps.nom);
+    const part = await store.get(clePart(code, nom), { type: 'json' });
+    if (part && part.jeton === corps.jeton) {
+      await store.delete(clePart(code, nom));
+      await store.delete(cleSoum(code, nom));
+    }
+    return repondre();
   }
 
   if (action === 'demarrer') {
-    if (corps.cle !== meta.cle) return erreur('Seul le lanceur peut démarrer.', 403);
+    if (!lanceur) return erreur('Seul le lanceur peut démarrer.', 403);
     if (meta.debut) return erreur('Déjà démarrée.', 409);
     meta.debut = Date.now() + COMPTE_A_REBOURS;
     meta.fin = meta.debut + meta.duree * 1000;
     await store.setJSON(cleMeta(code), meta);
-    return json({ session: await vue(store, meta), maintenant: Date.now() });
+    return repondre();
   }
 
-  if (action === 'reussir') {
-    const pseudo = nettoyerPseudo(corps.pseudo);
-    const part = await store.get(clePart(code, pseudo), { type: 'json' });
+  if (action === 'soumettre') {
+    const nom = nettoyerNom(corps.nom);
+    const part = await store.get(clePart(code, nom), { type: 'json' });
     if (!part || part.jeton !== corps.jeton) return erreur('Participant inconnu.', 403);
     if (!meta.debut) return erreur('La session n’a pas démarré.', 409);
     const maintenant = Date.now();
     if (maintenant < meta.debut) return erreur('Le chrono n’a pas démarré.', 409);
-    if (maintenant > meta.fin + TOLERANCE_FIN) return erreur('Temps écoulé.', 409);
-    const deja = await store.get(cleRes(code, pseudo), { type: 'json' });
-    if (deja) return json({ temps: deja.temps, session: await vue(store, meta), maintenant });
-    const temps = Math.min(maintenant, meta.fin) - meta.debut;
-    await store.setJSON(cleRes(code, pseudo), { pseudo, temps });
-    return json({ temps, session: await vue(store, meta), maintenant });
+    const auto = !!corps.auto;
+    if (maintenant > meta.fin + (auto ? TOLERANCE_AUTO : TOLERANCE_FIN)) return erreur('Temps écoulé.', 409);
+    const deja = await store.get(cleSoum(code, nom), { type: 'json' });
+    if (deja) return repondre({ soumission: deja });
+    const total = Math.max(0, Math.round(Number(corps.total)) || 0);
+    const ok = Math.min(total, Math.max(0, Math.round(Number(corps.ok)) || 0));
+    // une remise automatique après la fin garde le code, mais ne réussit pas
+    const dansLeTemps = maintenant <= meta.fin + TOLERANCE_FIN;
+    const soumission = {
+      nom, auto,
+      temps: dansLeTemps ? Math.min(maintenant, meta.fin) - meta.debut : null,
+      ok, total,
+      reussi: dansLeTemps && total > 0 && ok === total,
+      source: String(corps.source || '').slice(0, MAX_SOURCE),
+    };
+    await store.setJSON(cleSoum(code, nom), soumission);
+    return repondre({ soumission });
   }
 
   return erreur('Action inconnue.');

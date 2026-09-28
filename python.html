@@ -406,7 +406,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 55e4f08</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 339ba76</span>
       </div>
     </div>
   </div>
@@ -1211,7 +1211,6 @@ function runTests() {
     if (all) {
       progress[e.id] = { ok: true, code };
       saveProgress(); renderList();
-      if (window.Session) Session.reussite(S.slug, e.id);   // session chronométrée en cours, s'il y en a une
     } else if (progress[e.id]) {
       progress[e.id].code = code; saveProgress();
     } else {
@@ -1263,7 +1262,11 @@ function solBody(code, notions) {
     </div>`;
 }
 
+/* Pendant une session chronométrée, ni indice ni solution : ils reviennent à la fin. */
+const enSession = () => window.Session && Session.verrouille();
+
 function indiceBlock(e) {
+  if (enSession()) return '';
   if (!e.indice || !e.indice.length) return '';
   return `<details class="sol indice">
       <summary>🔍 Besoin d'un indice ?</summary>
@@ -1280,6 +1283,7 @@ function indiceBlock(e) {
 }
 
 function solutionBlock(e, unlocked) {
+  if (enSession()) return '';
   // e.expert vaut false quand la version experte est identique à la version simple
   const bloc1 = `
     <details class="sol" ${unlocked && !e.expert ? 'open' : ''}>
@@ -1322,14 +1326,25 @@ const BOOT = boot();
 
 /* Sessions chronométrées en groupe : voir session.js. La page ne fournit que
    l'exercice ouvert et le moyen d'en ouvrir un. */
+const DUREE_NIVEAU = { prog1: 5, prog2: 10, prog3: 15, prog4: 20 };   // minutes, si l'exercice n'en porte pas
 Session.init({
   page: 'python',
-  courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre, duree: S.cur.duree } : null,
+  courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre,
+                           duree: S.cur.duree || DUREE_NIVEAU[S.slug] || 10 } : null,
   ouvrir: async (niveau, exo) => {
     await BOOT;   // les banques sont chargées
     if (S.slug !== niveau || document.getElementById('travail').style.display === 'none') await ouvrirNiveau(niveau);
     openExo(exo);
   },
+  // joue tous les jeux d'essai sur le code en cours, sans s'arrêter au premier échec
+  tester: () => new Promise(resoudre => {
+    const e = S.cur, source = getCode();
+    if (!e || !S.ready) return resoudre({ ok: 0, total: e ? e.tests.length : 0, source });
+    execute(source, e.tests, (out, err) => {
+      const ok = err ? 0 : out.filter((r, i) => !r.error && r.stdout === e.tests[i].attendu.replace(/\n+$/, '')).length;
+      resoudre({ ok, total: e.tests.length, source });
+    }, false);
+  }),
 });
 </script>
 </body>

@@ -109,27 +109,39 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 ## Sessions chronométrées en groupe
 
 Page Python seulement, pour l'instant. Le bouton « 👥 Session » de l'en-tête ouvre deux
-voies : rejoindre avec un code de six caractères et un pseudo, ou lancer depuis l'exercice
-ouvert, choisi dans la liste ou tiré au hasard avec les filtres. Le lanceur fixe la durée,
-reçoit un code et un lien, puis démarre quand il veut : compte à rebours de dix secondes,
-même exercice ouvert sur tous les postes, chrono commun. Le classement montre ceux qui ont
-réussi, dans l'ordre de leur temps. Il se fige à la fin. Enseignant ou étudiant, n'importe
-qui peut lancer.
+voies : rejoindre avec un code de six caractères, son prénom et son nom ; ou lancer depuis
+l'exercice ouvert, choisi dans la liste ou tiré au hasard avec les filtres. Le lanceur
+fixe la durée, préremplie avec la durée conseillée de l'exercice, qui dépend de son niveau
+(5, 10, 15 ou 20 minutes). Il reçoit un code et un lien, voit qui a rejoint, puis démarre
+quand il veut : compte à rebours de dix secondes, même exercice ouvert sur tous les postes,
+chrono commun. Enseignant ou étudiant, n'importe qui peut lancer ; le lanceur participe
+s'il coche la case.
+
+Pendant la session, indices et solutions sont masqués ; ils reviennent à la fin. Chaque
+participant soumet sa solution une fois, par le bouton de la barre : les tests sont joués
+une dernière fois, le code part au serveur, c'est définitif. Réussi si tous les tests
+passent à ce moment-là. Le classement montre les réussites dans l'ordre des temps et se
+fige à la fin. Le code de ceux qui n'ont pas soumis est remis de lui-même à la fin du
+temps, sans compter comme réussite. « Quitter » retire de la session.
+
+Le lanceur voit, par « 📋 Solutions », le code soumis par chacun, avec l'état et le
+temps, et la liste de ceux qui n'ont rien soumis.
 
 Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
-Blobs : l'exercice, la durée, l'heure de départ, les pseudos, les temps de réussite. Le
-temps est mesuré sur l'horloge du serveur à la réception de la réussite. Une session
-s'efface au bout de 24 heures. Aucun nom, aucun compte, aucune donnée nominative.
+Blobs : l'exercice, la durée, l'heure de départ, les prénoms et noms, les soumissions. Le
+temps est mesuré sur l'horloge du serveur à la réception de la soumission. Une session
+s'efface au bout de 24 heures, avec les noms et les codes. Aucun compte.
 
-Ce qu'il ne garantit pas : la réussite est déclarée par le navigateur, qui exécute les
-tests. Cela vaut pour l'entraînement, pas pour une évaluation.
+Ce qu'il ne garantit pas : les tests sont joués par le navigateur, le serveur ne les
+rejoue pas. Cela vaut pour l'entraînement, pas pour une évaluation.
 
 Le rechargement de la page reprend la session en cours (`sessionStorage`). Fermer l'onglet
 l'oublie. En `file://`, le bouton n'apparaît pas : il n'y a pas de serveur.
 
 Transposer à R ou SQL : inclure `session.js`, appeler `Session.init({page, courant,
-ouvrir})` en fin de script, et `Session.reussite(niveau, exo)` là où la page constate
-que la réponse est juste. Rien d'autre.
+ouvrir, tester})` en fin de script, et masquer indices et solutions quand
+`Session.verrouille()` est vrai. `tester()` joue tous les tests sur la réponse en cours et
+rend `{ok, total, source}`.
 
 ## Cache hors ligne (service worker)
 
