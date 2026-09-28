@@ -273,9 +273,16 @@ textarea{width:100%;min-height:150px;background:#282828;color:#EBDBB2;border:1px
 /* ligne signalée par l'analyseur de SQLite */
 .CodeMirror .ligne-erreur{background:rgba(234,105,98,.16)}
 .CodeMirror-gutter-elt .marque-erreur{color:#EA6962;font-weight:700}
-.CodeMirror-hints{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;z-index:30}
+/* la liste de complétion suit le thème : l'entrée retenue était bleu vif sur
+   texte sombre, illisible. Signalé le 28 septembre 2026. */
+.CodeMirror-hints{font:12.5px ui-monospace,SFMono-Regular,Menlo,monospace;z-index:30;
+   background:var(--panel);border:1px solid var(--line);border-radius:5px;box-shadow:0 4px 14px rgba(60,56,54,.18);
+   padding:3px 0}
+.CodeMirror-hint{color:var(--ink);padding:3px 10px;border-radius:0}
 .CodeMirror-hint.hint-champ{color:#45707A}
 .CodeMirror-hint.hint-cle{color:#AF3A03;font-weight:600}
+li.CodeMirror-hint-active,li.CodeMirror-hint-active.hint-champ,li.CodeMirror-hint-active.hint-cle{
+   background:var(--accent);color:var(--bg)}
 /* coloration des extraits figés (solution, syntaxe des notions) : les règles de
    l'éditeur sont portées par .CodeMirror, runMode écrit ailleurs. */
 .sql-colore .cm-keyword{color:#EA6962;font-weight:600}
@@ -701,7 +708,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 7d1b818</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · dd98f1f</span>
       </div>
     </div>
   </div>

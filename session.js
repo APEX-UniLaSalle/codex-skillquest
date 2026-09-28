@@ -263,7 +263,7 @@ window.Session = (() => {
     const so = vue.soumissions || [];
     const lignes = vue.participants.map(p => {
       const s = so.find(x => meme(x.nom, p));
-      return { nom: p, s, taux: s && s.total ? s.ok / s.total : 0, temps: s && s.temps != null ? s.temps : Infinity };
+      return { nom: p, s, taux: s && s.total && s.compte !== false ? s.ok / s.total : 0, temps: s && s.temps != null ? s.temps : Infinity };
     });
     lignes.sort((a, b) => b.taux - a.taux || a.temps - b.temps || a.nom.localeCompare(b.nom, 'fr'));
     return lignes;
@@ -287,12 +287,20 @@ window.Session = (() => {
         <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Moyenne</th><th>Médaille</th>' : ''}</tr>
         ${l.map((x, i) => { const k = score(x.nom); return `<tr class="${x.s && x.s.reussi && x.s.compte !== false ? 'ok' : ''}">
           <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}${(vue.horsEval || []).some(h => meme(h, x.nom)) ? ' <small>hors évaluation</small>' : ''}</td>
-          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}</td>
+          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}
+            ${ev && x.s && x.s.sorties ? `<br><button class="mini" data-compter="${esc(x.nom)}" data-valeur="${x.s.compte === false ? '1' : '0'}">${x.s.compte === false ? 'Accorder les points' : 'Retirer les points'}</button>` : ''}</td>
           <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td>
           ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : k && !k.valide ? '<small>pas encore</small>' : '—'}</td>` : ''}</tr>`; }).join('')}
       </table>
       ${ev && sc.length && !sc[0].valide ? `<p class="g-suite">${Math.round(sc[0].dureeTotale / 60)} min d’exercices sur 60 : encore ${sc[0].manque} min pour valider la compétence. La note est la moyenne des tests réussis sur les ${sc[0].manches} manche${sc[0].manches > 1 ? 's' : ''}.</p>` : ''}
-      <p class="g-suite">${l.length ? `${l.filter(x => x.s && x.s.reussi).length} réussite${l.filter(x => x.s && x.s.reussi).length > 1 ? 's' : ''} sur ${l.length}. ` : ''}Pour une nouvelle manche : ouvrez un autre exercice, puis ⚔️ Relancer l’arène.</p>`;
+      ${ev && l.some(x => x.s && x.s.sorties) ? '<p class="g-suite">⚠ sortie du plein écran constatée : la soumission n’est pas comptée, sauf si vous accordez les points.</p>' : ''}
+      <p class="g-suite">${l.length ? `${l.filter(x => x.s && x.s.reussi && x.s.compte !== false).length} réussite${l.filter(x => x.s && x.s.reussi && x.s.compte !== false).length > 1 ? 's' : ''} sur ${l.length}. ` : ''}Pour une nouvelle manche : ouvrez un autre exercice, puis ⚔️ Relancer l’arène.</p>`;
+      $('#sessGrandPodium').querySelectorAll('button[data-compter]').forEach(b => b.onclick = async () => {
+        b.disabled = true;
+        try { await appel('POST', { action: 'compter', code: S.code, cle: S.cle, nom: b.dataset.compter, manche: vue.manche, compte: b.dataset.valeur === '1' }); }
+        catch (e) { $('#sessMsg').textContent = e.message; }
+        rendre();
+      });
       return;
     }
     $('#sessGrandCode').textContent = vue.code;
@@ -553,7 +561,7 @@ window.Session = (() => {
       <tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
       ${so.map(s => `<tr>
         <td>${esc(s.nom)}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
-          ${ev && s.sorties ? `<br><button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Ne pas compter' : 'Compter quand même'}</button>` : ''}</td>
+          ${ev && s.sorties ? `<br><button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Retirer les points' : 'Accorder les points'}</button>` : ''}</td>
         <td class="etat ${s.reussi && s.compte !== false ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}${s.compte === false ? '<br><small>non comptée</small>' : ''}</td>
         <td>${s.temps == null ? '—' : mmss(s.temps)}</td>
         <td><pre>${esc(s.source || '(vide)')}</pre></td>
