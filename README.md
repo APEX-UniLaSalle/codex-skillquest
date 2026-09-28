@@ -19,8 +19,11 @@ Moodle requis.
 ├── sql.html            requêtes SELECT sur cinq bases, avec explorateur et MCD
 ├── r.html              60 questions, trois jeux de données, un seul niveau
 ├── coderpad.html       préparation à l'examen (6 exercices input() → fonction)
+├── session.js          sessions chronométrées en groupe, côté navigateur
+├── netlify/functions/  session.mjs, la seule fonction serveur : horloge et classement des sessions
+├── package.json        sa dépendance, @netlify/blobs, installée par Netlify au déploiement
 ├── sw.js               cache hors ligne
-├── netlify.toml        en-têtes de cache
+├── netlify.toml        en-têtes de cache, dossier des fonctions
 ├── data/               banques au format JSON
 ├── logos/              APEX et UniLaSalle
 └── ressources/         Cheat Sheets Python et SQL
@@ -99,9 +102,34 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 - **Anti-blocage** : le code tourne dans un *web worker*. Une boucle infinie est
   interrompue à 10 s et le moteur redémarre automatiquement — la page ne fige jamais.
 - **Progression** : code et exercices réussis conservés dans le navigateur de l'étudiant
-  (`localStorage`). Rien n'est envoyé sur un serveur.
+  (`localStorage`). Rien n'est envoyé sur un serveur, hors sessions chronométrées.
 - **SQL** : la plateforme n'accepte que des requêtes `SELECT`. Toute instruction
   d'écriture est refusée, sur demande du responsable de la compétence.
+
+## Sessions chronométrées en groupe
+
+Page Python seulement, pour l'instant. Le bouton « 👥 Session » de l'en-tête ouvre deux
+voies : rejoindre avec un code de six caractères et un pseudo, ou lancer depuis l'exercice
+ouvert, choisi dans la liste ou tiré au hasard avec les filtres. Le lanceur fixe la durée,
+reçoit un code et un lien, puis démarre quand il veut : compte à rebours de dix secondes,
+même exercice ouvert sur tous les postes, chrono commun. Le classement montre ceux qui ont
+réussi, dans l'ordre de leur temps. Il se fige à la fin. Enseignant ou étudiant, n'importe
+qui peut lancer.
+
+Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
+Blobs : l'exercice, la durée, l'heure de départ, les pseudos, les temps de réussite. Le
+temps est mesuré sur l'horloge du serveur à la réception de la réussite. Une session
+s'efface au bout de 24 heures. Aucun nom, aucun compte, aucune donnée nominative.
+
+Ce qu'il ne garantit pas : la réussite est déclarée par le navigateur, qui exécute les
+tests. Cela vaut pour l'entraînement, pas pour une évaluation.
+
+Le rechargement de la page reprend la session en cours (`sessionStorage`). Fermer l'onglet
+l'oublie. En `file://`, le bouton n'apparaît pas : il n'y a pas de serveur.
+
+Transposer à R ou SQL : inclure `session.js`, appeler `Session.init({page, courant,
+ouvrir})` en fin de script, et `Session.reussite(niveau, exo)` là où la page constate
+que la réponse est juste. Rien d'autre.
 
 ## Cache hors ligne (service worker)
 

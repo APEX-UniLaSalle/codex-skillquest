@@ -2,7 +2,7 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v117';
+const VERSION = 'skillquest-entrainement-v118';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
 const VENDOR  = VERSION + '-vendor';  // CDN versionnés (immuables)
 
@@ -13,6 +13,7 @@ const A_PRECHARGER = [
   './coderpad.html',
   './sql.html',
   './r.html',
+  './session.js',
   './data/sql.json',
   './data/sql-sommaire.json',
   './data/r.json',
@@ -57,6 +58,10 @@ self.addEventListener('fetch', ev => {
   if (req.method !== 'GET') return;
   const url = req.url;
 
+  // 0. L'API des sessions chronométrées ne passe jamais par le cache : chaque
+  // réponse porte l'heure du serveur et l'état du groupe.
+  if (url.includes('/api/')) return;
+
   // 1. Pyodide et CodeMirror : cache d'abord (URLs versionnées, ~10 Mo au total)
   //
   // Les réponses opaques (mode no-cors, status 0) ne sont JAMAIS mises en cache.
@@ -93,7 +98,7 @@ self.addEventListener('fetch', ev => {
   // kilo-octets, contre les ~10 Mo de Pyodide qui restent, eux, en cache
   // d'abord. Le cache prend le relais dès que le réseau manque.
   const estContenu = url => /\/data\/[^/]+\.json$/.test(url) || /\.html$/.test(url)
-    || url === self.registration.scope;
+    || /\/session\.js$/.test(url) || url === self.registration.scope;
   if (url.startsWith(self.registration.scope) && estContenu(url)) {
     ev.respondWith((async () => {
       const cache = await caches.open(SHELL);

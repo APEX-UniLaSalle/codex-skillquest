@@ -12,3 +12,12 @@
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+# Sessions chronométrées : une fonction serveur, jamais mise en cache
+[functions]
+  directory = "netlify/functions"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Cache-Control = "no-store"

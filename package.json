@@ -1,0 +1,8 @@
+{
+  "name": "codex-skillquest",
+  "private": true,
+  "description": "Le Codex — dossier publié. La dépendance sert à la seule fonction serveur, netlify/functions/session.mjs.",
+  "dependencies": {
+    "@netlify/blobs": "^8.2.0"
+  }
+}

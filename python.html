@@ -406,12 +406,13 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 9 septembre 2026 · 502af71</span>
+        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · 55e4f08</span>
       </div>
     </div>
   </div>
 </footer>
 
+<script src="session.js"></script>
 <script>
 /* ───────────────── état ───────────────── */
 const S = { niveaux: [], data: {}, cur: null, slug: null, worker: null, ready: false };
@@ -1210,6 +1211,7 @@ function runTests() {
     if (all) {
       progress[e.id] = { ok: true, code };
       saveProgress(); renderList();
+      if (window.Session) Session.reussite(S.slug, e.id);   // session chronométrée en cours, s'il y en a une
     } else if (progress[e.id]) {
       progress[e.id].code = code; saveProgress();
     } else {
@@ -1316,7 +1318,19 @@ function initCacheHorsLigne() {
 }
 initCacheHorsLigne();
 
-boot();
+const BOOT = boot();
+
+/* Sessions chronométrées en groupe : voir session.js. La page ne fournit que
+   l'exercice ouvert et le moyen d'en ouvrir un. */
+Session.init({
+  page: 'python',
+  courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre, duree: S.cur.duree } : null,
+  ouvrir: async (niveau, exo) => {
+    await BOOT;   // les banques sont chargées
+    if (S.slug !== niveau || document.getElementById('travail').style.display === 'none') await ouvrirNiveau(niveau);
+    openExo(exo);
+  },
+});
 </script>
 </body>
 </html>
