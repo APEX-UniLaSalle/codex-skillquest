@@ -62,6 +62,7 @@ const TOLERANCE_FIN = 3 * 1000;      // une soumission cliquée juste avant la f
 const TOLERANCE_AUTO = 90 * 1000;    // la page envoie d'elle-même le code de ceux qui n'ont pas soumis
 const MAX_PARTICIPANTS = 200;
 const MAX_SOURCE = 20000;
+const DUREE_VALIDATION = 3600;   // une heure d'exercices cumulée avant de donner une médaille
 
 const json = (corps, statut = 200) =>
   new Response(JSON.stringify(corps), {
@@ -121,19 +122,27 @@ async function vue(store, meta, lanceur = false, participant = null) {
   const resultats = soums.filter(s => s.reussi && compte(s)).sort((a, b) => a.temps - b.temps)
     .map(s => ({ nom: s.nom, temps: s.temps }));
   const eval_ = meta.mode === 'eval';
-  // Score cumulé sur les manches closes et la manche en cours : chaque exercice
-  // rapporte ses points au prorata des tests passés, comme un validateur CoderPad.
-  // Une soumission non comptée rapporte 0. Note sur 20 = points / maximum × 20.
-  const manchesToutes = [...(meta.historique || []), { manche: meta.manche, points: meta.points }];
-  const maxPoints = manchesToutes.reduce((t, m) => t + (m.points || 0), 0);
+  // Score en évaluation, règle du 28 septembre 2026 : tous les exercices de l'arène
+  // sont du même niveau ; la note est la moyenne, sur les manches jouées, du
+  // pourcentage de tests passés, ramenée sur 20 ; une soumission non comptée ou
+  // absente vaut 0. La médaille n'est donnée qu'au bout d'une heure d'exercices
+  // cumulée ; avant, on dit combien il manque.
+  const manchesToutes = [...(meta.historique || []), ...(meta.debut ? [{ manche: meta.manche, duree: meta.duree }] : [])];
+  const dureeTotale = manchesToutes.reduce((t, m) => t + (m.duree || 0), 0);   // secondes
+  const valide = dureeTotale >= DUREE_VALIDATION;
   let scores = null;
-  if (eval_ && meta.debut) {
+  if (eval_ && manchesToutes.length) {
     const toutes = await lireTous(store, `sess/${meta.code}/s/`);
     scores = participants.map(nom => {
-      const pts = toutes.filter(x => x.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0 && compte(x))
-        .reduce((t, x) => { const m = manchesToutes.find(mm => mm.manche === x.manche); return t + (m && m.points && x.total ? m.points * x.ok / x.total : 0); }, 0);
-      const note = maxPoints ? Math.round(pts / maxPoints * 20 * 10) / 10 : 0;
-      return { nom, points: Math.round(pts * 10) / 10, max: maxPoints, note, medaille: medaille(note) };
+      const taux = manchesToutes.map(m => {
+        const x = toutes.find(y => y.manche === m.manche && y.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0);
+        return x && compte(x) && x.total ? x.ok / x.total : 0;
+      });
+      const moyenne = taux.reduce((a, b) => a + b, 0) / taux.length;
+      const note = Math.round(moyenne * 20 * 10) / 10;
+      return { nom, manches: taux.length, moyenne: Math.round(moyenne * 1000) / 10, note,
+               dureeTotale, valide, manque: valide ? 0 : Math.ceil((DUREE_VALIDATION - dureeTotale) / 60),
+               medaille: valide ? medaille(note) : null };
     });
   }
   const maintenant = Date.now();
@@ -145,7 +154,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
     code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
     pause: meta.pause || null, manche: meta.manche, mode: meta.mode, participants, soumis, resultats,
-    maxPoints,
+    dureeTotale, valide,
   };
   if (participant) {
     const p = parts.find(x => x.nom.localeCompare(participant.nom, 'fr', { sensitivity: 'base' }) === 0);
@@ -330,6 +339,8 @@ export default async (req) => {
     const niveau = String(corps.niveau || '').slice(0, 20);
     const exo = typeof corps.exo === 'number' ? corps.exo : String(corps.exo || '').slice(0, 40);
     if (!niveau || exo === '') return erreur('Exercice invalide.');
+    if (meta.mode === 'eval' && niveau !== meta.niveau)
+      return erreur(`En évaluation, tous les exercices sont du même niveau : cette arène est en ${meta.niveau}.`, 409);
     if (meta.debut) {
       meta.historique = [...(meta.historique || []), { manche: meta.manche, niveau: meta.niveau, exo: meta.exo,
         titre: meta.titre, duree: meta.duree, debut: meta.debut, fin: meta.fin, pauses: meta.pauses || 0, points: meta.points || 0 }];

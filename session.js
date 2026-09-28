@@ -204,7 +204,7 @@ window.Session = (() => {
       <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
       <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
       <div class="modes" style="margin-top:10px">
-        <label style="font-weight:400;margin:0"><input type="radio" name="sessMode" value="eval" checked style="width:auto;margin-right:6px"><b>Évaluation</b> — plein écran demandé, sorties décomptées, score sur 20 et médaille cumulés sur les manches, solutions réservées au lanceur</label>
+        <label style="font-weight:400;margin:0"><input type="radio" name="sessMode" value="eval" checked style="width:auto;margin-right:6px"><b>Évaluation</b> — plein écran demandé, sorties décomptées, exercices d'un même niveau, note = moyenne des tests réussis sur les manches, médaille après une heure d'exercices, solutions réservées au lanceur</label>
         <label style="font-weight:400;margin:6px 0 0"><input type="radio" name="sessMode" value="entrainement" style="width:auto;margin-right:6px"><b>Entraînement</b> — sans plein écran ni score ; qui a soumis voit les solutions des autres</label>
       </div>
       <p class="aide">Dans les deux modes, ceux qui rejoignent n'ont ni indice ni solution pendant la manche et ne peuvent pas parcourir le Codex. Le plein écran ne peut pas être imposé par le navigateur : une sortie est comptée et vous est montrée ; en évaluation, la soumission de la manche n'est pas comptée, sauf si vous en décidez autrement.</p>
@@ -279,13 +279,14 @@ window.Session = (() => {
       const ev = vue.mode === 'eval', sc = vue.scores || [];
       const score = nom => sc.find(x => meme(x.nom, nom));
       $('#sessGrandPodium').innerHTML = `<table>
-        <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Score</th><th>Médaille</th>' : ''}</tr>
+        <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Moyenne</th><th>Médaille</th>' : ''}</tr>
         ${l.map((x, i) => { const k = score(x.nom); return `<tr class="${x.s && x.s.reussi && x.s.compte !== false ? 'ok' : ''}">
           <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}</td>
           <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}</td>
           <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td>
-          ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : '—'}</td>` : ''}</tr>`; }).join('')}
+          ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : k && !k.valide ? '<small>pas encore</small>' : '—'}</td>` : ''}</tr>`; }).join('')}
       </table>
+      ${ev && sc.length && !sc[0].valide ? `<p class="g-suite">${Math.round(sc[0].dureeTotale / 60)} min d’exercices sur 60 : encore ${sc[0].manque} min pour valider la compétence. La note est la moyenne des tests réussis sur les ${sc[0].manches} manche${sc[0].manches > 1 ? 's' : ''}.</p>` : ''}
       <p class="g-suite">${l.length ? `${l.filter(x => x.s && x.s.reussi).length} réussite${l.filter(x => x.s && x.s.reussi).length > 1 ? 's' : ''} sur ${l.length}. ` : ''}Pour une nouvelle manche : ouvrez un autre exercice, puis ⚔️ Relancer l’arène.</p>`;
       return;
     }
@@ -400,7 +401,9 @@ window.Session = (() => {
       : (rang >= 0 ? `<p class="ok"><b>Réussi</b>, ${rang + 1}${rang === 0 ? 'er' : 'e'} sur ${vue.resultats.length}.</p>` : `<p>Votre solution a été remise à l’enseignant.</p>`);
     const k = vue.monScore;
     const scoreTxt = vue.mode === 'eval' && k
-      ? `<p><b>Score</b> : ${k.note}/20 sur ${vue.manche > 1 ? `les ${vue.manche} manches` : 'cette manche'} — ${k.medaille ? `niveau <b>${k.medaille}</b>` : 'sous le seuil Bronze (10/20)'}.</p>` : '';
+      ? `<p><b>Note</b> : ${k.note}/20, moyenne des tests réussis sur ${k.manches > 1 ? `les ${k.manches} manches` : 'cette manche'}. ${
+          k.valide ? (k.medaille ? `Niveau <b>${k.medaille}</b>.` : 'Sous le seuil Bronze (10/20).')
+                   : `${Math.round(k.dureeTotale / 60)} min d’exercices sur 60 : jouez encore ${k.manque} min d’exercices pour valider la compétence.`}</p>` : '';
     $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}${scoreTxt}
       <p>Les indices, la solution et la liste des exercices sont de nouveau accessibles.</p>
       <p style="color:var(--muted);font-size:13px">Restez dans l’arène : le lanceur peut ouvrir une nouvelle manche sur un autre exercice.</p></div>`;
@@ -571,11 +574,11 @@ window.Session = (() => {
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'J' ? 'none' : '';
     $('#sessEtat').textContent = '';
     // relance : seuls l'exercice et la durée changent, le reste appartient à l'arène
-    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide, '))
+    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide'))
       el.style.display = o === 'R' ? 'none' : '';
     if (o === 'R') {
       const c = H.courant();
-      $('#sessExo').innerHTML = `Manche suivante sur : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">Les participants restent dans l’arène. Le code ne change pas.</span>`;
+      $('#sessExo').innerHTML = `Manche suivante sur : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">Les participants restent dans l’arène. Le code ne change pas.${vue && vue.mode === 'eval' ? ' En évaluation, tous les exercices sont du même niveau.' : ''}</span>`;
       $('#sessInDuree').value = c.duree || 10;
       $('#sessOk').textContent = 'Relancer l’arène'; $('#sessOk').disabled = false;
       return;
@@ -688,8 +691,10 @@ window.Session = (() => {
     const date = d => d ? new Date(d).toLocaleString('fr-FR') : '—';
     const md = [`# Arène ${vue.code} — ${H.page} — ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}`, '', `Exporté le ${date(Date.now())}. ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}.`, ''];
     if (vue.scores) {
-      md.push('## Scores cumulés', '', '| Nom | Points | Maximum | Note /20 | Médaille |', '|---|---|---|---|---|');
-      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom} | ${k.points} | ${k.max} | ${k.note} | ${k.medaille || '—'} |`);
+      const k0 = vue.scores[0];
+      md.push('## Scores', '', `Moyenne des tests réussis sur ${k0 ? k0.manches : 0} manche(s), ${Math.round(vue.dureeTotale / 60)} min d'exercices${vue.valide ? '' : ' : sous l’heure requise, aucune médaille'}.`, '',
+        '| Nom | Moyenne | Note /20 | Médaille |', '|---|---|---|---|');
+      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
       md.push('');
     }
     for (const m of manches) {

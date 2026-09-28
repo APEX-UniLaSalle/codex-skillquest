@@ -149,11 +149,13 @@ temps, ceux qui n'ont rien remis en dernier, avec score et médaille en évaluat
 participant voit un bilan personnel. Puis le lanceur ouvre un autre exercice et clique
 « ⚔️ Relancer l'arène sur cet exercice » : manche suivante, même code, mêmes participants.
 
-Score en évaluation : chaque exercice rapporte ses points, ceux de la banque, 5, 10, 15 ou
-20 selon le niveau, au prorata des tests passés, comme les validateurs de CoderPad ; note
-sur 20 = points obtenus / points possibles × 20 ; médaille aux seuils du socle pour un
-savoir-faire, Bronze 10, Argent 15, Or 20. L'équivalence avec l'épreuve réelle tient à la
-composition de l'arène : mêmes niveaux, même nombre d'exercices que l'épreuve.
+Score en évaluation, règle du 28 septembre 2026 : tous les exercices de l'arène sont du
+même niveau, I à IV, le serveur refuse une relance sur un autre niveau ; la note sur 20 est
+la moyenne, sur les manches jouées, du pourcentage de tests passés, une soumission absente
+ou non comptée valant 0 ; la médaille suit les seuils du socle pour un savoir-faire, Bronze
+10, Argent 15, Or 20, et n'est donnée qu'au bout d'une heure d'exercices cumulée sur
+l'arène ; avant, le podium, le bilan et l'export disent combien de minutes manquent pour
+valider la compétence.
 
 « 📋 Solutions » montre au lanceur le code soumis par chacun dans la manche en cours, et
 deux exports, toutes manches confondues : un Markdown lisible, scores puis tableau par
