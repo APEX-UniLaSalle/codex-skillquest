@@ -99,13 +99,13 @@ aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
 .hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
 /* Bac à sable : un éditeur libre, sans énoncé ni correction. La carte sur l'accueil
    y mène ; la classe bac sur body masque ce qui n'a pas de sens sans exercice. */
-.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--panel);
    border:1px solid var(--line);border-radius:3px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
-.bac-carte:hover{border-color:var(--violet)}
-.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+.bac-carte:hover{border-color:var(--accent)}
+.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--ok);font-weight:600}
 .bac-carte h3{margin:2px 0 4px;font-size:17px}
 .bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
-.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--accent)}
 body.bac .bac-cache{display:none !important}
 body.bac .page{grid-template-columns:minmax(0,1fr)}
 .bac-entete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
@@ -663,8 +663,8 @@ FROM CONCERT;</textarea>
   </div>
   <div class="themes" id="themes"></div>
   <button class="bac-carte" id="versBac" type="button">
-    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable SQL</h3>
-      <p>Choisissez une base, écrivez vos requêtes, lisez les résultats. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable</h3>
+      <p>Une base au choix, vos requêtes. Rien n'est noté.</p></div>
     <span class="fleche">→</span>
   </button>
 </div>
@@ -720,7 +720,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · fc8e4d4</span>
       </div>
     </div>
   </div>
@@ -2071,10 +2071,9 @@ function ouvrirBac(slug) {
   document.getElementById('accueil').hidden = true;
   document.getElementById('intro').hidden = true;
   document.getElementById('travail').hidden = false;
-  document.getElementById('titreQ').textContent = '🧪 Bac à sable SQL';
+  document.getElementById('titreQ').textContent = '🧪 Bac à sable';
   document.getElementById('metaQ').innerHTML = '';
-  document.getElementById('enonce').innerHTML = `<p>Une base entière, vos requêtes, les résultats. Rien n'est noté ni conservé, sauf votre dernière requête sur ce poste.</p>
-    <div class="bac-entete">
+  document.getElementById('enonce').innerHTML = `<div class="bac-entete" style="margin:0">
       <label for="bacBase">Base de données</label>
       <select id="bacBase">${slugs.map(k => `<option value="${esc(k)}"${k === slug ? ' selected' : ''}>${esc(BASES[k].nom)}</option>`).join('')}</select>
       <button type="button" id="bacRetour">← Accueil</button>

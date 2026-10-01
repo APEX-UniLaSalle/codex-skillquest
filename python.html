@@ -50,13 +50,13 @@
   body.arene-verrou main{grid-template-columns:minmax(0,1fr)}   /* la liste est masquée pendant l'arène */
   body.bac main{grid-template-columns:minmax(0,1fr)}   /* bac à sable : pas de liste */
   body.bac aside.panel{display:none}
-  .bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+  .bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--panel);
      border:1px solid var(--line);border-radius:6px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
-  .bac-carte:hover{border-color:var(--violet)}
-  .bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+  .bac-carte:hover{border-color:var(--accent)}
+  .bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--ok);font-weight:600}
   .bac-carte h3{margin:2px 0 4px;font-size:17px}
   .bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
-  .bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+  .bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--accent)}
   #bacIn{width:100%;min-height:64px;font:13px/1.5 ui-monospace,Menlo,monospace;padding:8px 10px;border:1px solid var(--line);
      border-radius:5px;background:var(--bg);color:var(--ink);resize:vertical;margin:6px 0 0}
   main{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;
@@ -418,7 +418,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · fc8e4d4</span>
       </div>
     </div>
   </div>
@@ -645,8 +645,8 @@ function afficherAccueil() {
     </div>
 
     <button class="bac-carte" id="versBac" type="button">
-      <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable Python</h3>
-        <p>Un éditeur libre, une entrée à votre main, la sortie du programme. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+      <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable</h3>
+        <p>Éditeur libre. Rien n'est noté.</p></div>
       <span class="fleche">→</span>
     </button>
 
@@ -920,11 +920,8 @@ function ouvrirBac() {
   try { garde = localStorage.getItem(CLE_BAC) || ''; } catch (_) {}
   document.getElementById('work').innerHTML = `
     <div class="panel card">
-      <h2>🧪 Bac à sable Python</h2>
-      <div class="statement">Écrivez, exécutez, lisez la sortie. L'entrée du programme, ce que lirait
-        <code>input()</code>, se tape ci-dessous, une valeur par ligne. Rien n'est noté ni envoyé ;
-        votre code reste sur ce poste.</div>
-      <div class="actions" style="margin-top:10px"><button id="bacRetour">← Accueil</button></div>
+      <h2>🧪 Bac à sable</h2>
+      <div class="actions" style="margin-top:6px"><button id="bacRetour">← Accueil</button></div>
     </div>
     <div class="panel">
       <div class="editor-head"><strong>Votre code</strong>
@@ -934,8 +931,8 @@ function ouvrirBac() {
         <div class="gutter" id="gutter">1</div>
         <textarea id="code" spellcheck="false" placeholder="# Votre code Python ici"></textarea>
       </div>
-      <div class="sub-h" style="margin-top:12px">⌨ Entrée du programme <span class="hint">facultative, une valeur par ligne</span></div>
-      <textarea id="bacIn" spellcheck="false" placeholder="ce que lira input()"></textarea>
+      <div class="sub-h" style="margin-top:12px">⌨ Entrée <span class="hint">ce que lira <code>input()</code>, une valeur par ligne</span></div>
+      <textarea id="bacIn" spellcheck="false"></textarea>
       <div class="actions">
         <button class="primary" id="bacRun" ${S.ready ? '' : 'disabled'}>▶ Exécuter</button>
         <button id="reset">Effacer</button>

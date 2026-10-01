@@ -96,13 +96,13 @@ aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
 .hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
 /* Bac à sable : un éditeur libre, sans énoncé ni correction. La carte sur l'accueil
    y mène ; la classe bac sur body masque ce qui n'a pas de sens sans exercice. */
-.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--panel);
    border:1px solid var(--line);border-radius:3px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
-.bac-carte:hover{border-color:var(--violet)}
-.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+.bac-carte:hover{border-color:var(--accent)}
+.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--ok);font-weight:600}
 .bac-carte h3{margin:2px 0 4px;font-size:17px}
 .bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
-.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--accent)}
 body.bac .bac-cache{display:none !important}
 body.bac .page{grid-template-columns:minmax(0,1fr)}
 .bac-entete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
@@ -659,8 +659,8 @@ canvas.trace.actif{display:block}
   </div>
   <div class="themes" id="chapitres"></div>
   <button class="bac-carte" id="versBac" type="button">
-    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable R</h3>
-      <p>Un éditeur libre, un jeu de données déjà chargé si vous le voulez, la sortie et le graphique. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable</h3>
+      <p>Éditeur libre, jeu de données au choix. Rien n'est noté.</p></div>
     <span class="fleche">→</span>
   </button>
   <section class="controle" id="controle" hidden>
@@ -728,7 +728,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · fc8e4d4</span>
       </div>
     </div>
   </div>
@@ -910,10 +910,9 @@ function ouvrirBac(jeu) {
   document.body.classList.add('bac');
   $('#accueil').hidden = true;
   $('#travail').hidden = false;
-  $('#titreQ').textContent = '🧪 Bac à sable R';
+  $('#titreQ').textContent = '🧪 Bac à sable';
   $('#metaQ').innerHTML = '';
-  $('#enonce').innerHTML = `<p>Écrivez, exécutez, lisez la sortie et le graphique. Rien n'est noté ni envoyé ; votre code reste sur ce poste.</p>
-    <div class="bac-entete">
+  $('#enonce').innerHTML = `<div class="bac-entete" style="margin:0">
       <label for="bacJeu">Jeu de données</label>
       <select id="bacJeu"><option value="">Aucun</option>${Object.entries(JEUX).map(([k, j]) =>
         `<option value="${k}"${k === jeu ? ' selected' : ''}>${esc(j.nom)} — ${esc(j.tableau)}</option>`).join('')}</select>
