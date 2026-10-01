@@ -39,6 +39,7 @@ window.Session = (() => {
   let decalage = 0;             // horloge serveur − horloge locale
   let minuterie = null, horloge = null;
   let maSoumission = null;      // la réponse du serveur à ma soumission de la manche en cours
+  let avis = '';                // message qui reste affiché dans la barre malgré les rendus
   let verrouPrec = false;
   let manchePrec = null;        // pour remettre à zéro ce qui dépend de la manche
 
@@ -372,6 +373,7 @@ window.Session = (() => {
       : vue.etat === 'compte_a_rebours' ? 'Départ imminent…'
       : vue.etat === 'pause' ? 'Chrono en pause.'
       : vue.etat === 'fini' ? 'Terminé. Classement figé.' : '';
+    if (avis) $('#sessMsg').textContent = avis;
     tic();
   }
 
@@ -499,7 +501,7 @@ window.Session = (() => {
   }
 
   async function quitter(prevenir = true) {
-    const ancien = S;
+    const ancien = S; avis = '';
     clearInterval(minuterie); clearInterval(horloge); minuterie = horloge = null;
     S = null; vue = null; dernierEtat = null; stocker(); rendre();
     $('#sessGrand2').classList.remove('on');
@@ -676,7 +678,8 @@ window.Session = (() => {
         S = { code };   // appel() lit S.code
         const d = await appel('POST', { action: 'rejoindre', code, nom, eval: evalOui });
         $('#sessDlg').close();
-        suivre({ code, nom, jeton: d.jeton, eval: evalOui });
+        const connu = (vue && vue.participants.find(p => meme(p, nom))) || nom;   // graphie du premier passage
+        suivre({ code, nom: connu, jeton: d.jeton, eval: evalOui });
         if (vue.pleinEcran && evalOui) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
@@ -815,7 +818,7 @@ window.Session = (() => {
     const code = new URLSearchParams(location.search).get('arene');
     const st0 = lireStock();
     if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) suivre(st0);
-    else if (code && st0 && st0.code) { suivre(st0); setTimeout(() => { $('#sessMsg').textContent = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; }, 800); }
+    else if (code && st0 && st0.code) { avis = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; suivre(st0); }
     else if (code) ouvrirDialogue(code.toUpperCase());
   }
 

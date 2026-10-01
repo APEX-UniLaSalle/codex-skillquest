@@ -206,13 +206,14 @@ Ensuite l'app démarre instantanément et **fonctionne sans connexion**.
 
 | Ressource | Stratégie |
 |---|---|
-| Pyodide, sql.js, CodeMirror, WebR versionné (URLs figées) | cache d'abord, dans un cache qui survit aux mises en ligne — jamais retéléchargés |
-| WebR par `latest`, adresse qui bouge | réseau d'abord, cache en secours |
+| Pyodide, sql.js, CodeMirror (URLs figées) | cache d'abord, dans un cache qui survit aux mises en ligne — jamais retéléchargés |
+| WebR | hors de portée du service worker : son moteur se charge depuis `webr.r-wasm.org` dans un worker de cette origine. R demande une connexion. |
 | Pages, `data/*.json`, `session.js`, `theme.*` | réseau d'abord, cache en secours : une mise en ligne est vue au rechargement suivant |
 | Le reste du site | cache d'abord, rafraîchi en arrière-plan |
 
-Les trois pages d'exercices enregistrent le service worker. Un `✓ hors ligne` apparaît en
-haut à droite de la page Python quand le moteur est en cache.
+Les trois pages d'exercices enregistrent le service worker. Python et SQL fonctionnent sans
+connexion après une première visite ; R non. Un `✓ hors ligne` apparaît en haut à droite de
+la page Python quand le moteur est en cache.
 
 **Deux conditions** : le service worker exige **HTTPS** (ou `localhost`), et il ne
 fonctionne pas en `file://`. La version `entrainement_autonome.html` n'en bénéficie donc
