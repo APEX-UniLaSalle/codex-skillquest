@@ -7,8 +7,8 @@ y rédigent leurs solutions, les testent et les comparent à une solution commen
 Sa racine est le dossier `entrainement/` du projet ClashOfCode. Rien d'autre n'est publié.
 
 Le code s'exécute **dans le navigateur** : Pyodide pour Python, WebR pour R, SQLite
-compilé en WebAssembly pour SQL. Aucun serveur, aucun crédit consommé, aucun droit
-Moodle requis.
+compilé en WebAssembly pour SQL. Aucun droit Moodle requis. Le seul code serveur est la
+fonction du mode arène, décrite plus bas.
 
 ## Contenu
 
@@ -154,7 +154,10 @@ ne comptent pas dans les temps.
 Chaque participant soumet sa solution une fois : les tests sont joués une dernière fois, le
 code part au serveur, c'est définitif. Réussi si tous les tests passent. « Tout tester »
 reste un contrôle libre. Le code de ceux qui n'ont pas soumis est remis de lui-même à la fin
-du temps, sans compter comme réussite. « Quitter l'arène » retire de l'arène.
+du temps, si leur page est ouverte, sans compter comme réussite. Une soumission attend que
+le moteur soit chargé. « Quitter l'arène » retire de la liste ; la soumission et les sorties de la manche restent,
+et le même nom qui revient reprend son état : quitter puis rejoindre ne donne pas une
+seconde soumission. On peut rejoindre à tout moment, entre deux manches compris.
 
 À la fin : le lanceur voit le podium en grand, classé par taux de tests réussis puis par
 temps, ceux qui n'ont rien remis en dernier, avec score et médaille en évaluation ; chaque
@@ -185,11 +188,11 @@ rejoue pas ; un participant qui trafique la page peut déclarer ce qu'il veut ; 
 écran ne peut être ni imposé ni retenu par le navigateur. Cela vaut pour l'entraînement,
 pas pour une évaluation certificative, qui reste sur SEB.
 
-Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le code en
-cours. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
+Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le dernier
+code testé ou exécuté sur les trois pages. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
 
-Chaque page fournit à `session.js` quatre accroches, `Session.init({page, courant,
-ouvrir, tester, deverrouiller})`, un bouton `Session.lancer()` ou `Session.relancer()` sur
+Chaque page fournit à `session.js` ses accroches, `Session.init({page, courant,
+ouvrir, tester, pret, deverrouiller})`, un bouton `Session.lancer()` ou `Session.relancer()` sur
 l'exercice ouvert, masque indices et solutions quand `Session.verrouille()` est vrai, et
 marque `arene-cache` ce que le verrou doit masquer, `arene-fige` ce qu'il doit figer.
 `tester()` joue tous les tests sur la réponse en cours et rend `{ok, total, source}` : en
@@ -203,10 +206,13 @@ Ensuite l'app démarre instantanément et **fonctionne sans connexion**.
 
 | Ressource | Stratégie |
 |---|---|
-| Pyodide, WebR, CodeMirror (URLs versionnées) | cache d'abord — jamais retéléchargés |
-| Pages et `data/*.json` | servis du cache, rafraîchis en arrière-plan |
+| Pyodide, sql.js, CodeMirror, WebR versionné (URLs figées) | cache d'abord, dans un cache qui survit aux mises en ligne — jamais retéléchargés |
+| WebR par `latest`, adresse qui bouge | réseau d'abord, cache en secours |
+| Pages, `data/*.json`, `session.js`, `theme.*` | réseau d'abord, cache en secours : une mise en ligne est vue au rechargement suivant |
+| Le reste du site | cache d'abord, rafraîchi en arrière-plan |
 
-Un `✓ hors ligne` apparaît en haut à droite quand le moteur est en cache.
+Les trois pages d'exercices enregistrent le service worker. Un `✓ hors ligne` apparaît en
+haut à droite de la page Python quand le moteur est en cache.
 
 **Deux conditions** : le service worker exige **HTTPS** (ou `localhost`), et il ne
 fonctionne pas en `file://`. La version `entrainement_autonome.html` n'en bénéficie donc

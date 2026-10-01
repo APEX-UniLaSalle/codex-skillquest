@@ -17,7 +17,13 @@
    une évaluation. Seul le temps est mesuré ici, sur l'horloge du serveur.
 
    Chaque participant et chaque soumission est un blob distinct : deux postes
-   qui écrivent en même temps ne s'écrasent pas.
+   qui écrivent en même temps ne s'écrasent pas. Deux requêtes simultanées du
+   même participant, elles, peuvent se doubler : lecture puis écriture sans
+   verrou. Un seul navigateur par participant, le cas n'a pas de portée.
+
+   Quitter ne détruit rien : le participant est marqué parti, sa soumission et
+   ses sorties restent. Un nom qui revient reprend son état, avec un jeton neuf.
+   Sans cela, quitter puis rejoindre contournerait la soumission unique.
 
    Appels, tous sur /api/session :
      POST {action:'creer', page, niveau, exo, titre, duree, points, mode} → {code, cle, session}
@@ -81,6 +87,8 @@ const tirerSecret = () => crypto.randomUUID();
 /* Seuils du socle pour un savoir-faire : Bronze 10/20, Argent 15/20, Or 20/20. */
 const medaille = note => note >= 20 ? 'Or' : note >= 15 ? 'Argent' : note >= 10 ? 'Bronze' : null;
 
+const meme = (a, b) => String(a).localeCompare(String(b), 'fr', { sensitivity: 'base' }) === 0;
+
 const nettoyerNom = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
 /* « Léa Martin » et « léa martin » sont la même personne : la clé est en
@@ -111,7 +119,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
     lireTous(store, `sess/${meta.code}/s/${meta.manche}/`),
   ]);
   const tri = (a, b) => a.localeCompare(b, 'fr');
-  const participants = parts.map(p => p.nom).sort(tri);
+  const participants = parts.filter(p => !p.parti).map(p => p.nom).sort(tri);
   const soumis = soums.map(s => s.nom).sort(tri);
   const sortiesDe = (p, manche) => (p.sortiesParManche || {})[manche] || 0;
   // une soumission compte si son auteur n'est pas sorti du plein écran pendant
@@ -166,9 +174,9 @@ async function vue(store, meta, lanceur = false, participant = null) {
     const p = parts.find(x => x.nom.localeCompare(participant.nom, 'fr', { sensitivity: 'base' }) === 0);
     if (p && p.jeton === participant.jeton) {
       v.monEval = p.eval !== false;
-      if (scores) v.monScore = scores.find(x => x.nom === p.nom) || null;
+      if (scores) v.monScore = scores.find(x => meme(x.nom, p.nom)) || null;
       // en entraînement, qui a soumis voit les solutions des autres
-      if (!eval_ && soums.some(x => x.nom === p.nom))
+      if (!eval_ && soums.some(x => meme(x.nom, p.nom)))
         v.solutions = soums.map(x => ({ nom: x.nom, ok: x.ok, total: x.total, temps: x.temps, reussi: x.reussi, source: x.source }))
           .sort((a, b) => tri(a.nom, b.nom));
     }
@@ -177,7 +185,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
     v.scores = scores;
     const enrichir = s => ({ ...s, compte: compte(s), sorties: sortiesDe(parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0) || {}, s.manche) });
     v.soumissions = soums.map(enrichir).sort((a, b) => tri(a.nom, b.nom));
-    v.sorties = Object.fromEntries(parts.filter(p => sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));
+    v.sorties = Object.fromEntries(parts.filter(p => !p.parti && sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));
     // toutes les manches, pour l'export : les closes viennent de l'historique
     const toutes = (await lireTous(store, `sess/${meta.code}/s/`)).map(enrichir);
     const courante = { manche: meta.manche, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
@@ -260,12 +268,15 @@ export default async (req) => {
   if (action === 'rejoindre') {
     const nom = nettoyerNom(corps.nom);
     if (nom.length < 3 || !nom.includes(' ')) return erreur('Prénom et nom, séparés par un espace.');
-    if (meta.debut && Date.now() > meta.fin) return erreur('Cette session est terminée.', 409);
     const existant = await store.get(clePart(code, nom), { type: 'json' });
     if (existant) {
       // même personne depuis le même navigateur : on lui rend son jeton
       if (corps.jeton && corps.jeton === existant.jeton) return repondre({ jeton: existant.jeton });
-      return erreur('Ce nom est déjà pris dans cette session.', 409);
+      if (!existant.parti) return erreur('Ce nom est déjà pris dans cette arène.', 409);
+      // parti puis revenu : même état, jeton neuf
+      const jeton = tirerSecret();
+      await store.setJSON(clePart(code, nom), { ...existant, jeton, parti: false, revenu: Date.now() });
+      return repondre({ jeton });
     }
     const { blobs } = await store.list({ prefix: `sess/${code}/p/` });
     if (blobs.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
@@ -278,8 +289,8 @@ export default async (req) => {
     const nom = nettoyerNom(corps.nom);
     const part = await store.get(clePart(code, nom), { type: 'json' });
     if (part && part.jeton === corps.jeton) {
-      await store.delete(clePart(code, nom));
-      await store.delete(cleSoum(code, meta.manche, nom));
+      part.parti = true;
+      await store.setJSON(clePart(code, nom), part);
     }
     return repondre();
   }
@@ -378,12 +389,12 @@ export default async (req) => {
     if (maintenant > cadre.fin + (auto ? TOLERANCE_AUTO : TOLERANCE_FIN)) return erreur('Temps écoulé.', 409);
     const deja = await store.get(cleSoum(code, cadre.manche || manche, nom), { type: 'json' });
     if (deja) return repondre({ soumission: deja });
-    const total = Math.max(0, Math.round(Number(corps.total)) || 0);
+    const total = Math.min(1000, Math.max(0, Math.round(Number(corps.total)) || 0));
     const ok = Math.min(total, Math.max(0, Math.round(Number(corps.ok)) || 0));
     // une remise automatique après la fin garde le code, mais ne réussit pas
     const dansLeTemps = maintenant <= cadre.fin + TOLERANCE_FIN;
     const soumission = {
-      nom, auto, manche: cadre.manche || manche,
+      nom: part.nom, auto, manche: cadre.manche || manche,
       temps: dansLeTemps ? Math.min(maintenant, cadre.fin) - cadre.debut - (cadre.pauses || 0) : null,
       ok, total,
       reussi: dansLeTemps && total > 0 && ok === total,

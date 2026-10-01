@@ -10,7 +10,12 @@
     const b = document.getElementById('themeBtn');
     if (b) { b.textContent = t === 'dark' ? '☀ Jour' : '☾ Nuit'; b.title = t === 'dark' ? 'Passer en mode jour' : 'Passer en mode nuit'; }
   };
-  poser(lire() || systeme());
+  const choix = lire();
+  poser(choix === 'dark' || choix === 'light' ? choix : systeme());
+  // sans choix sur le site, la page suit le système quand il bascule
+  if (window.matchMedia) window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    const c = lire(); if (c !== 'dark' && c !== 'light') poser(systeme());
+  });
   window.addEventListener('DOMContentLoaded', () => {
     const zone = document.getElementById('status') || document.querySelector('header');
     if (!zone) return;

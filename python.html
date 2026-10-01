@@ -420,7 +420,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 241d428</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 5bf10a8</span>
       </div>
     </div>
   </div>
@@ -549,7 +549,7 @@ const INLINE = typeof window.__DATA__ !== 'undefined' ? window.__DATA__ : null;
 
 async function boot() {
   spawnWorker();
-  S.niveaux = INLINE ? INLINE.index : await (await fetch('data/index.json')).json();
+  S.niveaux = INLINE ? INLINE.index : await (await fetch('data/index.json', { cache: 'no-store' })).json();
   const sel = document.getElementById('fNiveau');
   sel.innerHTML = S.niveaux.map(n => `<option value="${n.slug}">${n.libelle} — ${n.n} exercices</option>`).join('');
   sel.onchange = () => loadNiveau(sel.value);
@@ -560,7 +560,7 @@ async function boot() {
 
 async function charger(slug) {
   if (!S.data[slug])
-    S.data[slug] = INLINE ? INLINE[slug] : await (await fetch(`data/${slug}.json`)).json();
+    S.data[slug] = INLINE ? INLINE[slug] : await (await fetch(`data/${slug}.json`, { cache: 'no-store' })).json();
   return S.data[slug];
 }
 
@@ -1437,6 +1437,7 @@ Session.init({
       else document.getElementById('code').value = S.cur.amorce || '';
     }
   },
+  pret: () => S.ready,
   // le verrou tombe (entraînement, après soumission) : l'exercice est réaffiché avec ses indices, le code en place
   deverrouiller: () => {
     if (!S.cur) return;

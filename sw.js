@@ -2,9 +2,11 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v133';
+const VERSION = 'skillquest-entrainement-v134';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
-const VENDOR  = VERSION + '-vendor';  // CDN versionnés (immuables)
+// Les moteurs ne dépendent pas de VERSION : avant le 1er octobre 2026, chaque
+// mise en ligne d'une banque faisait retélécharger les 10 Mo de Pyodide à tous.
+const VENDOR  = 'skillquest-vendor-v1';   // CDN versionnés (immuables)
 
 const A_PRECHARGER = [
   './',
@@ -30,12 +32,22 @@ const A_PRECHARGER = [
   'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/sql/sql.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/r/r.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/sql-hint.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/runmode/runmode.min.js',
 ];
 
 // URLs versionnées : une fois en cache, elles ne changent plus
 const estVendor = url =>
   url.includes('cdn.jsdelivr.net/pyodide/') ||
-  url.includes('cdnjs.cloudflare.com/ajax/libs/codemirror/');
+  url.includes('cdnjs.cloudflare.com/ajax/libs/codemirror/') ||
+  url.includes('cdnjs.cloudflare.com/ajax/libs/sql.js/') ||
+  (url.includes('webr.r-wasm.org/') && /webr\.r-wasm\.org\/v\d/.test(url));
+// WebR est chargé par « latest », une adresse qui bouge : réseau d'abord, cache en secours
+const estWebRLatest = url => url.includes('webr.r-wasm.org/latest/');
 
 self.addEventListener('install', ev => {
   ev.waitUntil((async () => {
@@ -50,7 +62,7 @@ self.addEventListener('install', ev => {
 self.addEventListener('activate', ev => {
   ev.waitUntil((async () => {
     const noms = await caches.keys();
-    await Promise.all(noms.filter(n => !n.startsWith(VERSION)).map(n => caches.delete(n)));
+    await Promise.all(noms.filter(n => n !== SHELL && n !== VENDOR).map(n => caches.delete(n)));
     await self.clients.claim();
   })());
 });
@@ -62,7 +74,8 @@ self.addEventListener('fetch', ev => {
 
   // 0. L'API des sessions chronométrées ne passe jamais par le cache : chaque
   // réponse porte l'heure du serveur et l'état du groupe.
-  if (url.includes('/api/')) return;
+  const chemin = new URL(url).pathname;
+  if (chemin.startsWith('/api/')) return;
 
   // 1. Pyodide et CodeMirror : cache d'abord (URLs versionnées, ~10 Mo au total)
   //
@@ -90,6 +103,22 @@ self.addEventListener('fetch', ev => {
     return;
   }
 
+  // 1 bis. WebR « latest » : réseau d'abord, cache en secours, pour pouvoir
+  // travailler hors ligne sans figer une adresse qui change
+  if (estWebRLatest(url)) {
+    ev.respondWith((async () => {
+      const cache = await caches.open(VENDOR);
+      try {
+        const rep = await fetch(url, { mode: 'cors', credentials: 'omit' });
+        if (rep && rep.ok && rep.type !== 'opaque') cache.put(req, rep.clone());
+        return rep;
+      } catch (e) {
+        return (await cache.match(req)) || Response.error();
+      }
+    })());
+    return;
+  }
+
   // 2. Pages et banques d'exercices : réseau d'abord, cache en secours.
   //
   // Ces fichiers changent à chaque déploiement, et le « cache d'abord » de la
@@ -99,9 +128,10 @@ self.addEventListener('fetch', ev => {
   // la page. On accepte ici un aller-retour réseau : quelques centaines de
   // kilo-octets, contre les ~10 Mo de Pyodide qui restent, eux, en cache
   // d'abord. Le cache prend le relais dès que le réseau manque.
-  const estContenu = url => /\/data\/[^/]+\.json$/.test(url) || /\.html$/.test(url)
-    || /\/(session|theme)\.(js|css)$/.test(url) || url === self.registration.scope;
-  if (url.startsWith(self.registration.scope) && estContenu(url)) {
+  // le test porte sur le chemin : python.html?arene=ABC234 est une page comme une autre
+  const estContenu = c => /\/data\/[^/]+\.json$/.test(c) || /\.html$/.test(c)
+    || /\/(session|theme)\.(js|css)$/.test(c) || url === self.registration.scope || c.endsWith('/');
+  if (url.startsWith(self.registration.scope) && estContenu(chemin)) {
     ev.respondWith((async () => {
       const cache = await caches.open(SHELL);
       try {

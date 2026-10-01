@@ -722,7 +722,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 241d428</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 5bf10a8</span>
       </div>
     </div>
   </div>
@@ -2175,6 +2175,11 @@ document.getElementById('schema').addEventListener('click', ev => {
 });
 document.getElementById('reset').onclick = () => { editeur.setValue(DEPART); editeur.focus(); };
 
+/* Cache hors ligne : le même service worker que les autres pages. Sans lui, un
+   étudiant arrivé directement ici n'avait rien en cache. */
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+
 /* Mode arène, chrono commun pour un groupe : voir session.js. La page ne fournit
    que la question ouverte, le moyen d'en ouvrir une et le jeu des jeux d'essai. */
 const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? r() : setTimeout(t, 200); t(); });
@@ -2194,6 +2199,7 @@ Session.init({
     const ok = bases.filter(b => { const o = jouer(b, req); return !o.err && comparer(b.attendu, o.r).ok; }).length;
     return { ok, total: bases.length, source: req };
   },
+  pret: () => bases.length > 0,
   deverrouiller: () => majBoutonArene(),
 });
 </script>

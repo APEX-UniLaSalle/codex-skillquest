@@ -19,7 +19,7 @@
   --code:#E6D9BC;
   --sunk:#DACCAD;
   --ink:#3A2C31;         /* encre */
-  --muted:#75706B;       /* gris */
+  --muted:#5F5A56;       /* gris, foncé pour tenir 4,5:1 sur carte ; le gris du livre, 75706B, reste aux filets */
   --line:#D9CBAA;
   --accent:#B05548;      /* rouge */
   --accent-soft:#F0DCCF;
@@ -27,15 +27,16 @@
   --link-txt:#8C5A1B;
   --ok:#4C7A5D;
   --ok-soft:#E3EBD6;
-  --ko:#C1614E;          /* rouge vif */
+  --ko:#A3462F;          /* rouge vif foncé : lisible sur le rouge pâle */
   --ko-soft:#F4DDD6;
-  --warn:#B47109;
+  --warn:#8A5606;
   --warn-soft:#F3E8CE;
   --violet:#7C5A7A;
   --bleu:#45707A;
   --lavande:#ECE6F0;
   --term:#241C28;        /* carte-navy : consoles et éditeurs */
-  --or:#DFA35C;
+  --or:#DFA35C;          /* l'or du livre : filets, losanges, ornements */
+  --or-texte:#8C5A1B;    /* l'or en texte : 5:1 sur parchemin */
   --blanc:#FBF7EC;
   /* coderpad.html nomme ses variables autrement */
   --fond:var(--bg); --fond2:var(--panel2); --carte:var(--panel); --bord:var(--line);
@@ -70,6 +71,7 @@
   --lavande:#332B3B;
   --term:#1B141E;
   --or:#DFA35C;
+  --or-texte:#DFA35C;    /* sur navy, l'or se lit tel quel */
   --blanc:#2B2230;
   color-scheme:dark;
 }
@@ -85,7 +87,7 @@ header h1::before{content:"◆";font-size:9px;color:var(--or);margin-right:8px;v
 .etiq,.num,.sub-h,.bloc h3,.intro .texte h3,.exo .num,.qst .num,table.tests th,table.jeux th,table.res th,th,
 .bac-carte .num,.examen .num,.niv .num,footer h2{font-family:var(--ui);letter-spacing:.14em;text-transform:uppercase;font-weight:500}
 .exo .num,.qst .num{letter-spacing:0;text-transform:none}
-.parc .etiq,.theme .etiq,.intro .etiq,.niv .num,.bac-carte .num,.examen .num{color:var(--or)}
+.parc .etiq,.theme .etiq,.intro .etiq,.niv .num,.bac-carte .num,.examen .num{color:var(--or-texte)}
 .parc.actif .etiq{color:var(--accent)}
 
 /* ── ornement du livre : losange et filet d'or sous les titres de carte ── */
@@ -98,12 +100,12 @@ header h1::before{content:"◆";font-size:9px;color:var(--or);margin-right:8px;v
 .niv:hover,.parc:hover,.theme:hover,.bac-carte:hover,.examen:hover{border-color:var(--or)}
 button,.fiche,select,input[type=search],input[type=text],input[type=number]{font-family:var(--ui)}
 button.primary,button.principal{background:var(--accent);border-color:var(--accent);color:#FBF7EC}
-button.primary:hover:not(:disabled),button.principal:hover:not(:disabled){background:#C1614E;border-color:#C1614E;color:#FBF7EC}
+button.primary:hover:not(:disabled),button.principal:hover:not(:disabled){background:#9A4538;border-color:#9A4538;color:#FBF7EC}
 :root[data-theme="dark"] button.primary,:root[data-theme="dark"] button.principal{color:#241C28}
 :root[data-theme="dark"] button.primary:hover:not(:disabled),:root[data-theme="dark"] button.principal:hover:not(:disabled){background:#E9BC7A;border-color:#E9BC7A;color:#241C28}
-button:hover:not(:disabled){border-color:var(--or);color:var(--accent)}
+button:hover:not(:disabled){border-color:var(--or-texte);color:var(--accent)}
 .chip,.tag{background:var(--code);color:var(--ink)}
-#marque:hover h1{color:var(--or)}
+#marque:hover h1{color:var(--or-texte)}
 .fiche{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .fiche:hover{background:var(--accent);color:#FBF7EC}
 :root[data-theme="dark"] .fiche{background:transparent;border-color:var(--or);color:var(--or)}
@@ -112,7 +114,7 @@ button:hover:not(:disabled){border-color:var(--or);color:var(--accent)}
 /* ── consoles et éditeurs : carte-navy dans les deux modes, texte parchemin ── */
 textarea,.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{background:var(--term) !important;color:#F4EDDC}
 .CodeMirror-gutters{background:color-mix(in srgb, var(--term) 85%, #000) !important;border-right:1px solid #3D3043 !important}
-.CodeMirror-linenumber{color:#75706B !important}
+.CodeMirror-linenumber{color:#A69A94 !important}
 
 /* ── mode nuit : ce que les pages écrivaient en dur ── */
 :root[data-theme="dark"] .tbl,:root[data-theme="dark"] table.jeux td,:root[data-theme="dark"] table.res td,

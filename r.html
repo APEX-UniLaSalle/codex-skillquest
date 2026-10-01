@@ -730,7 +730,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 241d428</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 5bf10a8</span>
       </div>
     </div>
   </div>
@@ -954,7 +954,8 @@ function ouvrirQuestion(id) {
     Q.jeu ? `<span class="tag">${esc((JEUX[Q.jeu] || {}).nom || Q.jeu)}</span>` : '',
   ].join('');
   $('#enonce').innerHTML = Q.enonce;
-  editeur.setValue(Q.depart || '');
+  // le dernier code exécuté revient, comme sur Python et SQL ; sinon le point de départ
+  editeur.setValue((progression[id] && progression[id].code) || Q.depart || '');
   editeur.clearHistory();
 
   const d = $('#donnees'), j = JEUX[Q.jeu] || {};
@@ -1029,7 +1030,7 @@ async function executer() {
 
   if (Q.bac) { try { localStorage.setItem(CLE_BAC, editeur.getValue()); } catch (e) {} }
   else {
-    progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true });
+    progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true, code: editeur.getValue() });
     enregistrer();
     $('#bloc-solution').classList.remove('verrouille');
   }
@@ -1359,8 +1360,13 @@ Session.init({
       return { ok: etat === 'ok' ? 1 : 0, total: 1, source: code };
     } catch (e) { return { ok: 0, total: 1, source: code }; }
   },
+  pret: () => pret,
   deverrouiller: () => majBoutonArene(),
 });
+
+/* Cache hors ligne : le même service worker que les autres pages. */
+if ('serviceWorker' in navigator && location.protocol !== 'file:')
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 
 (async () => {
   try { await chargerBanque(); }

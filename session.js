@@ -12,6 +12,7 @@
        courant: () => ({niveau, exo, titre, duree}) ou null,   // l'exercice ouvert
        ouvrir:  async (niveau, exo) => {...},           // ouvre l'exercice de la session
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
+       pret:    () => true,                              // facultatif : le moteur est chargé
        deverrouiller: () => {...},                       // facultatif : réaffiche indices et solutions, code en place
      });
    Pendant le verrou, la classe arene-verrou est posée sur body : la page marque
@@ -167,7 +168,7 @@ window.Session = (() => {
     <span id="sessMoi"></span>
     <span class="liste" id="sessListe"></span>
     <span class="actions">
-      <span class="msg" id="sessMsg"></span>
+      <span class="msg" id="sessMsg" aria-live="polite"></span>
       <button class="primary" id="sessSoumettre" style="display:none">✔ Soumettre ma solution</button>
       <button id="sessVoir" style="display:none">📋 Solutions</button>
       <button id="sessGrand" style="display:none" title="Le code en grand, pour le vidéoprojecteur">🖥 Code en grand</button>
@@ -189,8 +190,8 @@ window.Session = (() => {
       <label for="sessInCode">Code de l'arène</label>
       <input class="code" id="sessInCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC234">
       <div class="deux">
-        <div><label for="sessInPrenom">Prénom</label><input id="sessInPrenom" maxlength="30" autocomplete="given-name"></div>
-        <div><label for="sessInNom">Nom</label><input id="sessInNom" maxlength="30" autocomplete="family-name"></div>
+        <div><label for="sessInPrenom">Prénom</label><input id="sessInPrenom" maxlength="28" autocomplete="given-name"></div>
+        <div><label for="sessInNom">Nom</label><input id="sessInNom" maxlength="28" autocomplete="family-name"></div>
       </div>
       <div class="modes" id="sessChoixEval" style="display:none;margin-top:10px">
         <label style="font-weight:400;margin:0"><input type="radio" name="sessEval" value="1" checked style="width:auto;margin-right:6px"><b>En évaluation</b> — plein écran, sorties décomptées, note et médaille</label>
@@ -203,8 +204,8 @@ window.Session = (() => {
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
-        <div><label for="sessInPrenomL">Prénom</label><input id="sessInPrenomL" maxlength="30" autocomplete="given-name"></div>
-        <div><label for="sessInNomL">Nom</label><input id="sessInNomL" maxlength="30" autocomplete="family-name"></div>
+        <div><label for="sessInPrenomL">Prénom</label><input id="sessInPrenomL" maxlength="28" autocomplete="given-name"></div>
+        <div><label for="sessInNomL">Nom</label><input id="sessInNomL" maxlength="28" autocomplete="family-name"></div>
       </div>
       <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
       <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
@@ -218,7 +219,7 @@ window.Session = (() => {
     <div class="pied">
       <button class="primary" id="sessOk">Rejoindre</button>
       <button id="sessAnnul">Annuler</button>
-      <span class="etat" id="sessEtat"></span>
+      <span class="etat" id="sessEtat" aria-live="polite"></span>
     </div>
   </dialog>
   <dialog class="sessDlg" id="sessSol">
@@ -229,8 +230,9 @@ window.Session = (() => {
       <button id="sessExpJson" title="Toutes les manches, données brutes">⤓ JSON</button>
       <span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:12.5px;color:var(--muted)"></span></div>
   </dialog>
-  <div id="sessAttente">
+  <div id="sessAttente" role="dialog" aria-label="Solution soumise, en attente de la fin de la manche">
     <div class="a-titre">Solution soumise</div>
+    <button id="sessAttPlein" style="display:none">⛶ Revenir en plein écran</button>
     <div class="a-moi" id="sessAttMoi"></div>
     <div class="a-chrono" id="sessAttChrono"></div>
     <div class="a-class" id="sessAttClass"></div>
@@ -245,7 +247,7 @@ window.Session = (() => {
   /* ───── le code en grand, pour le vidéoprojecteur ─────
      Plein écran chez le lanceur, tant que l'arène attend. Le code, le lien,
      la liste de ceux qui ont rejoint, le bouton de départ. Se ferme au départ. */
-  const GRAND = `<div id="sessGrand2">
+  const GRAND = `<div id="sessGrand2" role="dialog" aria-label="Arène, affichage pour le vidéoprojecteur">
     <div class="g-titre" id="sessGrandTitre"></div>
     <div class="g-code" id="sessGrandCode"></div>
     <div class="g-lien" id="sessGrandLien"></div>
@@ -431,6 +433,7 @@ window.Session = (() => {
     const on = !!(moiEnEval() && moiSoumis() && enEpreuve(vue.etat));
     a.classList.toggle('on', on);
     if (!on) return;
+    $('#sessAttPlein').style.display = vue.pleinEcran && !document.fullscreenElement ? '' : 'none';
     const m = maSoumission;
     $('#sessAttMoi').innerHTML = m
       ? (m.reussi ? `<b>${esc(S.nom)}</b> · réussi en ${mmss(m.temps)}` : `<b>${esc(S.nom)}</b> · ${m.ok}/${m.total} test${m.total > 1 ? 's' : ''}${m.temps != null ? ` · soumis en ${mmss(m.temps)}` : ''}`)
@@ -445,9 +448,13 @@ window.Session = (() => {
   }
 
   /* ───── suivi ───── */
-  let dernierEtat = null;
+  let dernierEtat = null, enCoursDeRafraichissement = false;
   async function rafraichir() {
-    if (!S) return;
+    if (!S || enCoursDeRafraichissement) return;
+    enCoursDeRafraichissement = true;
+    try { await rafraichirVraiment(); } finally { enCoursDeRafraichissement = false; }
+  }
+  async function rafraichirVraiment() {
     try {
       await appel('GET');
     } catch (e) {
@@ -458,12 +465,20 @@ window.Session = (() => {
     if (vue.etat !== dernierEtat) {
       const demarre = vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat);
       const arrive = dernierEtat !== 'compte_a_rebours' && !enEpreuve(dernierEtat);
-      if (demarre && arrive) await H.ouvrir(vue.niveau, vue.exo, dernierEtat === 'attente');
+      if (demarre && arrive) {
+        try { await H.ouvrir(vue.niveau, vue.exo, dernierEtat === 'attente'); }
+        catch (e) { $('#sessMsg').textContent = 'L’exercice de l’arène n’a pas pu être ouvert : ' + e.message; }
+      }
       const finit = vue.etat === 'fini' && (enEpreuve(dernierEtat) || dernierEtat === 'compte_a_rebours');
       dernierEtat = vue.etat;
       programmer();
       rendre();
-      if (finit) arriveeFin();
+      if (finit) {
+        // le serveur a annoncé la fin avant le chrono local, onglet en arrière-plan par exemple :
+        // le code non soumis part quand même
+        if (S.nom && !moiSoumis()) await soumettre(true);
+        arriveeFin();
+      }
       return;
     }
     rendre();
@@ -487,6 +502,7 @@ window.Session = (() => {
     const ancien = S;
     clearInterval(minuterie); clearInterval(horloge); minuterie = horloge = null;
     S = null; vue = null; dernierEtat = null; stocker(); rendre();
+    $('#sessGrand2').classList.remove('on');
     if (location.search.includes('arene=')) history.replaceState(null, '', location.pathname);
     if (prevenir && ancien && ancien.nom)
       fetch(API, { method: 'POST', headers: { 'content-type': 'application/json' },
@@ -527,6 +543,7 @@ window.Session = (() => {
   }
 
   async function confirmerSoumission() {
+    if (H.pret && !H.pret()) { $('#sessMsg').textContent = 'Le moteur n’est pas encore chargé : attendez quelques secondes.'; return; }
     treve = Date.now() + 5000;
     if (!confirm('Soumettre votre solution ? C’est définitif : les tests sont joués une dernière fois et votre code est remis à l’enseignant.')) return;
     await soumettre(false);
@@ -610,11 +627,24 @@ window.Session = (() => {
   /* Deux entrées, jamais de choix à faire dans la fenêtre : « Rejoindre » depuis
      l'en-tête, « Lancer en groupe » depuis l'exercice ouvert. Un bouton de
      lancement hors exercice serait un cul-de-sac. */
+  /* À six caractères, on regarde si l'arène est en évaluation : le participant
+     choisit alors de la passer en évaluation ou non. */
+  async function verifierModeArene() {
+    const code = $('#sessInCode').value.trim().toUpperCase();
+    $('#sessChoixEval').style.display = 'none';
+    if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return;
+    try {
+      const rep = await fetch(`${API}?code=${code}`, { cache: 'no-store' });
+      const d = await rep.json();
+      if (rep.ok && d.session && d.session.mode === 'eval') $('#sessChoixEval').style.display = '';
+    } catch {}
+  }
+
   function ouvrirDialogue(codePrerempli, mode = 'J') {
     if (mode === 'R') { if (!peutRelancer() || !H.courant()) return; }
     else if (S) { $('#sessBar').scrollIntoView({ behavior: 'smooth' }); return; }
     if (mode === 'L' && !H.courant()) return;
-    if (codePrerempli) $('#sessInCode').value = codePrerempli;
+    if (codePrerempli) { $('#sessInCode').value = codePrerempli; verifierModeArene(); }
     montrerOnglet(mode);
     $('#sessDlgTitre').textContent = mode === 'L' ? 'Lancer une arène sur cet exercice' : mode === 'R' ? 'Nouvelle manche sur cet exercice' : 'Rejoindre une arène';
     const d = $('#sessDlg'); if (!d.open) d.showModal();
@@ -640,7 +670,7 @@ window.Session = (() => {
       }
       if (onglet === 'J') {
         const code = $('#sessInCode').value.trim().toUpperCase();
-        if (!/^[A-Z2-9]{6}$/.test(code)) throw new Error('Le code fait six lettres ou chiffres.');
+        if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) throw new Error('Le code fait six lettres ou chiffres, sans O ni I.');
         const nom = nomSaisi('');
         const evalOui = $('#sessChoixEval').style.display === 'none' || (document.querySelector('input[name=sessEval]:checked') || {}).value !== '0';
         S = { code };   // appel() lit S.code
@@ -709,7 +739,7 @@ window.Session = (() => {
       const k0 = vue.scores[0];
       md.push('## Scores', '', `Moyenne des tests réussis sur ${k0 ? k0.manches : 0} manche(s), ${Math.round(vue.dureeTotale / 60)} min d'exercices${vue.valide ? '' : ' : sous l’heure requise, aucune médaille'}.`, '',
         '| Nom | Moyenne | Note /20 | Médaille |', '|---|---|---|---|');
-      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
+      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom.replace(/\|/g, '\\|')} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
       if ((vue.horsEval || []).length) md.push('', `Hors évaluation : ${vue.horsEval.join(', ')}.`);
       md.push('');
     }
@@ -722,9 +752,9 @@ window.Session = (() => {
         .sort((a, b) => ((b.s && b.s.total ? b.s.ok / b.s.total : 0) - (a.s && a.s.total ? a.s.ok / a.s.total : 0))
           || ((a.s && a.s.temps != null ? a.s.temps : Infinity) - (b.s && b.s.temps != null ? b.s.temps : Infinity)));
       for (const { nom, s: x } of lignes)
-        md.push(`| ${nom} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'}${x && x.compte === false ? ', non comptée' : ''} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${x && x.sorties || 0} |`);
+        md.push(`| ${nom.replace(/\|/g, '\\|')} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'}${x && x.compte === false ? ', non comptée' : ''} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${x && x.sorties || 0} |`);
       md.push('');
-      for (const x of so) md.push(`### ${x.nom}`, '', '```', (x.source || '').replace(/```/g, '` ` `'), '```', '');
+      for (const x of so) md.push(`### ${x.nom.replace(/^#+/, '')}`, '', '```', (x.source || '').replace(/```/g, '` ` `'), '```', '');
     }
     telecharger(nomFichier('md'), md.join('\n'), 'text/markdown');
   }
@@ -754,21 +784,12 @@ window.Session = (() => {
     zone.insertBefore(btn, zone.firstChild);
 
     $('#sessOk').onclick = valider; $('#sessAnnul').onclick = () => $('#sessDlg').close();
-    $('#sessInCode').addEventListener('input', async () => {
-      const code = $('#sessInCode').value.trim().toUpperCase();
-      $('#sessChoixEval').style.display = 'none';
-      if (!/^[A-Z2-9]{6}$/.test(code)) return;
-      try {
-        const rep = await fetch(`${API}?code=${code}`, { cache: 'no-store' });
-        const d = await rep.json();
-        if (rep.ok && d.session && d.session.mode === 'eval') $('#sessChoixEval').style.display = '';
-      } catch {}
-    });
+    $('#sessInCode').addEventListener('input', verifierModeArene);
     $('#sessDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); valider(); } });
     $('#sessGo').onclick = demarrer; $('#sessLien').onclick = lien;
     document.body.insertAdjacentHTML('beforeend', GRAND);
     $('#sessGrand').onclick = () => montrerGrand(true);
-    $('#sessPlein').onclick = pleinEcran;
+    $('#sessPlein').onclick = pleinEcran; $('#sessAttPlein').onclick = pleinEcran;
     document.addEventListener('fullscreenchange', () => {
       if (!document.fullscreenElement && moiEnEval() && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie();
       rendre();
@@ -786,6 +807,7 @@ window.Session = (() => {
     $('#sessPause').onclick = () => pause('pause'); $('#sessReprendre').onclick = () => pause('reprendre');
     $('#sessPodium').onclick = () => montrerGrand(true);
     $('#sessQuit').onclick = () => {
+      treve = Date.now() + 5000;   // la boîte de confirmation n'est pas une sortie de plein écran
       if (!vue || vue.etat === 'fini' || confirm(S.cle ? 'Quitter l’arène ? Elle continue sans vous ; vous ne verrez plus les solutions.' : 'Quitter l’arène ? Vous en serez retiré.')) quitter(true);
     };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && S) rafraichir(); });
@@ -793,6 +815,7 @@ window.Session = (() => {
     const code = new URLSearchParams(location.search).get('arene');
     const st0 = lireStock();
     if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) suivre(st0);
+    else if (code && st0 && st0.code) { suivre(st0); setTimeout(() => { $('#sessMsg').textContent = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; }, 800); }
     else if (code) ouvrirDialogue(code.toUpperCase());
   }
 
