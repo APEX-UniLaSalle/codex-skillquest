@@ -119,5 +119,9 @@ textarea,.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{
 :root[data-theme="dark"] .notion,:root[data-theme="dark"] .intro .entite{background:var(--blanc)}
 :root[data-theme="dark"] img.logo-unilasalle,:root[data-theme="dark"] footer .logos img{filter:brightness(0) invert(.88) sepia(.2)}
 
+/* ── code en ligne : fond carte, encre du thème, dans les deux modes ── */
+code,.statement code,.enonce code,#enonce code,.notion h4 code{background:var(--code);color:var(--ink)}
+pre code,.console-body code,textarea code,.CodeMirror code{background:transparent;color:inherit}
+
 /* ── bouton jour / nuit ── */
 #themeBtn{font-size:12.5px;padding:5px 10px;line-height:1}
