@@ -1,0 +1,123 @@
+/* Le Codex — habillage à la direction artistique du livre SkillQuest 2026-27.
+   Palette « crépuscule, terracotta, ambre, crème chaud » (DA Hue Teo, 10 juillet
+   2026, reprise dans latex/sq-style.sty) : parchemin F4EDDC, carte EEE3C9, navy
+   322838, carte-navy 241C28, rouge B05548, rouge vif C1614E, encre 3A2C31, or
+   DFA35C, gris 75706B. Titres en Palatino petites capitales, comme les têtes de
+   chapitre ; étiquettes en Poppins espacé ; énoncés en Lora.
+
+   Cette feuille se charge après le style de chaque page et ne fait que redéfinir
+   les variables et quelques traits communs. Le mode nuit retourne la palette :
+   navy en fond, parchemin en encre, or en accent. theme.js pose data-theme sur
+   <html> et le bouton ☀ / ☾ de l'en-tête. */
+
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Poppins:wght@400;500;600&display=swap');
+
+:root{
+  --bg:#F4EDDC;          /* parchemin */
+  --panel:#EEE3C9;       /* carte */
+  --panel2:#F1E8D3;
+  --code:#E6D9BC;
+  --sunk:#DACCAD;
+  --ink:#3A2C31;         /* encre */
+  --muted:#75706B;       /* gris */
+  --line:#D9CBAA;
+  --accent:#B05548;      /* rouge */
+  --accent-soft:#F0DCCF;
+  --link:#DFA35C;        /* or */
+  --link-txt:#8C5A1B;
+  --ok:#4C7A5D;
+  --ok-soft:#E3EBD6;
+  --ko:#C1614E;          /* rouge vif */
+  --ko-soft:#F4DDD6;
+  --warn:#B47109;
+  --warn-soft:#F3E8CE;
+  --violet:#7C5A7A;
+  --bleu:#45707A;
+  --lavande:#ECE6F0;
+  --term:#241C28;        /* carte-navy : consoles et éditeurs */
+  --or:#DFA35C;
+  --blanc:#FBF7EC;
+  /* coderpad.html nomme ses variables autrement */
+  --fond:var(--bg); --fond2:var(--panel2); --carte:var(--panel); --bord:var(--line);
+  --texte:var(--ink); --doux:var(--muted); --rouge:var(--accent); --vert:var(--ok);
+  --orange:var(--link-txt); --sombre:var(--term);
+  --serif:"Palatino Linotype","Book Antiqua",Palatino,"TeX Gyre Pagella",Georgia,serif;
+  --ui:"Poppins",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --prose:"Lora",Georgia,serif;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#241C28;          /* carte-navy */
+  --panel:#322838;       /* navy */
+  --panel2:#2B2230;
+  --code:#3D3043;
+  --sunk:#1C151F;
+  --ink:#F4EDDC;         /* parchemin */
+  --muted:#B5A9A6;
+  --line:#4B3D50;
+  --accent:#DFA35C;      /* or : les titres et l'identité, lisibles sur navy */
+  --accent-soft:#4A3A2A;
+  --link:#DFA35C;
+  --link-txt:#E9BC7A;
+  --ok:#9CC5A4;
+  --ok-soft:#2E3D33;
+  --ko:#E89A86;
+  --ko-soft:#4B2E2A;
+  --warn:#E2B06A;
+  --warn-soft:#3E3324;
+  --violet:#CDAAC9;
+  --bleu:#93BCC4;
+  --lavande:#332B3B;
+  --term:#1B141E;
+  --or:#DFA35C;
+  --blanc:#2B2230;
+  color-scheme:dark;
+}
+
+/* ── fond et typographie ── */
+body{font-family:var(--ui);font-size:14.5px;
+  background:var(--bg) radial-gradient(ellipse at top, color-mix(in srgb, var(--panel) 55%, var(--bg)) 0%, var(--bg) 60%) fixed}
+h1,h2,h3,.card h2,.hero h2,.parc h3,.niv h3,.theme h3,.intro h2,#titreQ{font-family:var(--serif);font-weight:600;letter-spacing:0}
+header h1{font-variant:small-caps;letter-spacing:.06em;font-size:18px}
+header h1::before{content:"◆";font-size:9px;color:var(--or);margin-right:8px;vertical-align:2px;font-family:var(--ui)}
+.hero h2,.intro h2{font-variant:small-caps;letter-spacing:.04em;font-weight:600;font-size:32px}
+.statement,.enonce,#enonce,.hero p,.intro .texte p{font-family:var(--prose);font-size:15.5px;line-height:1.6}
+.etiq,.num,.sub-h,.bloc h3,.intro .texte h3,.exo .num,.qst .num,table.tests th,table.jeux th,table.res th,th,
+.bac-carte .num,.examen .num,.niv .num,footer h2{font-family:var(--ui);letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.exo .num,.qst .num{letter-spacing:0;text-transform:none}
+.parc .etiq,.theme .etiq,.intro .etiq,.niv .num,.bac-carte .num,.examen .num{color:var(--or)}
+.parc.actif .etiq{color:var(--accent)}
+
+/* ── ornement du livre : losange et filet d'or sous les titres de carte ── */
+.card h2::after,.hero h2::after,.intro h2::after{content:"";display:block;height:1px;margin-top:8px;
+  background:linear-gradient(90deg,var(--or) 0,var(--or) 38%,transparent 100%)}
+.card h2,.hero h2,.intro h2{position:relative;padding-bottom:4px}
+
+/* ── cartes et boutons ── */
+.panel,.card,.hero,.niv,.parc,.theme,.bloc,.bac-carte,.examen,aside.panel,aside.liste,dialog{border-color:var(--line)}
+.niv:hover,.parc:hover,.theme:hover,.bac-carte:hover,.examen:hover{border-color:var(--or)}
+button,.fiche,select,input[type=search],input[type=text],input[type=number]{font-family:var(--ui)}
+button.primary,button.principal{background:var(--accent);border-color:var(--accent);color:#FBF7EC}
+button.primary:hover:not(:disabled),button.principal:hover:not(:disabled){background:#C1614E;border-color:#C1614E;color:#FBF7EC}
+:root[data-theme="dark"] button.primary,:root[data-theme="dark"] button.principal{color:#241C28}
+:root[data-theme="dark"] button.primary:hover:not(:disabled),:root[data-theme="dark"] button.principal:hover:not(:disabled){background:#E9BC7A;border-color:#E9BC7A;color:#241C28}
+button:hover:not(:disabled){border-color:var(--or);color:var(--accent)}
+.chip,.tag{background:var(--code);color:var(--ink)}
+#marque:hover h1{color:var(--or)}
+.fiche{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.fiche:hover{background:var(--accent);color:#FBF7EC}
+:root[data-theme="dark"] .fiche{background:transparent;border-color:var(--or);color:var(--or)}
+:root[data-theme="dark"] .fiche:hover{background:var(--or);color:#241C28}
+
+/* ── consoles et éditeurs : carte-navy dans les deux modes, texte parchemin ── */
+textarea,.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{background:var(--term) !important;color:#F4EDDC}
+.CodeMirror-gutters{background:color-mix(in srgb, var(--term) 85%, #000) !important;border-right:1px solid #3D3043 !important}
+.CodeMirror-linenumber{color:#75706B !important}
+
+/* ── mode nuit : ce que les pages écrivaient en dur ── */
+:root[data-theme="dark"] .tbl,:root[data-theme="dark"] table.jeux td,:root[data-theme="dark"] table.res td,
+:root[data-theme="dark"] .notion,:root[data-theme="dark"] .intro .entite{background:var(--blanc)}
+:root[data-theme="dark"] img.logo-unilasalle,:root[data-theme="dark"] footer .logos img{filter:brightness(0) invert(.88) sepia(.2)}
+
+/* ── bouton jour / nuit ── */
+#themeBtn{font-size:12.5px;padding:5px 10px;line-height:1}

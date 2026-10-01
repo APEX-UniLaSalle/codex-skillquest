@@ -2,7 +2,7 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v132';
+const VERSION = 'skillquest-entrainement-v133';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
 const VENDOR  = VERSION + '-vendor';  // CDN versionnés (immuables)
 
@@ -14,6 +14,8 @@ const A_PRECHARGER = [
   './sql.html',
   './r.html',
   './session.js',
+  './theme.css',
+  './theme.js',
   './data/sql.json',
   './data/sql-sommaire.json',
   './data/r.json',
@@ -98,7 +100,7 @@ self.addEventListener('fetch', ev => {
   // kilo-octets, contre les ~10 Mo de Pyodide qui restent, eux, en cache
   // d'abord. Le cache prend le relais dès que le réseau manque.
   const estContenu = url => /\/data\/[^/]+\.json$/.test(url) || /\.html$/.test(url)
-    || /\/session\.js$/.test(url) || url === self.registration.scope;
+    || /\/(session|theme)\.(js|css)$/.test(url) || url === self.registration.scope;
   if (url.startsWith(self.registration.scope) && estContenu(url)) {
     ev.respondWith((async () => {
       const cache = await caches.open(SHELL);

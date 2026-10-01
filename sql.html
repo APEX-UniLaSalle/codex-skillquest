@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<script src="theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Codex — SQL (démonstration)</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
@@ -163,7 +164,7 @@ body.bac .page{grid-template-columns:minmax(0,1fr)}
    padding-left:14px;border-left:3px solid var(--accent-soft)}
 .intro .inventaire{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
    gap:12px;margin-top:14px}
-.intro .entite{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.intro .entite{background:var(--blanc);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .intro .entite h4{margin:0 0 6px;font-size:13px;color:var(--bleu);letter-spacing:.03em;font-weight:600}
 .intro .entite ul{margin:0;padding:0;list-style:none;
    font:12.5px/1.9 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted)}
@@ -176,11 +177,11 @@ body.bac .page{grid-template-columns:minmax(0,1fr)}
    et le modèle conceptuel, tel qu'on l'a pensé. */
 .intro .vues{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .intro .vues button{font:inherit;font-size:12px;padding:4px 12px;border-radius:99px;
-   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+   border:1px solid var(--line);background:var(--blanc);color:var(--muted);cursor:pointer}
 .intro .vues button:hover{border-color:var(--accent);color:var(--accent)}
 .intro .vues button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
 .intro .cadre-mcd{overflow:auto;max-height:600px;margin:14px 0 0;padding:10px;
-   background:#fff;border:1px solid var(--line);border-radius:6px}
+   background:var(--blanc);border:1px solid var(--line);border-radius:6px}
 .intro .cadre-mcd.ajuste svg{width:100%;height:auto}
 .intro .cadre-mcd:not(.ajuste) svg{max-width:none}
 .intro .legende .bascule{margin-left:auto}
@@ -189,7 +190,7 @@ body.bac .page{grid-template-columns:minmax(0,1fr)}
    pas ce qu'elle contient. Un onglet par table, et les lignes en dessous. */
 .intro .onglets{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
 .intro .onglets button{font:inherit;font-size:12px;padding:3px 10px;border-radius:99px;
-   border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer;
+   border:1px solid var(--line);background:var(--blanc);color:var(--muted);cursor:pointer;
    display:inline-flex;align-items:baseline;gap:6px;
    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
 .intro .onglets button:hover{border-color:var(--accent);color:var(--accent)}
@@ -228,7 +229,7 @@ h2{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ok);
 .plan svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .schema{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:44px;
    position:relative;z-index:1;align-items:start}
-.tbl{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.tbl{background:var(--blanc);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .tbl h3{margin:0 0 6px;font-size:13.5px;color:var(--bleu);letter-spacing:.03em}
 /* le nom d'une table ouvre son contenu dans la console */
 .tbl h3 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;
@@ -337,7 +338,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 table.jeux{border-collapse:collapse;width:100%;margin:10px 0}
 table.jeux th{background:var(--code);text-align:left;padding:7px 10px;border:1px solid var(--line);
    font-size:12.5px;font-weight:600}
-table.jeux td{padding:7px 10px;border:1px solid var(--line);background:#fff;vertical-align:top;font-size:13.5px}
+table.jeux td{padding:7px 10px;border:1px solid var(--line);background:var(--blanc);vertical-align:top;font-size:13.5px}
 table.jeux tr.fail td{background:var(--ko-soft)}
 .badge{font-weight:700}.badge.ok{color:var(--ok)}.badge.ko{color:var(--ko)}
 .nom{font-weight:600}
@@ -370,7 +371,7 @@ dialog#signal::backdrop{background:rgba(60,56,54,.45)}
 .cadre-select code{font-size:11.5px}
 table.res{border-collapse:collapse;font:12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
 table.res th{background:var(--code);text-align:left;padding:4px 8px;border:1px solid var(--line);font-weight:600}
-table.res td{padding:3px 8px;border:1px solid var(--line);background:#fff;white-space:nowrap}
+table.res td{padding:3px 8px;border:1px solid var(--line);background:var(--blanc);white-space:nowrap}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px}
 .duo h3{margin:0 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 /* sections repliables : le résumé reprend l'allure d'un titre de section */
@@ -427,7 +428,7 @@ details.indice>summary{background:var(--lavande);color:var(--violet);
 details.indice .amorce{margin:11px 0 0;font-size:13.5px;color:var(--muted)}
 details.indice .etiquettes{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 0}
 details.indice .etq{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:99px;
-   border:1px solid var(--line);background:#fff;color:var(--bleu);cursor:pointer;white-space:nowrap}
+   border:1px solid var(--line);background:var(--blanc);color:var(--bleu);cursor:pointer;white-space:nowrap}
 details.indice .etq:hover{border-color:var(--violet);color:var(--violet)}
 details.indice .etq[aria-pressed="true"]{background:var(--lavande);border-color:var(--violet);
    color:var(--violet);font-weight:600}
@@ -435,9 +436,9 @@ details.indice .notion[hidden]{display:none}
 /* le balisage <code> apparaît dans les énoncés et les noms de notions */
 code{font:.92em ui-monospace,SFMono-Regular,Menlo,monospace;background:#EFE6CB;
    border:1px solid var(--line);border-radius:4px;padding:1px 5px}
-details.indice .notion h4 code{background:#fff}
+details.indice .notion h4 code{background:var(--blanc)}
 /* fiche d'une notion, affichée avec la solution */
-.notion{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin:10px 0 0}
+.notion{background:var(--blanc);border:1px solid var(--line);border-radius:8px;padding:10px 13px;margin:10px 0 0}
 .notion h4{margin:0 0 6px;font-size:13.5px;color:var(--bleu);font-weight:600}
 .notion .syn{margin:0;background:#282828;color:#EBDBB2;padding:8px 11px;border-radius:5px;
    font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre;overflow-x:auto}
@@ -450,7 +451,7 @@ details.indice .notion h4 code{background:#fff}
    background:var(--code);border-bottom:1px solid var(--line)}
 .console-head strong{font-size:13px;font-weight:600}
 .console-head select{font-size:12.5px;padding:5px 8px;border:1px solid var(--line);
-   border-radius:6px;background:#fff;color:var(--ink);font-family:inherit}
+   border-radius:6px;background:var(--blanc);color:var(--ink);font-family:inherit}
 .console-head button{padding:5px 12px;font-size:12.5px}
 .console-head .hint{color:var(--muted);font-size:12.5px;margin-left:auto}
 .console-body{background:#32302F;color:#EBDBB2;padding:12px 14px;
@@ -488,6 +489,7 @@ footer strong{color:var(--ink);font-weight:600}
 footer a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
 footer a:hover{text-decoration:underline}
 </style>
+<link rel="stylesheet" href="theme.css">
 </head>
 <body>
 
@@ -720,7 +722,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · c29c339</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 603bed7</span>
       </div>
     </div>
   </div>
