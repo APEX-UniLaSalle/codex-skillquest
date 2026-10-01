@@ -106,6 +106,15 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
 - **SQL** : la plateforme n'accepte que des requêtes `SELECT`. Toute instruction
   d'écriture est refusée, sur demande du responsable de la compétence.
 
+## Bac à sable
+
+Sur les trois pages, une carte « 🧪 Bac à sable » sur l'accueil ouvre un éditeur libre,
+sans énoncé, sans test, sans progression : pour suivre un cours ou essayer une idée. Le
+code est gardé sur le poste, rien n'est envoyé. Python : l'entrée du programme se tape à
+la main, une valeur par ligne, et la sortie s'affiche en console. R : un jeu de données au
+choix, déjà en mémoire, la sortie et le graphique. SQL : une base au choix, le schéma, les
+résultats en tableau, 500 lignes au plus ; la règle du Codex tient, sélection seule.
+
 ## Mode arène
 
 Pages Python, R et SQL. Une arène : un groupe fait le même exercice, avec

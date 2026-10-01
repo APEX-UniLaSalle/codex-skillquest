@@ -2,7 +2,7 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v129';
+const VERSION = 'skillquest-entrainement-v130';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
 const VENDOR  = VERSION + '-vendor';  // CDN versionnés (immuables)
 

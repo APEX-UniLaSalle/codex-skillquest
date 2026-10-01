@@ -97,6 +97,21 @@ aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
 /* ── Écran d'accueil : le « hero » du Codex Python ──────────────────────── */
 .accueil{padding:0}
 .hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
+/* Bac à sable : un éditeur libre, sans énoncé ni correction. La carte sur l'accueil
+   y mène ; la classe bac sur body masque ce qui n'a pas de sens sans exercice. */
+.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+   border:1px solid var(--line);border-radius:3px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
+.bac-carte:hover{border-color:var(--violet)}
+.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+.bac-carte h3{margin:2px 0 4px;font-size:17px}
+.bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
+.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+body.bac .bac-cache{display:none !important}
+body.bac .page{grid-template-columns:minmax(0,1fr)}
+.bac-entete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
+.bac-entete select{font:inherit;padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)}
+#bacResultat{margin:14px 0 0;overflow:auto;max-height:60vh}
+#bacResultat .etat{color:var(--muted)}
 .hero h2{display:block;margin:0 0 10px;font-size:30px;letter-spacing:-.5px;color:var(--accent);
    font-weight:650;border:0;padding:0;text-transform:none}
 .hero p{margin:0;font-size:15.5px;max-width:70ch;line-height:1.75;color:var(--ink)}
@@ -502,7 +517,7 @@ footer a:hover{text-decoration:underline}
 </header>
 
 <div class="page">
-<aside class="liste arene-cache">
+<aside class="liste arene-cache bac-cache">
   <div class="filtres">
     <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex SQL</button>
     <select id="fBase"><option value="">Tous les thèmes</option></select>
@@ -529,12 +544,12 @@ footer a:hover{text-decoration:underline}
 
 <main id="travail" hidden>
   <!-- Carte de la question : titre, repères, énoncé — même gabarit que le Codex Python -->
-  <div class="fil"><button type="button" id="versIntro">↩ Présentation du thème</button></div>
+  <div class="fil bac-cache"><button type="button" id="versIntro">↩ Présentation du thème</button></div>
   <div class="panel card">
     <h2 id="titreQ"></h2>
     <div class="meta" id="metaQ"></div>
     <div class="statement" id="enonce"></div>
-    <div class="ligne-signaler">
+    <div class="ligne-signaler bac-cache">
       <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
     </div>
   </div>
@@ -552,7 +567,7 @@ footer a:hover{text-decoration:underline}
     </p>
   </details>
 
-  <details class="section" id="sec-jeux">
+  <details class="section bac-cache" id="sec-jeux">
     <summary>Jeux d'essai<span class="compte" id="compte-jeux"></span></summary>
     <div id="jeux"></div>
   </details>
@@ -565,7 +580,8 @@ footer a:hover{text-decoration:underline}
   <textarea id="code" spellcheck="false">SELECT *
 FROM CONCERT;</textarea>
   <div class="actions">
-    <button class="principal" id="run" disabled>&#9654;&#9654; Tout tester</button>
+    <button class="principal bac-cache" id="run" disabled>&#9654;&#9654; Tout tester</button>
+    <button class="principal" id="bacRun" hidden>&#9654; Exécuter</button>
     <button id="reset">Effacer</button>
     <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
     <span class="syntaxe" id="syntaxe"></span>
@@ -581,7 +597,7 @@ FROM CONCERT;</textarea>
     <div class="console-body" id="cOut"><span class="cmt">Exécutez votre requête pour voir ce qu'elle renvoie.</span></div>
   </div>
 
-  <details class="indice arene-cache">
+  <details class="indice arene-cache bac-cache">
     <summary>&#128269; Besoin d'un indice&#8239;?</summary>
     <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
        sur laquelle vous butez — chacune renvoie à sa page de cours.</p>
@@ -589,7 +605,7 @@ FROM CONCERT;</textarea>
     <div id="notions"></div>
   </details>
 
-  <details class="solution arene-cache" id="bloc-solution">
+  <details class="solution arene-cache bac-cache" id="bloc-solution">
     <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — testez d'abord votre requête</span></summary>
     <pre id="solution"></pre>
     <div class="actions" style="margin-top:10px">
@@ -600,7 +616,8 @@ FROM CONCERT;</textarea>
   </details>
 
   <div id="sortie"></div>
-  <div class="etape" id="etape" hidden></div>
+  <div id="bacResultat" hidden></div>
+  <div class="etape bac-cache" id="etape" hidden></div>
 </main>
 
 <section class="intro" id="intro" hidden></section>
@@ -645,6 +662,11 @@ FROM CONCERT;</textarea>
     </div>
   </div>
   <div class="themes" id="themes"></div>
+  <button class="bac-carte" id="versBac" type="button">
+    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable SQL</h3>
+      <p>Choisissez une base, écrivez vos requêtes, lisez les résultats. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+    <span class="fleche">→</span>
+  </button>
 </div>
 </div>
 
@@ -698,7 +720,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · dd98f1f</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
       </div>
     </div>
   </div>
@@ -1370,8 +1392,9 @@ initSqlJs({ locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10
     editeur = CodeMirror.fromTextArea(document.getElementById('code'), {
       mode: 'text/x-sql', lineNumbers: true, indentUnit: 2, tabSize: 2,
       lineWrapping: true, gutters: ['CodeMirror-linenumbers', 'erreurs'],
-      extraKeys: { 'Ctrl-Space': cm => cm.showHint({ hint: completer, completeSingle: false }), 'Cmd-Enter': () => tester(bases.map((_, i) => i)),
-                   'Ctrl-Enter': () => tester(bases.map((_, i) => i)) },
+      extraKeys: { 'Ctrl-Space': cm => cm.showHint({ hint: completer, completeSingle: false }),
+                   'Cmd-Enter': () => enBac ? bacExecuter() : tester(bases.map((_, i) => i)),
+                   'Ctrl-Enter': () => enBac ? bacExecuter() : tester(bases.map((_, i) => i)) },
       hintOptions: { tables: DICO }
     });
     clicSousLeTexte(editeur);
@@ -1988,6 +2011,7 @@ function minutes(duree) {
 function ouvrirQuestion(id) {
   Q = BANQUE.find(q => q.id === id);
   if (!Q) return;
+  if (enBac) { enBac = false; document.body.classList.remove('bac'); document.getElementById('run').hidden = false; document.getElementById('bacRun').hidden = true; document.getElementById('bacResultat').hidden = true; }
   const base = BASES[Q.base];
   if (!base) { document.getElementById('compte').textContent = 'Base introuvable : ' + Q.base; return; }
   SCHEMA = base.schema; DATA = base.donnees;
@@ -2027,6 +2051,78 @@ function ouvrirQuestion(id) {
   majBoutonArene();
   document.getElementById('travail').scrollIntoView({ block: 'start' });
 }
+
+/* ── bac à sable ────────────────────────────────────────────────
+   Une base entière, un éditeur, les résultats en tableau. Pas d'énoncé, pas de
+   jeux d'essai, pas de progression. La règle du Codex reste : sélection seule. */
+const CLE_BAC = 'codex_bac_sql';
+let enBac = false;
+function ouvrirBac(slug) {
+  const slugs = Object.keys(BASES);
+  if (!slugs.length) return;
+  slug = BASES[slug] ? slug : (localStorage.getItem(CLE_BAC + '_base') || slugs[0]);
+  if (!BASES[slug]) slug = slugs[0];
+  const base = BASES[slug];
+  Q = null; enBac = true;
+  SCHEMA = base.schema; DATA = base.donnees;
+  JEUX = [{ titre: base.nom, desc: 'base complète' }]; REFERENCE = 'SELECT 1'; TAGS = []; NOTIONS = [];
+  fermerApercu();
+  document.body.classList.add('bac');
+  document.getElementById('accueil').hidden = true;
+  document.getElementById('intro').hidden = true;
+  document.getElementById('travail').hidden = false;
+  document.getElementById('titreQ').textContent = '🧪 Bac à sable SQL';
+  document.getElementById('metaQ').innerHTML = '';
+  document.getElementById('enonce').innerHTML = `<p>Une base entière, vos requêtes, les résultats. Rien n'est noté ni conservé, sauf votre dernière requête sur ce poste.</p>
+    <div class="bac-entete">
+      <label for="bacBase">Base de données</label>
+      <select id="bacBase">${slugs.map(k => `<option value="${esc(k)}"${k === slug ? ' selected' : ''}>${esc(BASES[k].nom)}</option>`).join('')}</select>
+      <button type="button" id="bacRetour">← Accueil</button>
+    </div>`;
+  document.getElementById('bacBase').onchange = ev => ouvrirBac(ev.target.value);
+  document.getElementById('bacRetour').onclick = fermerBac;
+  document.getElementById('sortie').innerHTML = '';
+  document.getElementById('bacResultat').hidden = true;
+  document.getElementById('cOut').innerHTML = '<span class="cmt">Exécutez votre requête pour voir ce qu’elle renvoie.</span>';
+  preparerBases();
+  document.getElementById('run').hidden = true;
+  document.getElementById('bacRun').hidden = false;
+  document.getElementById('bacRun').disabled = false;
+  const premiere = (bases[0].db.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")[0] || { values: [['CONCERT']] }).values[0][0];
+  DEPART = `SELECT *\nFROM ${premiere};`;
+  const garde = localStorage.getItem(CLE_BAC + '_' + slug);
+  editeur.setValue(garde || DEPART);
+  verifierSyntaxe();
+  requestAnimationFrame(() => editeur.refresh());
+  try { localStorage.setItem(CLE_BAC + '_base', slug); } catch (_) {}
+  document.getElementById('travail').scrollIntoView({ block: 'start' });
+}
+function fermerBac() {
+  enBac = false;
+  document.body.classList.remove('bac');
+  document.getElementById('run').hidden = false;
+  document.getElementById('bacRun').hidden = true;
+  document.getElementById('bacResultat').hidden = true;
+  document.getElementById('retour').click();
+}
+function bacExecuter() {
+  const req = lireCode().trim();
+  const zone = document.getElementById('bacResultat');
+  zone.hidden = false;
+  if (!req) { zone.innerHTML = '<p class="etat">Écrivez une requête, puis Exécuter.</p>'; return; }
+  const mot = motInterdit(req);
+  if (mot) { zone.innerHTML = `<div class="verdict ko">${messageInterdit(mot)}</div>`; return; }
+  try { localStorage.setItem(CLE_BAC + '_' + document.getElementById('bacBase').value, req); } catch (_) {}
+  const o = jouer(bases[0], req);
+  if (o.err) { zone.innerHTML = `<div class="verdict ko">${esc(o.err)}</div>`; return; }
+  if (!o.r) { zone.innerHTML = '<p class="etat">Aucune ligne.</p>'; return; }
+  const n = o.r.values.length, MAX = 500;
+  const r = n > MAX ? { columns: o.r.columns, values: o.r.values.slice(0, MAX) } : o.r;
+  zone.innerHTML = `<p class="etat">${n} ligne${n > 1 ? 's' : ''}${n > MAX ? `, les ${MAX} premières affichées` : ''} · ${o.r.columns.length} colonne${o.r.columns.length > 1 ? 's' : ''}</p>` + tableau(r);
+  rendreDansConsole(bases[0], req, '-- ' + JEUX[0].titre);
+}
+document.getElementById('bacRun').onclick = bacExecuter;
+document.getElementById('versBac').onclick = () => ouvrirBac();
 
 /* Mode arène : le bouton de l'exercice lance une arène, ou relance la manche
    suivante quand le lanceur en a une ouverte. Voir session.js. */

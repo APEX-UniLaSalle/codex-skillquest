@@ -48,6 +48,17 @@
   @keyframes pulse{50%{opacity:.35}}
 
   body.arene-verrou main{grid-template-columns:minmax(0,1fr)}   /* la liste est masquée pendant l'arène */
+  body.bac main{grid-template-columns:minmax(0,1fr)}   /* bac à sable : pas de liste */
+  body.bac aside.panel{display:none}
+  .bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+     border:1px solid var(--line);border-radius:6px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
+  .bac-carte:hover{border-color:var(--violet)}
+  .bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+  .bac-carte h3{margin:2px 0 4px;font-size:17px}
+  .bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
+  .bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+  #bacIn{width:100%;min-height:64px;font:13px/1.5 ui-monospace,Menlo,monospace;padding:8px 10px;border:1px solid var(--line);
+     border-radius:5px;background:var(--bg);color:var(--ink);resize:vertical;margin:6px 0 0}
   main{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;padding:16px;align-items:start;
        max-width:none;margin:0}
   @media(max-width:900px){main{grid-template-columns:1fr}}
@@ -407,7 +418,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · dd98f1f</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
       </div>
     </div>
   </div>
@@ -503,6 +514,7 @@ function spawnWorker() {
       document.getElementById('dot').className = 'dot ready';
       document.getElementById('statusTxt').textContent = 'Python prêt';
       const b = document.getElementById('run'); if (b) b.disabled = false;
+      const bb = document.getElementById('bacRun'); if (bb) bb.disabled = false;
     } else if (ev.data.type === 'result' && S.pending) {
       clearTimeout(S.timer); const cb = S.pending; S.pending = null; cb(ev.data.out);
     }
@@ -632,6 +644,12 @@ function afficherAccueil() {
       }).join('')}
     </div>
 
+    <button class="bac-carte" id="versBac" type="button">
+      <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable Python</h3>
+        <p>Un éditeur libre, une entrée à votre main, la sortie du programme. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+      <span class="fleche">→</span>
+    </button>
+
     <a class="examen" href="coderpad.html">
       <div class="examen-txt">
         <div class="num">Avant l'examen</div>
@@ -681,6 +699,7 @@ function afficherAccueil() {
       </div>
     </div>`;
 
+  const vb = document.getElementById('versBac'); if (vb) vb.onclick = ouvrirBac;
   acc.querySelectorAll('.niv').forEach(b =>
     b.onclick = () => ouvrirNiveau(b.dataset.slug));
   brancherTransfert();
@@ -792,6 +811,7 @@ function fusionnerProgression(entrant) {
 }
 
 async function ouvrirNiveau(slug) {
+  document.body.classList.remove('bac');
   document.getElementById('accueil').style.display = 'none';
   document.getElementById('travail').style.display = 'grid';
   document.getElementById('fNiveau').value = slug;
@@ -887,8 +907,79 @@ document.getElementById('hasard').onclick = () => {
   if (ligne) ligne.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 };
 
+/* ───────────────── bac à sable ─────────────────
+   Un éditeur libre, une entrée à la main, la sortie du programme. Ni énoncé, ni
+   tests, ni progression : le code est seulement gardé sur ce poste. */
+const CLE_BAC = 'codex_bac_python';
+function ouvrirBac() {
+  S.cur = null;
+  document.body.classList.add('bac');
+  document.getElementById('accueil').style.display = 'none';
+  document.getElementById('travail').style.display = 'grid';
+  let garde = '';
+  try { garde = localStorage.getItem(CLE_BAC) || ''; } catch (_) {}
+  document.getElementById('work').innerHTML = `
+    <div class="panel card">
+      <h2>🧪 Bac à sable Python</h2>
+      <div class="statement">Écrivez, exécutez, lisez la sortie. L'entrée du programme, ce que lirait
+        <code>input()</code>, se tape ci-dessous, une valeur par ligne. Rien n'est noté ni envoyé ;
+        votre code reste sur ce poste.</div>
+      <div class="actions" style="margin-top:10px"><button id="bacRetour">← Accueil</button></div>
+    </div>
+    <div class="panel">
+      <div class="editor-head"><strong>Votre code</strong>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> pour exécuter</span>
+        <a class="fiche-mini" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener">📄 Cheat Sheet</a></div>
+      <div class="editor-wrap">
+        <div class="gutter" id="gutter">1</div>
+        <textarea id="code" spellcheck="false" placeholder="# Votre code Python ici"></textarea>
+      </div>
+      <div class="sub-h" style="margin-top:12px">⌨ Entrée du programme <span class="hint">facultative, une valeur par ligne</span></div>
+      <textarea id="bacIn" spellcheck="false" placeholder="ce que lira input()"></textarea>
+      <div class="actions">
+        <button class="primary" id="bacRun" ${S.ready ? '' : 'disabled'}>▶ Exécuter</button>
+        <button id="reset">Effacer</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="console-head"><strong>Console</strong><span class="hint">Sortie brute de votre programme.</span></div>
+      <div class="console-body" id="cOut"><span class="cmt">Exécutez votre code pour voir ce qu'il affiche.</span></div>
+    </div>`;
+  const ta = document.getElementById('code');
+  ta.value = garde;
+  const lancer = () => {
+    const code = getCode(), stdin = document.getElementById('bacIn').value;
+    try { localStorage.setItem(CLE_BAC, code); } catch (_) {}
+    const out = document.getElementById('cOut'), btn = document.getElementById('bacRun');
+    if (!code.trim()) { out.innerHTML = '<span class="cmt">Écrivez d’abord du code.</span>'; return; }
+    btn.disabled = true; out.innerHTML = '<span class="cmt">Exécution…</span>';
+    execute(code, [{ stdin }], (r, err) => {
+      btn.disabled = false;
+      if (err) { out.innerHTML = `<span class="err">${esc(err)}</span>`; return; }
+      printConsole(r[0], stdin, null);
+    });
+  };
+  if (S.cm) { try { S.cm.toTextArea(); } catch (_) {} S.cm = null; }
+  if (window.CodeMirror) {
+    document.getElementById('gutter').style.display = 'none';
+    S.cm = CodeMirror.fromTextArea(ta, {
+      mode: 'python', lineNumbers: true, indentUnit: 4, tabSize: 4, indentWithTabs: false, smartIndent: true,
+      viewportMargin: Infinity,
+      extraKeys: { Tab: cm => cm.execCommand('insertSoftTab'), 'Ctrl-Enter': lancer, 'Cmd-Enter': lancer },
+    });
+    S.cm.setCursor(S.cm.lineCount(), 0);
+    clicSousLeTexte(S.cm);
+    setTimeout(() => S.cm && S.cm.refresh(), 0);
+  }
+  document.getElementById('bacRun').onclick = lancer;
+  document.getElementById('reset').onclick = () => { if (S.cm) S.cm.setValue(''); else ta.value = ''; };
+  document.getElementById('bacRetour').onclick = () => { document.body.classList.remove('bac'); afficherAccueil(); };
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 /* ───────────────── exercice ───────────────── */
 function openExo(id) {
+  document.body.classList.remove('bac');
   S.cur = S.data[S.slug].exercices.find(e => e.id === id);
   renderList();
   const e = S.cur;

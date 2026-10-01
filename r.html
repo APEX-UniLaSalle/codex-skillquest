@@ -94,6 +94,21 @@ aside .transfert button{flex:1;font-size:12px;padding:5px 8px}
 /* ── Écran d'accueil : le « hero » du Codex Python ──────────────────────── */
 .accueil{padding:0}
 .hero{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:34px 38px}
+/* Bac à sable : un éditeur libre, sans énoncé ni correction. La carte sur l'accueil
+   y mène ; la classe bac sur body masque ce qui n'a pas de sens sans exercice. */
+.bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--lavande);
+   border:1px solid var(--line);border-radius:3px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
+.bac-carte:hover{border-color:var(--violet)}
+.bac-carte .num{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--violet);font-weight:600}
+.bac-carte h3{margin:2px 0 4px;font-size:17px}
+.bac-carte p{margin:0;color:var(--muted);font-size:13.5px}
+.bac-carte .fleche{margin-left:auto;font-size:22px;color:var(--violet)}
+body.bac .bac-cache{display:none !important}
+body.bac .page{grid-template-columns:minmax(0,1fr)}
+.bac-entete{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0 0}
+.bac-entete select{font:inherit;padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:var(--bg);color:var(--ink)}
+#bacResultat{margin:14px 0 0;overflow:auto;max-height:60vh}
+#bacResultat .etat{color:var(--muted)}
 .hero h2{display:block;margin:0 0 10px;font-size:30px;letter-spacing:-.5px;color:var(--accent);
    font-weight:650;border:0;padding:0;text-transform:none}
 .hero p{margin:0;font-size:15.5px;max-width:70ch;line-height:1.75;color:var(--ink)}
@@ -530,7 +545,7 @@ canvas.trace.actif{display:block}
 </header>
 
 <div class="page">
-<aside class="liste arene-cache">
+<aside class="liste arene-cache bac-cache">
   <div class="filtres">
     <button id="retour" style="text-align:left;padding:6px 9px;font-size:12.5px">← Accueil du Codex R</button>
     <select id="fChap"><option value="">Tous les chapitres</option></select>
@@ -559,7 +574,7 @@ canvas.trace.actif{display:block}
     <h2 id="titreQ"></h2>
     <div class="meta" id="metaQ"></div>
     <div class="statement" id="enonce"></div>
-    <div class="ligne-signaler">
+    <div class="ligne-signaler bac-cache">
       <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
     </div>
   </div>
@@ -569,7 +584,7 @@ canvas.trace.actif{display:block}
   <textarea id="code" spellcheck="false"></textarea>
   <div class="actions">
     <button class="principal" id="run" disabled>&#9654; Exécuter</button>
-    <button id="verif" disabled>Vérifier ma réponse</button>
+    <button id="verif" class="bac-cache" disabled>Vérifier ma réponse</button>
     <button id="reset">Effacer</button>
     <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
   </div>
@@ -579,7 +594,7 @@ canvas.trace.actif{display:block}
   <div id="verdict"></div>
   <div class="attendu" id="attendu" hidden></div>
 
-  <details class="indice arene-cache">
+  <details class="indice arene-cache bac-cache">
     <summary>&#128269; Besoin d'un indice&#8239;?</summary>
     <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
        sur laquelle vous butez — chacune renvoie à son chapitre de cours.</p>
@@ -587,7 +602,7 @@ canvas.trace.actif{display:block}
     <div id="notions"></div>
   </details>
 
-  <details class="solution arene-cache" id="bloc-solution">
+  <details class="solution arene-cache bac-cache" id="bloc-solution">
     <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — exécutez d'abord votre code</span></summary>
     <pre id="solution"></pre>
     <div class="actions" style="margin-top:10px">
@@ -643,6 +658,11 @@ canvas.trace.actif{display:block}
     </div>
   </div>
   <div class="themes" id="chapitres"></div>
+  <button class="bac-carte" id="versBac" type="button">
+    <div><div class="num">Sans exercice</div><h3>🧪 Bac à sable R</h3>
+      <p>Un éditeur libre, un jeu de données déjà chargé si vous le voulez, la sortie et le graphique. Pour suivre un cours ou essayer une idée. Rien n'est noté.</p></div>
+    <span class="fleche">→</span>
+  </button>
   <section class="controle" id="controle" hidden>
     <h3>Contrôle de la banque</h3>
     <p>Rejoue les réponses de référence de toutes les questions dans R, et signale
@@ -708,7 +728,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 28 septembre 2026 · dd98f1f</span>
+        <span id="tampon" style="opacity:.65">Version du 1 octobre 2026 · 82c1877</span>
       </div>
     </div>
   </div>
@@ -878,9 +898,48 @@ function dessinerListe() {
 }
 
 /* ── ouverture d'une question ────────────────────────────────────────────── */
+/* ── bac à sable ────────────────────────────────────────────────
+   Un éditeur libre, avec au choix l'un des jeux de données déjà en mémoire.
+   Pas d'énoncé, pas de vérification, pas de progression : le code est seulement
+   gardé sur ce poste. */
+const CLE_BAC = 'codex_bac_r';
+function ouvrirBac(jeu) {
+  jeu = jeu !== undefined ? jeu : (localStorage.getItem(CLE_BAC + '_jeu') || '');
+  const modele = jeu ? BANQUE.find(q => q.jeu === jeu && q.prelude) : null;
+  Q = { id: 'bac', bac: true, titre: 'Bac à sable R', prelude: modele ? modele.prelude : '', comparer: 'valeur', reference: '' };
+  document.body.classList.add('bac');
+  $('#accueil').hidden = true;
+  $('#travail').hidden = false;
+  $('#titreQ').textContent = '🧪 Bac à sable R';
+  $('#metaQ').innerHTML = '';
+  $('#enonce').innerHTML = `<p>Écrivez, exécutez, lisez la sortie et le graphique. Rien n'est noté ni envoyé ; votre code reste sur ce poste.</p>
+    <div class="bac-entete">
+      <label for="bacJeu">Jeu de données</label>
+      <select id="bacJeu"><option value="">Aucun</option>${Object.entries(JEUX).map(([k, j]) =>
+        `<option value="${k}"${k === jeu ? ' selected' : ''}>${esc(j.nom)} — ${esc(j.tableau)}</option>`).join('')}</select>
+      <button type="button" id="bacRetour">← Accueil</button>
+    </div>`;
+  $('#bacJeu').onchange = ev => ouvrirBac(ev.target.value);
+  $('#bacRetour').onclick = () => $('#retour').click();
+  const d = $('#donnees'), j = JEUX[jeu] || {};
+  if (modele && j.tableau) { d.hidden = false; d.innerHTML = `Les données sont déjà en mémoire — <code>${esc(j.tableau)}</code>, ${esc(j.resume || '')}.`; }
+  else { d.hidden = true; }
+  let garde = '';
+  try { garde = localStorage.getItem(CLE_BAC) || ''; localStorage.setItem(CLE_BAC + '_jeu', jeu); } catch (e) {}
+  editeur.setValue(garde); editeur.clearHistory();
+  $('#sortie').innerHTML = '<span class="cmt">Exécutez votre code pour voir ce qu’il renvoie.</span>';
+  $('#trace').classList.remove('actif');
+  $('#verdict').innerHTML = '';
+  $('#attendu').hidden = true;
+  $('#sessLancer').hidden = true;
+  requestAnimationFrame(() => editeur.refresh());
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 function ouvrirQuestion(id) {
   Q = BANQUE.find(q => q.id === id);
   if (!Q) return;
+  document.body.classList.remove('bac');
   $('#accueil').hidden = true;
   $('#travail').hidden = false;
   $('#titreQ').textContent = Q.titre;
@@ -967,9 +1026,12 @@ async function executer() {
   toile.classList.remove('actif');
   $('#verdict').innerHTML = '';
 
-  progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true });
-  enregistrer();
-  $('#bloc-solution').classList.remove('verrouille');
+  if (Q.bac) { try { localStorage.setItem(CLE_BAC, editeur.getValue()); } catch (e) {} }
+  else {
+    progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true });
+    enregistrer();
+    $('#bloc-solution').classList.remove('verrouille');
+  }
 
   try {
     const cap = await shelter.captureR(
@@ -998,7 +1060,7 @@ const nettoyer = err => String((err && err.message) || err)
 
 /* ── vérification ────────────────────────────────────────────────────────── */
 async function verifier() {
-  if (!pret || !Q) return;
+  if (!pret || !Q || Q.bac) return;
   const v = $('#verdict');
   v.className = 'verdict att'; v.textContent = 'Contrôle en cours…';
   const code = editeur.getValue();
@@ -1194,8 +1256,9 @@ $('#run').onclick = executer;
 $('#verif').onclick = verifier;
 $('#reset').onclick = () => { editeur.setValue(Q ? (Q.depart || '') : ''); editeur.focus(); };
 $('#copier-solution').onclick = () => { editeur.setValue(Q.reference); editeur.focus(); };
+$('#versBac').onclick = () => ouvrirBac();
 $('#retour').onclick = () => {
-  Q = null; $('#travail').hidden = true; $('#accueil').hidden = false;
+  Q = null; document.body.classList.remove('bac'); $('#travail').hidden = true; $('#accueil').hidden = false;
   dessinerListe(); window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 $('#hasard').onclick = () => {
@@ -1276,7 +1339,7 @@ const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? 
 const minutesNombre = d => { const m = /^(\d+):(\d+):/.exec(d || ''); return m ? +m[1] * 60 + +m[2] : 0; };
 Session.init({
   page: 'r',
-  courant: () => Q ? { niveau: 'r', exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 5 } : null,
+  courant: () => Q && !Q.bac ? { niveau: 'r', exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 5 } : null,
   ouvrir: async (niveau, exo, depart) => {
     await attendreBanque();
     ouvrirQuestion(exo);
