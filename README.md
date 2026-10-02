@@ -136,7 +136,7 @@ les 3 000 du mois, décision du 28 septembre 2026.
 
 Deux modes. **Évaluation** : plein écran demandé à ceux qui rejoignent ; chaque sortie du
 plein écran ou de l'onglet est comptée et montrée au lanceur, et la soumission de la manche
-n'est pas comptée, sauf si le lanceur décide de la compter, depuis « Solutions » ; après
+n'est pas comptée, sauf si le lanceur accorde les points, depuis « Solutions » ou le podium ; après
 sa soumission, le participant ne revoit plus son code, il suit le chrono et le classement
 sur un écran d'attente ; à la fin, score sur 20 et médaille, cumulés sur les manches.
 **Entraînement** : ni plein écran ni score ; après sa soumission, le participant retrouve
@@ -144,7 +144,8 @@ les indices, la solution et la liste, et voit les solutions des autres.
 
 Dans les deux modes, pendant la manche, ceux qui ont rejoint n'ont ni indice ni solution,
 la liste des exercices et les filtres disparaissent, le lien vers l'accueil ne répond plus.
-Le lanceur qui a gardé l'accès voit tout.
+Avant le départ, l'exercice n'est connu que du lanceur. Le lanceur qui a gardé l'accès voit
+tout.
 
 Le lanceur obtient le code, affiché en grand pour le vidéoprojecteur avec la liste de ceux
 qui ont rejoint, et démarre quand il veut : compte à rebours de dix secondes, même exercice
@@ -155,10 +156,18 @@ ne comptent pas dans les temps.
 Chaque participant soumet sa solution une fois : les tests sont joués une dernière fois, le
 code part au serveur, c'est définitif. Réussi si tous les tests passent. « Tout tester »
 reste un contrôle libre. Le code de ceux qui n'ont pas soumis est remis de lui-même à la fin
-du temps, si leur page est ouverte, sans compter comme réussite. Une soumission attend que
-le moteur soit chargé. « Quitter l'arène » retire de la liste ; la soumission et les sorties de la manche restent,
-et le même nom qui revient reprend son état : quitter puis rejoindre ne donne pas une
-seconde soumission. On peut rejoindre à tout moment, entre deux manches compris.
+du temps, si leur page est ouverte, pour le lanceur seulement : ne pas soumettre vaut 0 à
+la note et aucune réussite, décision du 2 octobre 2026. La remise attend quatre secondes,
+le temps d'une prolongation ou d'une pause décidée au dernier moment ; une prolongation
+rouvre la soumission de ceux qui avaient déjà remis d'eux-mêmes. Une soumission attend que
+le moteur soit chargé. « Quitter l'arène » retire de la liste ; la soumission, les sorties, la place dans les
+scores et dans le fichier d'import restent. Une personne se reconnaît à son adresse :
+revenir, sous le même pseudo ou un autre, reprend son état ; un pseudo parti ne se reprend
+qu'avec la même adresse. Sans adresse, en entraînement, c'est le pseudo qui fait foi. Le
+lanceur peut exclure un participant depuis « Solutions » : son pseudo et son adresse ne
+reviennent plus. On peut rejoindre à tout moment, entre deux manches compris ; qui arrive
+en cours de manche part de l'amorce. Pour le lanceur, quitter perd la clé, donc les
+solutions et les exports : la confirmation le dit, exporter d'abord.
 
 En évaluation, au fil des manches : le lanceur lit dans la barre le temps d'exercices cumulé
 et ce qu'il manque pour une validation ; les participants en évaluation voient le classement
@@ -173,8 +182,10 @@ participant voit un bilan personnel. Puis le lanceur ouvre un autre exercice et 
 Score en évaluation, règle du 28 septembre 2026 : tous les exercices de l'arène sont du
 même niveau, I à IV en Python, 1 à 3 en SQL, un seul en R, le serveur refuse une relance
 sur un autre niveau ; la note sur 20 est
-la moyenne, sur les manches jouées, du pourcentage de tests passés, une soumission absente
-ou non comptée valant 0 ; la médaille suit les seuils du socle pour un savoir-faire, Bronze
+la moyenne, sur les manches closes, du pourcentage de tests passés, une soumission absente,
+automatique ou non comptée valant 0 ; la manche en cours n'entre dans la moyenne d'un
+participant qu'une fois qu'il a soumis ; les prolongations comptent dans le temps
+d'exercices ; la médaille suit les seuils du socle pour un savoir-faire, Bronze
 10, Argent 15, Or 20, et n'est donnée qu'au bout d'une heure d'exercices cumulée sur
 l'arène ; avant, le podium, le bilan et l'export disent combien de minutes manquent pour
 valider la compétence.
@@ -205,12 +216,14 @@ rejoue pas ; un participant qui trafique la page peut déclarer ce qu'il veut ; 
 pas pour une évaluation certificative, qui reste sur SEB.
 
 Le rechargement de la page reprend l'arène en cours (`sessionStorage`), avec le dernier
-code testé ou exécuté sur les trois pages. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
+code testé ou exécuté sur les trois pages ; en évaluation, il compte comme une sortie du
+plein écran. Fermer l'onglet l'oublie. En `file://`, les boutons n'apparaissent pas.
 
 Chaque page fournit à `session.js` ses accroches, `Session.init({page, courant,
-ouvrir, tester, pret, deverrouiller})`, un bouton `Session.lancer()` ou `Session.relancer()` sur
-l'exercice ouvert, masque indices et solutions quand `Session.verrouille()` est vrai, et
-marque `arene-cache` ce que le verrou doit masquer, `arene-fige` ce qu'il doit figer.
+ouvrir, tester, pret, competence, deverrouiller})`, un bouton `Session.lancer()` ou
+`Session.relancer()` sur l'exercice ouvert, et marque `arene-cache` ce que le verrou doit
+masquer, `arene-fige` ce qu'il doit figer ; Python retire en plus indices et solution du
+rendu quand `Session.verrouille()` est vrai, SQL et R les laissent masqués dans la page.
 `tester()` joue tous les tests sur la réponse en cours et rend `{ok, total, source}` : en
 Python et SQL, les jeux d'essai ; en R, la réponse unique, un test réussi ou non. La page R
 est produite par `r/construire_page_r.py` : c'est lui qui porte ces accroches.

@@ -7,14 +7,18 @@
    compte Netlify que le site, avec Netlify Blobs comme stockage. Aucun autre
    fournisseur.
 
-   Ce qu'elle tient : une session = un exercice, une durée, un départ commun,
-   des participants identifiés par prénom et nom, une soumission par
-   participant (code, tests passés, temps). Une session s'efface 24 h après
-   sa création. Les noms et les codes soumis disparaissent avec elle.
+   Ce qu'elle tient : une arène = un lanceur, des participants sous pseudo,
+   avec leur adresse étudiante en évaluation, et des manches successives, une
+   par exercice, chacune avec sa durée, son départ commun, ses pauses, et une
+   soumission par participant (code, tests passés, temps). En évaluation, une
+   note sur 20 et une médaille cumulées sur les manches, et un fichier
+   d'import pour l'application. Une arène s'efface 24 h après sa création.
+   Pseudos, adresses et codes soumis disparaissent avec elle.
 
    Ce qu'elle ne garantit pas : le nombre de tests passés est déclaré par le
-   navigateur, qui exécute les tests. Elle vaut pour l'entraînement, pas pour
-   une évaluation. Seul le temps est mesuré ici, sur l'horloge du serveur.
+   navigateur, qui exécute les tests. Seul le temps est mesuré ici, sur
+   l'horloge du serveur. Entraînement et contrôle en séance, pas évaluation
+   certificative.
 
    Chaque participant et chaque soumission est un blob distinct : deux postes
    qui écrivent en même temps ne s'écrasent pas. Deux requêtes simultanées du
@@ -22,8 +26,14 @@
    verrou. Un seul navigateur par participant, le cas n'a pas de portée.
 
    Quitter ne détruit rien : le participant est marqué parti, sa soumission et
-   ses sorties restent. Un nom qui revient reprend son état, avec un jeton neuf.
-   Sans cela, quitter puis rejoindre contournerait la soumission unique.
+   ses sorties restent, et il garde sa place dans les scores et le fichier
+   d'import. Une personne se reconnaît à son adresse : revenir, sous le même
+   pseudo ou un autre, reprend son état avec un jeton neuf. Sans adresse, en
+   entraînement, c'est le pseudo qui fait foi. Le lanceur peut exclure un
+   participant : son pseudo et son adresse ne reviennent plus.
+
+   Ne pas soumettre vaut 0 à la note : une remise automatique garde le code
+   pour le lanceur, mais ne rapporte rien. Décision du 2 octobre 2026.
 
    Appels, tous sur /api/session :
      POST {action:'creer', page, niveau, exo, titre, duree, points, mode} → {code, cle, session}
@@ -46,6 +56,7 @@
        évaluation : sans plein écran, sans score, indices et solution après
        sa soumission. Choix fait en rejoignant, définitif.
      POST {action:'quitter', code, nom, jeton}                → {session}
+     POST {action:'exclure', code, cle, nom}                  → {session}
      POST {action:'sortie', code, nom, jeton}                 → {session}
        le participant a quitté le plein écran ou l'onglet ; compté par manche,
        montré au lanceur ; sa soumission de la manche n'est pas comptée, sauf
@@ -71,6 +82,7 @@ const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // ni 0/O, ni 1/I
 const DUREE_VIE = 24 * 3600 * 1000;
 const COMPTE_A_REBOURS = 10 * 1000;
 const TOLERANCE_FIN = 3 * 1000;      // une soumission cliquée juste avant la fin peut arriver juste après
+const TOLERANCE_PROLONGATION = 20 * 1000;   // le lanceur peut encore prolonger juste après la fin
 const TOLERANCE_AUTO = 90 * 1000;    // la page envoie d'elle-même le code de ceux qui n'ont pas soumis
 const MAX_PARTICIPANTS = 200;
 const MAX_SOURCE = 20000;
@@ -126,6 +138,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
   ]);
   const tri = (a, b) => a.localeCompare(b, 'fr');
   const participants = parts.filter(p => !p.parti).map(p => p.nom).sort(tri);
+  const tousParticipants = parts.filter(p => !p.exclu).map(p => p.nom).sort(tri);
   const soumis = soums.map(s => s.nom).sort(tri);
   const sortiesDe = (p, manche) => (p.sortiesParManche || {})[manche] || 0;
   // une soumission compte si son auteur n'est pas sorti du plein écran pendant
@@ -147,17 +160,25 @@ async function vue(store, meta, lanceur = false, participant = null) {
   // pourcentage de tests passés, ramenée sur 20 ; une soumission non comptée ou
   // absente vaut 0. La médaille n'est donnée qu'au bout d'une heure d'exercices
   // cumulée ; avant, on dit combien il manque.
-  const manchesToutes = [...(meta.historique || []), ...(meta.debut ? [{ manche: meta.manche, duree: meta.duree }] : [])];
+  const maintenant0 = Date.now();
+  const courante = meta.debut ? { manche: meta.manche, duree: meta.duree + (meta.prolongations || 0), debut: meta.debut,
+                                  close: !meta.pause && maintenant0 >= meta.fin } : null;
+  const manchesToutes = [...(meta.historique || []), ...(courante ? [courante] : [])];
+  // les prolongations comptent dans le temps d'exercices ; une manche close est dans l'historique ou finie
   const dureeTotale = manchesToutes.reduce((t, m) => t + (m.duree || 0), 0);   // secondes
   const valide = dureeTotale >= DUREE_VALIDATION;
   let scores = null;
   if (eval_ && manchesToutes.length) {
     const toutes = await lireTous(store, `sess/${meta.code}/s/`);
-    scores = participants.filter(enEval).map(nom => {
+    scores = tousParticipants.filter(enEval).map(nom => {
+      // la manche en cours n'entre dans la moyenne d'un participant qu'une fois close,
+      // ou dès qu'il a soumis ; une remise automatique vaut 0
       const taux = manchesToutes.map(m => {
         const x = toutes.find(y => y.manche === m.manche && y.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0);
-        return x && compte(x) && x.total ? x.ok / x.total : 0;
-      });
+        if (!x && m === courante && !courante.close) return null;
+        return x && compte(x) && !x.auto && x.total ? x.ok / x.total : 0;
+      }).filter(t => t !== null);
+      if (!taux.length) return { nom, manches: 0, moyenne: 0, note: 0, dureeTotale, valide, manque: valide ? 0 : Math.ceil((DUREE_VALIDATION - dureeTotale) / 60), medaille: null };
       const moyenne = taux.reduce((a, b) => a + b, 0) / taux.length;
       const note = Math.round(moyenne * 20 * 10) / 10;
       return { nom, manches: taux.length, moyenne: Math.round(moyenne * 1000) / 10, note,
@@ -170,11 +191,13 @@ async function vue(store, meta, lanceur = false, participant = null) {
              : maintenant < meta.debut ? 'compte_a_rebours'
              : meta.pause ? 'pause'
              : maintenant < meta.fin ? 'en_cours' : 'fini';
+  // avant le départ, l'exercice n'est connu que du lanceur : personne ne l'ouvre en avance
+  const cache = etat === 'attente' && !lanceur;
   const v = {
-    code: meta.code, page: meta.page, niveau: meta.niveau, exo: meta.exo, titre: meta.titre,
+    code: meta.code, page: meta.page, niveau: cache ? null : meta.niveau, exo: cache ? null : meta.exo, titre: cache ? null : meta.titre,
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
     pause: meta.pause || null, manche: meta.manche, mode: meta.mode, participants, soumis, resultats,
-    horsEval, dureeTotale, valide,
+    horsEval, dureeTotale, valide, tousParticipants,
     // en évaluation, le classement cumulé est public : noms, notes, médailles, sans code
     scores: eval_ ? (scores || []).map(k => ({ ...k })).sort((a, b) => b.note - a.note || a.nom.localeCompare(b.nom, 'fr')) : null,
   };
@@ -192,6 +215,8 @@ async function vue(store, meta, lanceur = false, participant = null) {
   if (lanceur) {
     v.emails = Object.fromEntries(parts.filter(p => p.email).map(p => [p.nom, p.email]));
     v.premierDepart = Math.min(...manchesToutes.filter(m => m.debut).map(m => m.debut), Infinity);
+    if (!isFinite(v.premierDepart)) v.premierDepart = null;
+    v.exclus = parts.filter(p => p.exclu).map(p => p.nom).sort(tri);
     const enrichir = s => ({ ...s, compte: compte(s), sorties: sortiesDe(parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0) || {}, s.manche) });
     v.soumissions = soums.map(enrichir).sort((a, b) => tri(a.nom, b.nom));
     v.sorties = Object.fromEntries(parts.filter(p => !p.parti && sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));
@@ -281,19 +306,29 @@ export default async (req) => {
     const enEvaluation = meta.mode === 'eval' && corps.eval !== false;
     if (email && !EMAIL.test(email)) return erreur('Adresse attendue : prenom.nom@etu.unilasalle.fr.');
     if (enEvaluation && !email) return erreur('En évaluation, l’adresse @etu.unilasalle.fr est demandée.');
-    const existant = await store.get(clePart(code, nom), { type: 'json' });
-    if (existant) {
-      // même personne depuis le même navigateur : on lui rend son jeton
-      if (corps.jeton && corps.jeton === existant.jeton) return repondre({ jeton: existant.jeton });
-      if (!existant.parti) return erreur('Ce nom est déjà pris dans cette arène.', 409);
-      // parti puis revenu : même état, jeton neuf
-      const jeton = tirerSecret();
-      await store.setJSON(clePart(code, nom), { ...existant, jeton, parti: false, revenu: Date.now(), email: email || existant.email });
-      return repondre({ jeton });
-    }
     const tous = await lireTous(store, `sess/${code}/p/`);
-    if (tous.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
-    if (email && tous.some(p => p.email === email && !p.parti)) return erreur('Cette adresse est déjà dans l’arène, sous un autre pseudo.', 409);
+    const existant = tous.find(p => meme(p.nom, nom));
+    // l'adresse fait foi : la personne qui revient, sous un pseudo ou un autre, reprend son état
+    const parAdresse = email ? tous.find(p => p.email === email) : null;
+    if ((existant && existant.exclu) || (parAdresse && parAdresse.exclu)) return erreur('Vous avez été exclu de cette arène par le lanceur.', 403);
+    const revenir = async (p) => {
+      const jeton = tirerSecret();
+      await store.setJSON(clePart(code, p.nom), { ...p, jeton, parti: false, revenu: Date.now(), email: p.email || email });
+      return repondre({ jeton, nom: p.nom });
+    };
+    if (parAdresse) {
+      if (corps.jeton && corps.jeton === parAdresse.jeton) return repondre({ jeton: parAdresse.jeton, nom: parAdresse.nom });
+      if (!parAdresse.parti) return erreur(`Cette adresse est déjà dans l’arène, sous le pseudo « ${parAdresse.nom} ».`, 409);
+      return revenir(parAdresse);
+    }
+    if (existant) {
+      if (corps.jeton && corps.jeton === existant.jeton) return repondre({ jeton: existant.jeton, nom: existant.nom });
+      if (!existant.parti) return erreur('Ce pseudo est déjà pris dans cette arène.', 409);
+      // un pseudo parti ne se reprend qu'avec la même adresse, ou sans adresse d'aucun côté
+      if (existant.email && existant.email !== email) return erreur('Ce pseudo appartient à quelqu’un d’autre : choisissez-en un autre.', 409);
+      return revenir(existant);
+    }
+    if (tous.filter(p => !p.parti).length >= MAX_PARTICIPANTS) return erreur('Arène complète.', 409);
     const jeton = tirerSecret();
     await store.setJSON(clePart(code, nom), { nom, email, jeton, rejoint: Date.now(), eval: corps.eval !== false });
     return repondre({ jeton });
@@ -331,6 +366,16 @@ export default async (req) => {
     return repondre();
   }
 
+  if (action === 'exclure') {
+    if (!lanceur) return erreur('Seul le lanceur peut exclure.', 403);
+    const nom = nettoyerNom(corps.nom);
+    const part = await store.get(clePart(code, nom), { type: 'json' });
+    if (!part) return erreur('Participant inconnu.', 404);
+    part.parti = true; part.exclu = true; part.jeton = tirerSecret();   // le jeton en circulation ne vaut plus
+    await store.setJSON(clePart(code, nom), part);
+    return repondre();
+  }
+
   if (action === 'demarrer') {
     if (!lanceur) return erreur('Seul le lanceur peut démarrer.', 403);
     if (meta.debut) return erreur('Déjà démarrée.', 409);
@@ -357,9 +402,13 @@ export default async (req) => {
     if (!lanceur) return erreur('Seul le lanceur peut prolonger.', 403);
     const sec = Math.round(Number(corps.secondes));
     if (!(sec >= 30 && sec <= 600)) return erreur('Prolongation entre 30 secondes et 10 minutes.');
-    if (!meta.debut || (!meta.pause && Date.now() > meta.fin + TOLERANCE_FIN)) return erreur('Rien à prolonger.', 409);
+    if (!meta.debut || (!meta.pause && Date.now() > meta.fin + TOLERANCE_PROLONGATION)) return erreur('Rien à prolonger.', 409);
     meta.fin += sec * 1000;
+    meta.prolongations = (meta.prolongations || 0) + sec;
     await store.setJSON(cleMeta(code), meta);
+    // les postes qui avaient déjà remis d'eux-mêmes reprennent la main
+    const autos = (await lireTous(store, `sess/${code}/s/${meta.manche}/`)).filter(x => x.auto);
+    await Promise.all(autos.map(x => store.delete(cleSoum(code, meta.manche, x.nom))));
     return repondre();
   }
 
@@ -375,10 +424,10 @@ export default async (req) => {
       return erreur(`En évaluation, tous les exercices sont du même niveau : cette arène est en ${meta.niveau}.`, 409);
     if (meta.debut) {
       meta.historique = [...(meta.historique || []), { manche: meta.manche, niveau: meta.niveau, exo: meta.exo,
-        titre: meta.titre, duree: meta.duree, debut: meta.debut, fin: meta.fin, pauses: meta.pauses || 0, points: meta.points || 0 }];
+        titre: meta.titre, duree: meta.duree + (meta.prolongations || 0), debut: meta.debut, fin: meta.fin, pauses: meta.pauses || 0, points: meta.points || 0 }];
       meta.manche += 1;
     }
-    Object.assign(meta, { niveau, exo, titre: String(corps.titre || '').slice(0, 120), duree, debut: null, fin: null, pause: null, pauses: 0,
+    Object.assign(meta, { niveau, exo, titre: String(corps.titre || '').slice(0, 120), duree, debut: null, fin: null, pause: null, pauses: 0, prolongations: 0,
       points: Math.max(0, Number(corps.points) || 0) });
     await store.setJSON(cleMeta(code), meta);
     return repondre();

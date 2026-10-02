@@ -14,6 +14,9 @@
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
        pret:    () => true,                              // facultatif : le moteur est chargé
        competence: () => 'Programmation II',              // facultatif : nom de la compétence pour le fichier d'import
+   ouvrir() reçoit depart vrai au départ d'une manche et pour qui arrive en cours de
+   manche : l'éditeur repart de l'amorce. À la reprise après rechargement, le code
+   en cours reste.
        deverrouiller: () => {...},                       // facultatif : réaffiche indices et solutions, code en place
      });
    Pendant le verrou, la classe arene-verrou est posée sur body : la page marque
@@ -213,7 +216,7 @@ window.Session = (() => {
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
         <div><label for="sessInPrenomL">Pseudo</label><input id="sessInPrenomL" maxlength="24" autocomplete="nickname"></div>
-        <div><label for="sessInNomL">Adresse <span style="font-weight:400;color:var(--muted)">facultative</span></label><input id="sessInNomL" maxlength="80" autocomplete="email" inputmode="email" placeholder="…@etu.unilasalle.fr"></div>
+        <div><label for="sessInNomL">Adresse <span style="font-weight:400;color:var(--muted)">demandée si vous jouez en évaluation</span></label><input id="sessInNomL" maxlength="80" autocomplete="email" inputmode="email" placeholder="…@etu.unilasalle.fr"></div>
       </div>
       <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
       <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
@@ -273,7 +276,8 @@ window.Session = (() => {
      Ceux qui n'ont rien soumis ferment la marche. */
   function classement() {
     const so = vue.soumissions || [];
-    const lignes = vue.participants.map(p => {
+    const noms = [...new Set([...(vue.tousParticipants || vue.participants), ...so.map(x => x.nom)])];
+    const lignes = noms.map(p => {
       const s = so.find(x => meme(x.nom, p));
       return { nom: p, s, taux: s && s.total && s.compte !== false ? s.ok / s.total : 0, temps: s && s.temps != null ? s.temps : Infinity };
     });
@@ -341,7 +345,7 @@ window.Session = (() => {
       return i < 0 ? '' : ` · cumul ${vue.scores[i].note}/20, ${i + 1}${i === 0 ? 'er' : 'e'} sur ${vue.scores.length}`;
     };
     $('#sessCode').textContent = vue.code;
-    $('#sessTitre').innerHTML = `<b>${esc(vue.titre || 'Exercice ' + vue.exo)}</b> · ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}${vue.manche > 1 ? ` · manche ${vue.manche}` : ''} · ${Math.round(vue.duree / 60)} min · ${n} participant${n > 1 ? 's' : ''}`
+    $('#sessTitre').innerHTML = `<b>${esc(vue.titre || (vue.exo ? 'Exercice ' + vue.exo : 'Exercice révélé au départ'))}</b> · ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}${vue.manche > 1 ? ` · manche ${vue.manche}` : ''} · ${Math.round(vue.duree / 60)} min · ${n} participant${n > 1 ? 's' : ''}`
       + (vue.etat === 'attente' ? '' : ` · ${ns} soumis`);
 
     // moi
@@ -367,6 +371,7 @@ window.Session = (() => {
     }
 
     if (vue.manche !== manchePrec) { maSoumission = null; manchePrec = vue.manche; }
+    if (moiSoumis()) soumisDans = vue.manche; else if (maSoumission && maSoumission.auto) maSoumission = null;   // remise rouverte par une prolongation
     // évaluation : le lanceur suit le temps cumulé et ce qu'il manque pour une validation
     const cumul = $('#sessCumul');
     if (vue.mode === 'eval' && S.cle && vue.dureeTotale) {
@@ -420,9 +425,11 @@ window.Session = (() => {
   /* À la fin du temps, le code de ceux qui n'ont pas soumis part de lui-même :
      l'enseignant le voit, mais il ne compte pas comme réussite. */
   async function finDuTemps() {
+    // quatre secondes : une prolongation ou une pause décidée au dernier moment arrive avant la remise
+    await new Promise(r => setTimeout(r, 4000));
     try { await appel('GET'); } catch {}
     if (!S || !vue) return;
-    if (vue.fin && maintenant() < vue.fin) { vue.etat = 'en_cours'; rendre(); return; }   // prolongée entre deux appels
+    if (vue.etat === 'pause' || (vue.fin && maintenant() < vue.fin)) { rendre(); return; }   // prolongée ou en pause entre deux appels
     if (S.nom && !moiSoumis()) await soumettre(true);
     await rafraichir();
     arriveeFin();
@@ -487,7 +494,7 @@ window.Session = (() => {
   }
 
   /* ───── suivi ───── */
-  let dernierEtat = null, enCoursDeRafraichissement = false;
+  let dernierEtat = null, enCoursDeRafraichissement = false, mancheVue = null, soumisDans = null;
   async function rafraichir() {
     if (!S || enCoursDeRafraichissement) return;
     enCoursDeRafraichissement = true;
@@ -505,11 +512,17 @@ window.Session = (() => {
       const demarre = vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat);
       const arrive = dernierEtat !== 'compte_a_rebours' && !enEpreuve(dernierEtat);
       if (demarre && arrive) {
-        try { await H.ouvrir(vue.niveau, vue.exo, dernierEtat === 'attente'); }
+        const depart = dernierEtat === 'attente' || !!S.frais;   // arrivé en cours de manche : l'amorce aussi
+        S.frais = false; stocker();
+        try { await H.ouvrir(vue.niveau, vue.exo, depart); }
         catch (e) { $('#sessMsg').textContent = 'L’exercice de l’arène n’a pas pu être ouvert : ' + e.message; }
       }
       const finit = vue.etat === 'fini' && (enEpreuve(dernierEtat) || dernierEtat === 'compte_a_rebours');
-      dernierEtat = vue.etat;
+      // relance avant que ce poste ait vu la fin : le code part vers la manche close
+      const sautee = vue.etat === 'attente' && enEpreuve(dernierEtat) && mancheVue && vue.manche > mancheVue;
+      if (sautee && S.nom && soumisDans !== mancheVue) { await soumettre(true, mancheVue); avis = `Manche ${mancheVue} terminée : votre code a été remis.`; }
+      if (vue.etat === 'attente' || vue.etat === 'compte_a_rebours') { const f = $('#sessFin'); if (f.open) f.close(); }
+      dernierEtat = vue.etat; mancheVue = vue.manche;
       programmer();
       rendre();
       if (finit) {
@@ -566,18 +579,19 @@ window.Session = (() => {
 
   /* ───── soumission ───── */
   let envoi = false;
-  async function soumettre(auto = false) {
-    if (!S || !S.nom || !vue || !vue.debut || envoi || moiSoumis()) return;
+  async function soumettre(auto = false, manche = null) {
+    if (!S || !S.nom || !vue || envoi) return;
+    if (!manche && (!vue.debut || moiSoumis())) return;
     envoi = true;
     const b = $('#sessSoumettre'); b.disabled = true;
     try {
       const r = await H.tester();
       const d = await appel('POST', { action: 'soumettre', code: S.code, nom: S.nom, jeton: S.jeton,
-        source: r.source, ok: r.ok, total: r.total, auto, manche: vue.manche });
-      maSoumission = d.soumission || null;
+        source: r.source, ok: r.ok, total: r.total, auto, manche: manche || vue.manche });
+      if (!manche) maSoumission = d.soumission || null;
       $('#sessMsg').textContent = auto ? 'Temps écoulé : votre code a été remis.' : '';
     } catch (e) { $('#sessMsg').textContent = e.message; }
-    envoi = false; b.disabled = false;
+    finally { envoi = false; b.disabled = false; }
     rendre();
   }
 
@@ -612,9 +626,17 @@ window.Session = (() => {
     const manquent = vue.participants.filter(p => !so.some(s => meme(s.nom, p)));
     $('#sessSolMsg').textContent = `${so.length} soumise${so.length > 1 ? 's' : ''} sur ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}`
       + (manquent.length ? ` · sans soumission : ${manquent.join(', ')}` : '');
-    if (!so.length) { corps.innerHTML = '<p class="vide">Aucune soumission pour l’instant.</p>'; return; }
+    const listeParts = `<p class="vide" style="margin:0 0 10px">Dans l’arène : ${vue.participants.map(p =>
+      `<span style="white-space:nowrap">${esc(p)}${vue.emails && vue.emails[p] ? ` <small>${esc(vue.emails[p])}</small>` : ''} <button class="mini" data-exclure="${esc(p)}" title="Retirer ce participant ; son pseudo et son adresse ne reviennent plus">Exclure</button></span>`).join(' · ') || 'personne'}${(vue.exclus || []).length ? ` · exclus : ${vue.exclus.map(esc).join(', ')}` : ''}</p>`;
+    const brancherExclusion = () => corps.querySelectorAll('button[data-exclure]').forEach(b => b.onclick = async () => {
+      if (!confirm(`Exclure ${b.dataset.exclure} ? Définitif pour cette arène.`)) return;
+      b.disabled = true;
+      try { await appel('POST', { action: 'exclure', code: S.code, cle: S.cle, nom: b.dataset.exclure }); } catch (e) { $('#sessSolMsg').textContent = e.message; }
+      voirSolutions();
+    });
+    if (!so.length) { corps.innerHTML = listeParts + '<p class="vide">Aucune soumission pour l’instant.</p>'; brancherExclusion(); return; }
     const ev = vue.mode === 'eval';
-    corps.innerHTML = `<table>
+    corps.innerHTML = listeParts + `<table>
       <tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
       ${so.map(s => `<tr>
         <td>${esc(s.nom)}${vue.emails && vue.emails[s.nom] ? `<br><small>${esc(vue.emails[s.nom])}</small>` : ''}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
@@ -630,6 +652,7 @@ window.Session = (() => {
       catch (e) { $('#sessSolMsg').textContent = e.message; }
       voirSolutions();
     });
+    brancherExclusion();
   }
 
   /* ───── dialogue ───── */
@@ -725,21 +748,20 @@ window.Session = (() => {
         S = { code };   // appel() lit S.code
         const d = await appel('POST', { action: 'rejoindre', code, nom, email, eval: evalOui });
         $('#sessDlg').close();
-        const connu = (vue && vue.participants.find(p => meme(p, nom))) || nom;   // graphie du premier passage
-        suivre({ code, nom: connu, jeton: d.jeton, eval: evalOui });
+        suivre({ code, nom: d.nom || nom, jeton: d.jeton, eval: evalOui, frais: true });   // le serveur rend le pseudo connu
         if (vue.pleinEcran && evalOui) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
-        const nom = nomSaisi('L'), email = emailSaisi('L', false);
         const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked;
         const mode = (document.querySelector('input[name=sessMode]:checked') || {}).value || 'eval';
+        const nom = nomSaisi('L'), email = emailSaisi('L', joue && mode === 'eval');   // en évaluation, le lanceur qui joue donne son adresse
         const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0, mode });
         let jeton = null;
         if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom, email })).jeton;
         $('#sessDlg').close();
-        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices });
+        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices, frais: true });
         montrerGrand(true);
       }
     } catch (e) { if (onglet !== 'R') S = null; etat.textContent = e.message; }
@@ -826,8 +848,8 @@ window.Session = (() => {
           sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => ko(new Error('SheetJS n’a pas pu être chargé : vérifiez la connexion.')); document.head.appendChild(sc); });
       } catch (e) { $('#sessMsg').textContent = e.message; return; }
     }
-    const debut = vue.premierDepart && isFinite(vue.premierDepart) ? new Date(vue.premierDepart) : new Date();
-    const date = debut.toISOString().slice(0, 10);
+    const debut = vue.premierDepart ? new Date(vue.premierDepart) : new Date();
+    const date = `${debut.getFullYear()}-${String(debut.getMonth() + 1).padStart(2, '0')}-${String(debut.getDate()).padStart(2, '0')}`;
     const heure = String(debut.getHours()).padStart(2, '0') + ':' + String(debut.getMinutes()).padStart(2, '0');
     const sansAdresse = [];
     const lignes = [['Mail', 'Compétence', 'xp', 'Date', 'Heure', 'Note']];
@@ -892,13 +914,21 @@ window.Session = (() => {
     $('#sessPodium').onclick = () => montrerGrand(true);
     $('#sessQuit').onclick = () => {
       treve = Date.now() + 5000;   // la boîte de confirmation n'est pas une sortie de plein écran
-      if (!vue || vue.etat === 'fini' || confirm(S.cle ? 'Quitter l’arène ? Elle continue sans vous ; vous ne verrez plus les solutions.' : 'Quitter l’arène ? Vous en serez retiré.')) quitter(true);
+      if (S && S.cle) {
+        if (confirm('Quitter l’arène ? Vous perdez la clé du lanceur, donc les solutions et les exports, sans retour possible. Exportez d’abord si besoin.')) quitter(true);
+        return;
+      }
+      if (!vue || vue.etat === 'fini' || confirm('Quitter l’arène ? Vous en serez retiré ; vos résultats restent.')) quitter(true);
     };
     document.addEventListener('visibilitychange', () => { if (!document.hidden && S) rafraichir(); });
 
     const code = new URLSearchParams(location.search).get('arene');
     const st0 = lireStock();
-    if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) suivre(st0);
+    if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) {
+      suivre(st0);
+      // recharger la page fait sortir du plein écran sans événement : on le compte
+      setTimeout(() => { if (moiEnEval() && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie(); }, 2500);
+    }
     else if (code && st0 && st0.code) { avis = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; suivre(st0); }
     else if (code) ouvrirDialogue(code.toUpperCase());
   }

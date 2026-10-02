@@ -730,7 +730,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · 8700336</span>
+        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · c551fdb</span>
       </div>
     </div>
   </div>
@@ -1345,24 +1345,30 @@ Session.init({
   ouvrir: async (niveau, exo, depart) => {
     await attendreBanque();
     ouvrirQuestion(exo);
+    if (!Q || Q.id !== exo) throw new Error('question ' + exo + ' inconnue de la banque R');
     if (depart) editeur.setValue(Q.depart || '');   // tout le monde part du même point de départ
   },
+  // la réponse est contrôlée avec un délai de garde : R ne s'interrompt pas, une
+  // boucle sans fin bloquerait la soumission. Au-delà de dix secondes : non réussi.
   tester: async () => {
     const code = editeur.getValue();
     if (!pret || !Q) return { ok: 0, total: 1, source: code };
+    const garde = new Promise(r => setTimeout(() => r('temps'), 10000));
     try {
-      let etat;
-      if (Q.comparer === 'graphique') etat = await verifierGraphique(code);
+      let controle;
+      if (Q.comparer === 'graphique') controle = verifierGraphique(code);
       else {
         const appel = Q.comparer === 'sortie' ? '.codex_compare_sortie' : '.codex_compare';
-        etat = await webR.evalRString(`${appel}(${litteral(Q.prelude)}, ${litteral(code)}, ${litteral(Q.reference)})`);
+        controle = webR.evalRString(`${appel}(${litteral(Q.prelude)}, ${litteral(code)}, ${litteral(Q.reference)})`);
       }
+      const etat = await Promise.race([controle, garde]);
       return { ok: etat === 'ok' ? 1 : 0, total: 1, source: code };
     } catch (e) { return { ok: 0, total: 1, source: code }; }
   },
   pret: () => pret,
   competence: () => 'R I',
-  deverrouiller: () => majBoutonArene(),
+  // le verrou tombe : la solution s'ouvre comme après une exécution
+  deverrouiller: () => { if (Q && !Q.bac) { progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true }); enregistrer(); $('#bloc-solution').classList.remove('verrouille'); } majBoutonArene(); },
 });
 
 /* Cache hors ligne : le même service worker que les autres pages. */

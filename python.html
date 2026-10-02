@@ -420,7 +420,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · 8700336</span>
+        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · c551fdb</span>
       </div>
     </div>
   </div>
@@ -531,15 +531,22 @@ function spawnWorker() {
   S.worker.postMessage({ code: null, tests: [] });
 }
 
+/* Une exécution à la fois : un « Tout tester » lancé pendant une soumission
+   d'arène écrasait le rappel en attente, et l'un des deux n'était jamais rendu.
+   Les demandes se suivent dans l'ordre. */
+const FILE_EXEC = [];
 function execute(code, tests, cb, stopOnFail) {
   if (!S.ready) return cb(null, 'Python n’est pas encore chargé.');
-  S.pending = r => cb(r, null);
+  if (S.pending) { FILE_EXEC.push([code, tests, cb, stopOnFail]); return; }
+  const suivant = () => { const d = FILE_EXEC.shift(); if (d) execute(...d); };
+  S.pending = r => { cb(r, null); suivant(); };
   S.timer = setTimeout(() => {
     S.pending = null; S.ready = false;
     document.getElementById('dot').className = 'dot load';
     document.getElementById('statusTxt').textContent = 'Redémarrage…';
     spawnWorker();
     cb(null, 'Temps dépassé (10 s) : votre programme tourne sans fin. Vérifiez vos boucles.');
+    FILE_EXEC.splice(0).forEach(d => d[2](null, 'Exécution annulée : le moteur a redémarré.'));
   }, 10000);
   S.worker.postMessage({ code, tests, stopOnFail: !!stopOnFail });
 }

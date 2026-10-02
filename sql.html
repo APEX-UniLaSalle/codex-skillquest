@@ -722,7 +722,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · 8700336</span>
+        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · c551fdb</span>
       </div>
     </div>
   </div>
@@ -2201,7 +2201,8 @@ Session.init({
   },
   pret: () => bases.length > 0,
   competence: () => Q ? `SQL ${['', 'I', 'II', 'III'][Q.niveau] || Q.niveau}` : 'SQL',
-  deverrouiller: () => majBoutonArene(),
+  // le verrou tombe : la solution s'ouvre comme après un « Tout tester »
+  deverrouiller: () => { deverrouillerSolution(); majBoutonArene(); },
 });
 </script>
 </body>
