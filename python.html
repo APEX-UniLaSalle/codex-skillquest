@@ -420,7 +420,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · 0735b4d</span>
+        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · 8700336</span>
       </div>
     </div>
   </div>
@@ -1438,6 +1438,7 @@ Session.init({
     }
   },
   pret: () => S.ready,
+  competence: () => { const n = S.niveaux.find(x => x.slug === S.slug); return n ? n.libelle : 'Programmation'; },
   // le verrou tombe (entraînement, après soumission) : l'exercice est réaffiché avec ses indices, le code en place
   deverrouiller: () => {
     if (!S.cur) return;

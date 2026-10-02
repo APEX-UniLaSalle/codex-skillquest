@@ -122,13 +122,14 @@ un chrono commun, un classement et la remise des solutions au lanceur. Elle rest
 pour enchaîner des manches sur d'autres exercices.
 
 Deux entrées. « ⚔️ Lancer une arène », sur l'exercice ouvert, choisi dans la liste ou tiré
-au hasard avec les filtres : prénom et nom, durée préremplie avec
+au hasard avec les filtres : pseudo, adresse facultative, durée préremplie avec
 la durée conseillée de l'exercice (5, 10, 15 ou 20 minutes selon le niveau), deux options
 cochées par défaut, participer soi-même et garder l'accès aux indices et aux solutions, et
-le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, prénom et nom ;
-si l'arène est en évaluation, le participant choisit de la passer en évaluation ou hors
-évaluation, sans plein écran ni note, avec indices et solution après sa soumission. Le
-choix est définitif.
+le mode. « ⚔️ Rejoindre une arène », dans l'en-tête : code de six caractères, pseudo, et
+adresse `@etu.unilasalle.fr`, exigée en évaluation, facultative sinon. Le pseudo s'affiche
+au classement ; l'adresse n'est vue que du lanceur. Si l'arène est en évaluation, le
+participant choisit de la passer en évaluation ou hors évaluation, sans plein écran ni
+note, avec indices et solution après sa soumission. Le choix est définitif.
 
 L'ouverture est libre, sans mot de passe : une arène coûte moins d'un crédit Netlify sur
 les 3 000 du mois, décision du 28 septembre 2026.
@@ -178,14 +179,24 @@ ou non comptée valant 0 ; la médaille suit les seuils du socle pour un savoir-
 l'arène ; avant, le podium, le bilan et l'export disent combien de minutes manquent pour
 valider la compétence.
 
-« 📋 Solutions » montre au lanceur le code soumis par chacun dans la manche en cours, et
+Quand l'arène d'évaluation a atteint l'heure d'exercices, le podium et « Solutions »
+proposent « ⤓ Fichier pour l'application » : un classeur `xp_Codex_CODE_date.xlsx`, feuille
+« Résultats », colonnes Mail, Compétence, xp, Date, Heure, Note, calqué sur l'export
+`xp_SkillQuest` du 29 septembre 2026 ; une ligne par participant en évaluation, xp à Or,
+Argent, Bronze ou vide, Date et Heure du premier départ. Le nom de la compétence est
+proposé d'après la page et le niveau, Programmation I à IV, SQL I à III, R I, et se corrige
+avant l'écriture : il doit être celui de l'application. Les participants sans adresse sont
+nommés et absents du fichier.
+
+« 📋 Solutions » montre au lanceur le code soumis par chacun dans la manche en cours,
+avec son adresse, et
 deux exports, toutes manches confondues : un Markdown lisible, scores puis tableau par
 manche puis le code de chacun ; un JSON brut. À faire avant 24 heures, après quoi l'arène
-s'efface, avec les noms et les codes.
+s'efface, avec les pseudos, les adresses et les codes.
 
 Ce que tient le serveur, `netlify/functions/session.mjs` sur `/api/session`, avec Netlify
-Blobs : l'exercice, la durée, le mode, l'heure de départ, les pauses, les prénoms et noms,
-les sorties, les soumissions. Le temps est mesuré sur l'horloge du serveur à la réception de
+Blobs : l'exercice, la durée, le mode, l'heure de départ, les pauses, les pseudos et
+adresses, les sorties, les soumissions. Le temps est mesuré sur l'horloge du serveur à la réception de
 la soumission. Aucun compte.
 
 Ce qu'il ne garantit pas : les tests sont joués par le navigateur, le serveur ne les

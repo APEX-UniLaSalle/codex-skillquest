@@ -38,7 +38,10 @@
        son score, et en entraînement les solutions déjà soumises
      GET  ?code=ABC234[&cle=…]                                → {session, maintenant}
        avec la clé du lanceur, la vue porte aussi les soumissions et leur code
-     POST {action:'rejoindre', code, nom[, jeton, eval]}      → {jeton, session}
+     POST {action:'rejoindre', code, nom, email[, jeton, eval]} → {jeton, session}
+       nom : le pseudo, affiché à tous ; email : l'adresse @etu.unilasalle.fr,
+       exigée en évaluation, visible du seul lanceur, qui s'en sert pour le
+       fichier d'import de l'application SkillQuest
        eval:false — dans une arène d'évaluation, le participant la passe hors
        évaluation : sans plein écran, sans score, indices et solution après
        sa soumission. Choix fait en rejoignant, définitif.
@@ -88,6 +91,9 @@ const tirerSecret = () => crypto.randomUUID();
 const medaille = note => note >= 20 ? 'Or' : note >= 15 ? 'Argent' : note >= 10 ? 'Bronze' : null;
 
 const meme = (a, b) => String(a).localeCompare(String(b), 'fr', { sensitivity: 'base' }) === 0;
+
+const EMAIL = /^[a-z0-9][a-z0-9._-]*@etu\.unilasalle\.fr$/;
+const nettoyerEmail = e => String(e || '').trim().toLowerCase().slice(0, 80);
 
 const nettoyerNom = n => String(n || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
@@ -184,6 +190,8 @@ async function vue(store, meta, lanceur = false, participant = null) {
     }
   }
   if (lanceur) {
+    v.emails = Object.fromEntries(parts.filter(p => p.email).map(p => [p.nom, p.email]));
+    v.premierDepart = Math.min(...manchesToutes.filter(m => m.debut).map(m => m.debut), Infinity);
     const enrichir = s => ({ ...s, compte: compte(s), sorties: sortiesDe(parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0) || {}, s.manche) });
     v.soumissions = soums.map(enrichir).sort((a, b) => tri(a.nom, b.nom));
     v.sorties = Object.fromEntries(parts.filter(p => !p.parti && sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));
@@ -268,7 +276,11 @@ export default async (req) => {
 
   if (action === 'rejoindre') {
     const nom = nettoyerNom(corps.nom);
-    if (nom.length < 3 || !nom.includes(' ')) return erreur('Prénom et nom, séparés par un espace.');
+    if (nom.length < 2) return erreur('Un pseudo de deux caractères au moins.');
+    const email = nettoyerEmail(corps.email);
+    const enEvaluation = meta.mode === 'eval' && corps.eval !== false;
+    if (email && !EMAIL.test(email)) return erreur('Adresse attendue : prenom.nom@etu.unilasalle.fr.');
+    if (enEvaluation && !email) return erreur('En évaluation, l’adresse @etu.unilasalle.fr est demandée.');
     const existant = await store.get(clePart(code, nom), { type: 'json' });
     if (existant) {
       // même personne depuis le même navigateur : on lui rend son jeton
@@ -276,13 +288,14 @@ export default async (req) => {
       if (!existant.parti) return erreur('Ce nom est déjà pris dans cette arène.', 409);
       // parti puis revenu : même état, jeton neuf
       const jeton = tirerSecret();
-      await store.setJSON(clePart(code, nom), { ...existant, jeton, parti: false, revenu: Date.now() });
+      await store.setJSON(clePart(code, nom), { ...existant, jeton, parti: false, revenu: Date.now(), email: email || existant.email });
       return repondre({ jeton });
     }
-    const { blobs } = await store.list({ prefix: `sess/${code}/p/` });
-    if (blobs.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
+    const tous = await lireTous(store, `sess/${code}/p/`);
+    if (tous.length >= MAX_PARTICIPANTS) return erreur('Session complète.', 409);
+    if (email && tous.some(p => p.email === email && !p.parti)) return erreur('Cette adresse est déjà dans l’arène, sous un autre pseudo.', 409);
     const jeton = tirerSecret();
-    await store.setJSON(clePart(code, nom), { nom, jeton, rejoint: Date.now(), eval: corps.eval !== false });
+    await store.setJSON(clePart(code, nom), { nom, email, jeton, rejoint: Date.now(), eval: corps.eval !== false });
     return repondre({ jeton });
   }
 

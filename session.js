@@ -13,6 +13,7 @@
        ouvrir:  async (niveau, exo) => {...},           // ouvre l'exercice de la session
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
        pret:    () => true,                              // facultatif : le moteur est chargé
+       competence: () => 'Programmation II',              // facultatif : nom de la compétence pour le fichier d'import
        deverrouiller: () => {...},                       // facultatif : réaffiche indices et solutions, code en place
      });
    Pendant le verrou, la classe arene-verrou est posée sur body : la page marque
@@ -197,22 +198,22 @@ window.Session = (() => {
       <label for="sessInCode">Code de l'arène</label>
       <input class="code" id="sessInCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC234">
       <div class="deux">
-        <div><label for="sessInPrenom">Prénom</label><input id="sessInPrenom" maxlength="28" autocomplete="given-name"></div>
-        <div><label for="sessInNom">Nom</label><input id="sessInNom" maxlength="28" autocomplete="family-name"></div>
+        <div><label for="sessInPrenom">Pseudo</label><input id="sessInPrenom" maxlength="24" autocomplete="nickname" placeholder="affiché au classement"></div>
+        <div><label for="sessInNom">Adresse étudiante</label><input id="sessInNom" maxlength="80" autocomplete="email" inputmode="email" placeholder="prenom.nom@etu.unilasalle.fr"></div>
       </div>
       <div class="modes" id="sessChoixEval" style="display:none;margin-top:10px">
         <label style="font-weight:400;margin:0"><input type="radio" name="sessEval" value="1" checked style="width:auto;margin-right:6px"><b>En évaluation</b> — plein écran, sorties décomptées, note et médaille</label>
         <label style="font-weight:400;margin:6px 0 0"><input type="radio" name="sessEval" value="0" style="width:auto;margin-right:6px"><b>Hors évaluation</b> — sans plein écran ni note ; indices et solution après votre soumission</label>
       </div>
-      <p class="aide">Votre nom sert au classement et à la remise de votre solution à l'enseignant. L'arène s'efface au bout de 24 heures.</p>
+      <p class="aide">Le pseudo s'affiche au classement ; l'adresse n'est vue que du lanceur, qui s'en sert pour remettre vos résultats à l'application SkillQuest. Elle est demandée en évaluation. L'arène s'efface au bout de 24 heures.</p>
     </div>
     <div class="corps" id="sessPanL" style="display:none">
       <div class="sess-exo" id="sessExo"></div>
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
-        <div><label for="sessInPrenomL">Prénom</label><input id="sessInPrenomL" maxlength="28" autocomplete="given-name"></div>
-        <div><label for="sessInNomL">Nom</label><input id="sessInNomL" maxlength="28" autocomplete="family-name"></div>
+        <div><label for="sessInPrenomL">Pseudo</label><input id="sessInPrenomL" maxlength="24" autocomplete="nickname"></div>
+        <div><label for="sessInNomL">Adresse <span style="font-weight:400;color:var(--muted)">facultative</span></label><input id="sessInNomL" maxlength="80" autocomplete="email" inputmode="email" placeholder="…@etu.unilasalle.fr"></div>
       </div>
       <label style="font-weight:400;margin-top:8px"><input type="checkbox" id="sessInJoue" checked style="width:auto;margin-right:6px">Je participe aussi</label>
       <label style="font-weight:400;margin-top:4px"><input type="checkbox" id="sessInIndices" checked style="width:auto;margin-right:6px">Je garde l'accès aux indices et aux solutions</label>
@@ -235,6 +236,7 @@ window.Session = (() => {
     <div class="pied"><button id="sessSolFermer">Fermer</button>
       <button id="sessExpMd" title="Toutes les manches, un fichier lisible">⤓ Markdown</button>
       <button id="sessExpJson" title="Toutes les manches, données brutes">⤓ JSON</button>
+      <button id="sessExpApp" style="display:none" title="Les validations, au format d'import de l'application SkillQuest">⤓ Fichier pour l'application</button>
       <span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:12.5px;color:var(--muted)"></span></div>
   </dialog>
   <div id="sessAttente" role="dialog" aria-label="Solution soumise, en attente de la fin de la manche">
@@ -262,6 +264,7 @@ window.Session = (() => {
     <div class="g-podium" id="sessGrandPodium"></div>
     <div class="g-actions">
       <button class="primary" id="sessGrandGo">▶ Démarrer</button>
+      <button id="sessGrandApp" style="display:none" title="Les validations, au format d'import de l'application SkillQuest">⤓ Fichier pour l'application</button>
       <button id="sessGrandFermer">Réduire</button>
     </div>
   </div>`;
@@ -287,6 +290,7 @@ window.Session = (() => {
     for (const id of ['sessGrandCode', 'sessGrandLien', 'sessGrandParts']) $('#' + id).style.display = podium ? 'none' : '';
     $('#sessGrandPodium').style.display = podium ? '' : 'none';
     $('#sessGrandGo').style.display = S.cle && !podium ? '' : 'none';
+    $('#sessGrandApp').style.display = S.cle && podium && vue.mode === 'eval' && vue.valide ? '' : 'none';
     if (podium) {
       const sorties = vue.sorties || {};
       const l = classement();
@@ -602,6 +606,7 @@ window.Session = (() => {
       return;
     }
     $('#sessExpMd').style.display = ''; $('#sessExpJson').style.display = '';
+    $('#sessExpApp').style.display = vue.mode === 'eval' && vue.valide ? '' : 'none';
     const so = vue.soumissions || [];
     $('#sessSolTitre').textContent = `Solutions soumises — ${vue.titre || 'exercice ' + vue.exo}`;
     const manquent = vue.participants.filter(p => !so.some(s => meme(s.nom, p)));
@@ -612,7 +617,7 @@ window.Session = (() => {
     corps.innerHTML = `<table>
       <tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
       ${so.map(s => `<tr>
-        <td>${esc(s.nom)}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
+        <td>${esc(s.nom)}${vue.emails && vue.emails[s.nom] ? `<br><small>${esc(vue.emails[s.nom])}</small>` : ''}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
           ${ev && s.sorties ? `<br><button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Retirer les points' : 'Accorder les points'}</button>` : ''}</td>
         <td class="etat ${s.reussi && s.compte !== false ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}${s.compte === false ? '<br><small>non comptée</small>' : ''}</td>
         <td>${s.temps == null ? '—' : mmss(s.temps)}</td>
@@ -629,10 +634,17 @@ window.Session = (() => {
 
   /* ───── dialogue ───── */
   let onglet = 'J';
+  const EMAIL = /^[a-z0-9][a-z0-9._-]*@etu\.unilasalle\.fr$/;
   const nomSaisi = suffixe => {
-    const p = $('#sessInPrenom' + suffixe).value.trim(), n = $('#sessInNom' + suffixe).value.trim();
-    if (p.length < 2 || n.length < 2) throw new Error('Prénom et nom, deux caractères au moins chacun.');
-    return `${p} ${n}`;
+    const p = $('#sessInPrenom' + suffixe).value.trim();
+    if (p.length < 2) throw new Error('Un pseudo de deux caractères au moins.');
+    return p;
+  };
+  const emailSaisi = (suffixe, exige) => {
+    const e = $('#sessInNom' + suffixe).value.trim().toLowerCase();
+    if (!e && !exige) return '';
+    if (!EMAIL.test(e)) throw new Error('Adresse attendue : prenom.nom@etu.unilasalle.fr.');
+    return e;
   };
 
   function montrerOnglet(o) {
@@ -664,14 +676,15 @@ window.Session = (() => {
      lancement hors exercice serait un cul-de-sac. */
   /* À six caractères, on regarde si l'arène est en évaluation : le participant
      choisit alors de la passer en évaluation ou non. */
+  let modeArene = null;
   async function verifierModeArene() {
     const code = $('#sessInCode').value.trim().toUpperCase();
-    $('#sessChoixEval').style.display = 'none';
+    $('#sessChoixEval').style.display = 'none'; modeArene = null;
     if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return;
     try {
       const rep = await fetch(`${API}?code=${code}`, { cache: 'no-store' });
       const d = await rep.json();
-      if (rep.ok && d.session && d.session.mode === 'eval') $('#sessChoixEval').style.display = '';
+      if (rep.ok && d.session) { modeArene = d.session.mode; if (modeArene === 'eval') $('#sessChoixEval').style.display = ''; }
     } catch {}
   }
 
@@ -708,8 +721,9 @@ window.Session = (() => {
         if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) throw new Error('Le code fait six lettres ou chiffres, sans O ni I.');
         const nom = nomSaisi('');
         const evalOui = $('#sessChoixEval').style.display === 'none' || (document.querySelector('input[name=sessEval]:checked') || {}).value !== '0';
+        const email = emailSaisi('', modeArene === 'eval' && evalOui);
         S = { code };   // appel() lit S.code
-        const d = await appel('POST', { action: 'rejoindre', code, nom, eval: evalOui });
+        const d = await appel('POST', { action: 'rejoindre', code, nom, email, eval: evalOui });
         $('#sessDlg').close();
         const connu = (vue && vue.participants.find(p => meme(p, nom))) || nom;   // graphie du premier passage
         suivre({ code, nom: connu, jeton: d.jeton, eval: evalOui });
@@ -718,12 +732,12 @@ window.Session = (() => {
         const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
-        const nom = nomSaisi('L');
+        const nom = nomSaisi('L'), email = emailSaisi('L', false);
         const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked;
         const mode = (document.querySelector('input[name=sessMode]:checked') || {}).value || 'eval';
         const d = await appel('POST', { action: 'creer', page: H.page, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0, mode });
         let jeton = null;
-        if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom })).jeton;
+        if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom, email })).jeton;
         $('#sessDlg').close();
         suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices });
         montrerGrand(true);
@@ -775,7 +789,7 @@ window.Session = (() => {
       const k0 = vue.scores[0];
       md.push('## Scores', '', `Moyenne des tests réussis sur ${k0 ? k0.manches : 0} manche(s), ${Math.round(vue.dureeTotale / 60)} min d'exercices${vue.valide ? '' : ' : sous l’heure requise, aucune médaille'}.`, '',
         '| Nom | Moyenne | Note /20 | Médaille |', '|---|---|---|---|');
-      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom.replace(/\|/g, '\\|')} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
+      for (const k of [...vue.scores].sort((a, b) => b.note - a.note)) md.push(`| ${k.nom.replace(/\|/g, '\\|')}${vue.emails && vue.emails[k.nom] ? ' (' + vue.emails[k.nom] + ')' : ''} | ${k.moyenne} % | ${k.note} | ${k.medaille || (k.valide ? '—' : 'pas encore')} |`);
       if ((vue.horsEval || []).length) md.push('', `Hors évaluation : ${vue.horsEval.join(', ')}.`);
       md.push('');
     }
@@ -793,6 +807,39 @@ window.Session = (() => {
       for (const x of so) md.push(`### ${x.nom.replace(/^#+/, '')}`, '', '```', (x.source || '').replace(/```/g, '` ` `'), '```', '');
     }
     telecharger(nomFichier('md'), md.join('\n'), 'text/markdown');
+  }
+
+  /* Fichier pour l'application SkillQuest : un classeur « Résultats » aux colonnes
+     Mail, Compétence, xp, Date, Heure, Note, calqué sur l'export du 29 septembre
+     2026. Une ligne par participant en évaluation, xp vide sous le seuil Bronze.
+     Disponible quand l'arène a atteint l'heure d'exercices. SheetJS est chargé
+     à la demande, depuis le CDN déjà employé par les pages. */
+  async function exporterApplication() {
+    try { await appel('GET'); } catch (e) { $('#sessMsg').textContent = e.message; return; }
+    if (vue.mode !== 'eval' || !vue.valide || !vue.scores) { $('#sessMsg').textContent = 'Le fichier demande une arène d’évaluation d’une heure au moins.'; return; }
+    const defaut = H.competence ? H.competence() : '';
+    const competence = prompt('Nom de la compétence, tel qu’il est écrit dans l’application :', defaut);
+    if (!competence) return;
+    if (!window.XLSX) {
+      try {
+        await new Promise((ok, ko) => { const sc = document.createElement('script');
+          sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload = ok; sc.onerror = () => ko(new Error('SheetJS n’a pas pu être chargé : vérifiez la connexion.')); document.head.appendChild(sc); });
+      } catch (e) { $('#sessMsg').textContent = e.message; return; }
+    }
+    const debut = vue.premierDepart && isFinite(vue.premierDepart) ? new Date(vue.premierDepart) : new Date();
+    const date = debut.toISOString().slice(0, 10);
+    const heure = String(debut.getHours()).padStart(2, '0') + ':' + String(debut.getMinutes()).padStart(2, '0');
+    const sansAdresse = [];
+    const lignes = [['Mail', 'Compétence', 'xp', 'Date', 'Heure', 'Note']];
+    for (const k of vue.scores) {
+      const mail = vue.emails && vue.emails[k.nom];
+      if (!mail) { sansAdresse.push(k.nom); continue; }
+      lignes.push([mail, competence.trim(), k.medaille || '', date, heure, k.note]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(lignes);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Résultats');
+    XLSX.writeFile(wb, `xp_Codex_${vue.code}_${date}.xlsx`);
+    $('#sessMsg').textContent = sansAdresse.length ? `Sans adresse, donc absents du fichier : ${sansAdresse.join(', ')}.` : `${lignes.length - 1} ligne${lignes.length > 2 ? 's' : ''} écrite${lignes.length > 2 ? 's' : ''}.`;
   }
 
   function lien() {
@@ -838,6 +885,7 @@ window.Session = (() => {
     $('#sessSoumettre').onclick = confirmerSoumission;
     $('#sessVoir').onclick = voirSolutions; $('#sessSolFermer').onclick = () => $('#sessSol').close();
     $('#sessExpMd').onclick = () => exporter('md'); $('#sessExpJson').onclick = () => exporter('json');
+    $('#sessExpApp').onclick = exporterApplication; $('#sessGrandApp').onclick = exporterApplication;
     $('#sessFinFermer').onclick = () => $('#sessFin').close();
     $('#sessPlus1').onclick = () => prolonger(60); $('#sessPlus2').onclick = () => prolonger(120);
     $('#sessPause').onclick = () => pause('pause'); $('#sessReprendre').onclick = () => pause('reprendre');
