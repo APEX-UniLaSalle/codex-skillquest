@@ -169,6 +169,8 @@ async function vue(store, meta, lanceur = false, participant = null) {
     duree: meta.duree, pleinEcran: !!meta.pleinEcran, debut: meta.debut, fin: meta.fin, etat,
     pause: meta.pause || null, manche: meta.manche, mode: meta.mode, participants, soumis, resultats,
     horsEval, dureeTotale, valide,
+    // en évaluation, le classement cumulé est public : noms, notes, médailles, sans code
+    scores: eval_ ? (scores || []).map(k => ({ ...k })).sort((a, b) => b.note - a.note || a.nom.localeCompare(b.nom, 'fr')) : null,
   };
   if (participant) {
     const p = parts.find(x => x.nom.localeCompare(participant.nom, 'fr', { sensitivity: 'base' }) === 0);
@@ -182,7 +184,6 @@ async function vue(store, meta, lanceur = false, participant = null) {
     }
   }
   if (lanceur) {
-    v.scores = scores;
     const enrichir = s => ({ ...s, compte: compte(s), sorties: sortiesDe(parts.find(x => x.nom.localeCompare(s.nom, 'fr', { sensitivity: 'base' }) === 0) || {}, s.manche) });
     v.soumissions = soums.map(enrichir).sort((a, b) => tri(a.nom, b.nom));
     v.sorties = Object.fromEntries(parts.filter(p => !p.parti && sortiesDe(p, meta.manche)).map(p => [p.nom, sortiesDe(p, meta.manche)]));

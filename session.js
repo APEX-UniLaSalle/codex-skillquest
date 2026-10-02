@@ -131,6 +131,11 @@ window.Session = (() => {
   #sessAttente .a-note{color:var(--muted);font-size:13.5px;margin:0}
 
   #sessFin .bilan{font-size:15px;line-height:1.6}
+  #sessFin .a-class table{width:100%;border-collapse:collapse;font-size:13.5px}
+  #sessFin .a-class td,#sessFin .a-class th{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
+  #sessFin .a-class th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  #sessFin .a-class tr.moi td{color:var(--ok);font-weight:600}
+  #sessFin .a-class em{color:var(--muted);font-style:normal;display:block;padding:.4em 0}
   #sessFin .bilan b{font-weight:650}
   #sessFin .bilan .ok{color:var(--ok)} #sessFin .bilan .ko{color:var(--ko)}
   #sessGrand2 .g-actions button{font-size:clamp(15px,1.8vw,20px);padding:10px 22px}
@@ -166,6 +171,7 @@ window.Session = (() => {
     <span class="code" id="sessCode"></span>
     <span class="chrono" id="sessChrono">--:--</span>
     <span class="titre" id="sessTitre"></span>
+    <span class="titre" id="sessCumul"></span>
     <span id="sessMoi"></span>
     <span class="liste" id="sessListe"></span>
     <span class="actions">
@@ -324,6 +330,12 @@ window.Session = (() => {
     if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); $('#sessAttente').classList.remove('on'); return; }
     bar.classList.add('on');
     const n = vue.participants.length, ns = vue.soumis.length;
+    // évaluation : le participant voit son rang cumulé
+    const monCumul = () => {
+      if (!moiEnEval() || !vue.scores || !vue.scores.length) return '';
+      const i = vue.scores.findIndex(k => meme(k.nom, S.nom));
+      return i < 0 ? '' : ` · cumul ${vue.scores[i].note}/20, ${i + 1}${i === 0 ? 'er' : 'e'} sur ${vue.scores.length}`;
+    };
     $('#sessCode').textContent = vue.code;
     $('#sessTitre').innerHTML = `<b>${esc(vue.titre || 'Exercice ' + vue.exo)}</b> · ${vue.mode === 'eval' ? 'évaluation' : 'entraînement'}${vue.manche > 1 ? ` · manche ${vue.manche}` : ''} · ${Math.round(vue.duree / 60)} min · ${n} participant${n > 1 ? 's' : ''}`
       + (vue.etat === 'attente' ? '' : ` · ${ns} soumis`);
@@ -332,9 +344,9 @@ window.Session = (() => {
     const moi = S.nom ? vue.resultats.findIndex(r => meme(r.nom, S.nom)) : -1;
     const he = vue.horsEval || [];
     $('#sessMoi').innerHTML = !S.nom ? (S.cle ? '<span class="titre">Lanceur</span>' : '')
-      : moi >= 0 ? `<span class="moi ok">${esc(S.nom)} · ${moi + 1}${moi === 0 ? 'er' : 'e'} en ${mmss(vue.resultats[moi].temps)}</span>`
-      : moiSoumis() && vue.etat !== 'attente' ? `<span class="moi ko">${esc(S.nom)} · soumis, non réussi</span>`
-      : `<span class="moi">${esc(S.nom)}${S.eval === false && vue.mode === 'eval' ? ' · hors évaluation' : ''}</span>`;
+      : moi >= 0 ? `<span class="moi ok">${esc(S.nom)} · ${moi + 1}${moi === 0 ? 'er' : 'e'} en ${mmss(vue.resultats[moi].temps)}${esc(monCumul())}</span>`
+      : moiSoumis() && vue.etat !== 'attente' ? `<span class="moi ko">${esc(S.nom)} · soumis, non réussi${esc(monCumul())}</span>`
+      : `<span class="moi">${esc(S.nom)}${S.eval === false && vue.mode === 'eval' ? ' · hors évaluation' : esc(monCumul())}</span>`;
 
     // liste : les participants en attente ; ensuite le classement, puis les autres
     const li = $('#sessListe');
@@ -351,6 +363,16 @@ window.Session = (() => {
     }
 
     if (vue.manche !== manchePrec) { maSoumission = null; manchePrec = vue.manche; }
+    // évaluation : le lanceur suit le temps cumulé et ce qu'il manque pour une validation
+    const cumul = $('#sessCumul');
+    if (vue.mode === 'eval' && S.cle && vue.dureeTotale) {
+      const min = Math.round(vue.dureeTotale / 60);
+      cumul.innerHTML = vue.valide
+        ? `<b>${min} min</b> d’exercices cumulées · validation possible`
+        : `<b>${min} min</b> d’exercices sur 60 · encore ${Math.ceil((3600 - vue.dureeTotale) / 60)} min pour une validation`;
+      cumul.style.display = '';
+    } else cumul.style.display = 'none';
+
     $('#sessGo').style.display = S.cle && vue.etat === 'attente' ? '' : 'none';
     for (const id of ['sessPlus1', 'sessPlus2']) $('#' + id).style.display = S.cle && enEpreuve(vue.etat) ? '' : 'none';
     $('#sessPause').style.display = S.cle && vue.etat === 'en_cours' ? '' : 'none';
@@ -422,7 +444,7 @@ window.Session = (() => {
       ? `<p><b>Note</b> : ${k.note}/20, moyenne des tests réussis sur ${k.manches > 1 ? `les ${k.manches} manches` : 'cette manche'}. ${
           k.valide ? (k.medaille ? `Niveau <b>${k.medaille}</b>.` : 'Sous le seuil Bronze (10/20).')
                    : `${Math.round(k.dureeTotale / 60)} min d’exercices sur 60 : jouez encore ${k.manque} min d’exercices pour valider la compétence.`}</p>` : '';
-    $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}${scoreTxt}
+    $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}${scoreTxt}${moiEnEval() ? `<div class="a-class" style="margin:8px 0">${tableauCumul()}</div>` : ''}
       <p>Les indices, la solution et la liste des exercices sont de nouveau accessibles.</p>
       <p style="color:var(--muted);font-size:13px">Restez dans l’arène : le lanceur peut ouvrir une nouvelle manche sur un autre exercice.</p></div>`;
     const d = $('#sessFin'); if (!d.open) d.showModal();
@@ -446,7 +468,18 @@ window.Session = (() => {
       ${vue.resultats.map((r, i) => `<tr class="${meme(r.nom, S.nom) ? 'moi' : ''}"><td>${i + 1}</td><td>${esc(r.nom)}</td><td>${mmss(r.temps)}</td></tr>`).join('')}
       </table>${vue.resultats.length ? '' : '<em>Aucune réussite pour l’instant.</em>'}
       <em>${vue.soumis.length} soumis sur ${vue.participants.length}${enCours.length ? ` · encore en cours : ${enCours.map(esc).join(', ')}` : ''}</em>`
-;
+      + tableauCumul();
+  }
+
+  /* Classement cumulé de l'arène en évaluation, au fil des manches : note sur 20 et
+     médaille de chacun, « pas encore » tant que l'heure d'exercices n'est pas atteinte. */
+  function tableauCumul() {
+    if (!vue || vue.mode !== 'eval' || !vue.scores || !vue.scores.length) return '';
+    const k0 = vue.scores[0];
+    return `<em style="margin-top:.8em">Classement de l’arène · ${k0.manches} manche${k0.manches > 1 ? 's' : ''} · ${Math.round(vue.dureeTotale / 60)} min sur 60${vue.valide ? '' : `, encore ${k0.manque} min pour une validation`}</em>
+      <table><tr><th></th><th>Nom</th><th>Note</th><th>Médaille</th></tr>
+      ${vue.scores.map((k, i) => `<tr class="${S.nom && meme(k.nom, S.nom) ? 'moi' : ''}"><td>${i + 1}</td><td>${esc(k.nom)}</td><td>${k.note}/20</td><td>${k.medaille || (k.valide ? '—' : 'pas encore')}</td></tr>`).join('')}
+      </table>`;
   }
 
   /* ───── suivi ───── */

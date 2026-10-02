@@ -159,6 +159,11 @@ le moteur soit chargé. « Quitter l'arène » retire de la liste ; la soumissio
 et le même nom qui revient reprend son état : quitter puis rejoindre ne donne pas une
 seconde soumission. On peut rejoindre à tout moment, entre deux manches compris.
 
+En évaluation, au fil des manches : le lanceur lit dans la barre le temps d'exercices cumulé
+et ce qu'il manque pour une validation ; les participants en évaluation voient le classement
+cumulé de l'arène, note et médaille de chacun, dans la barre, sur l'écran d'attente et au
+bilan.
+
 À la fin : le lanceur voit le podium en grand, classé par taux de tests réussis puis par
 temps, ceux qui n'ont rien remis en dernier, avec score et médaille en évaluation ; chaque
 participant voit un bilan personnel. Puis le lanceur ouvre un autre exercice et clique
