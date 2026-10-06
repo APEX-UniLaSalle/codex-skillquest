@@ -19,6 +19,7 @@ fonction du mode arène, décrite plus bas.
 ├── sql.html            requêtes SELECT sur cinq bases, avec explorateur et MCD
 ├── r.html              60 questions, trois jeux de données, un seul niveau
 ├── coderpad.html       préparation à l'examen (6 exercices input() → fonction)
+├── debuter.html        débuter : input() et print(), règles de comparaison, erreurs fréquentes, 4 exercices
 ├── session.js          mode arène, côté navigateur
 ├── netlify/functions/  session.mjs, la seule fonction serveur : horloge, classement et soumissions des arènes
 ├── package.json        sa dépendance, @netlify/blobs, installée par Netlify au déploiement
@@ -105,6 +106,23 @@ cache resservirait les anciens `data/*.json` et l'étudiant ne verrait pas la co
   (`localStorage`). Rien n'est envoyé sur un serveur, hors mode arène.
 - **SQL** : la plateforme n'accepte que des requêtes `SELECT`. Toute instruction
   d'écriture est refusée, sur demande du responsable de la compétence.
+
+## Amorce et entrées des jeux d'essai
+
+L'éditeur s'ouvre sur l'amorce : les lectures d'entrée en tête de la solution simple,
+et les tables de données écrites en dur qui les précèdent (décimales de Pi, table de
+correspondance). `build_entrainement.py` la calcule ; une question dont la solution ne
+lit ses entrées que dans une boucle reçoit une amorce écrite à la main, clé
+`amorce_codex` de son JSON (111, 218, 219, 327, 445).
+
+Dans les jeux d'essai, chaque ligne d'entrée porte le nom de la variable de l'amorce
+qui la reçoit. La première ligne que l'amorce ne lit pas porte « à lire ». Une amorce
+qui lit dans une boucle n'est pas étiquetée.
+
+`debuter.html` explique `input()` et `print()` : une ligne par appel, conversion,
+`split()`, nombre de lignes annoncé, comparaison exacte de la sortie, erreurs
+fréquentes, quatre exercices. Le lien « Débuter » de l'éditeur y mène ; il disparaît
+pendant une arène.
 
 ## Bac à sable
 

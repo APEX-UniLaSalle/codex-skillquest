@@ -145,6 +145,11 @@
   .badge{font-weight:700}
   .badge.ok{color:var(--ok)} .badge.ko{color:var(--ko)}
   .esp{color:var(--muted);opacity:.75}
+  /* entrée d'un jeu d'essai : chaque ligne porte la variable qui la reçoit */
+  .entree{display:grid;grid-template-columns:max-content auto;column-gap:10px}
+  .entree .vn{color:var(--muted);font-style:italic;font-size:11.5px;text-align:right}
+  .aide-mini{margin-left:14px;font-size:12.5px;font-weight:600;text-decoration:none;color:var(--link-txt)}
+  .aide-mini:hover{text-decoration:underline}
 
   details.sol{margin-top:14px;border:1px solid var(--line);border-radius:3px;overflow:hidden}
   details.sol summary{padding:10px 14px;cursor:pointer;font-size:13.5px;font-weight:600;background:var(--code)}
@@ -420,7 +425,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 2 octobre 2026 · c551fdb</span>
+        <span id="tampon" style="opacity:.65">Version du 6 octobre 2026 · 51dd931</span>
       </div>
     </div>
   </div>
@@ -442,6 +447,28 @@ const showIO = (v, empty='(vide)') => v === ''
   ? `<em style="color:#A89984">${empty}</em>`
   : esc(v).replace(/ /g, '<span class="esp">·</span>');
 const show = (v, empty='(vide)') => v === '' ? `<em style="color:#A89984">${empty}</em>` : esc(v);
+
+/* Variables de l'amorce qui reçoivent les lignes d'entrée, dans l'ordre : une par
+   ligne lue en tête de programme (« a, b = input().split() » donne « a, b »).
+   Une amorce qui lit dans une boucle ne se prête pas à ce relevé : rien n'est
+   étiqueté. */
+function nomsEntree(e) {
+  const lignes = (e.amorce || '').split('\n').filter(l => /\binput\(/.test(l));
+  if (lignes.some(l => /^\s/.test(l))) return null;
+  return lignes.map(l => {
+    const m = l.match(/^\(?\s*([A-Za-z_][\w\s,]*?)\s*\)?\s*=(?!=)/);
+    return m ? m[1].split(',').map(x => x.trim()).join(', ') : '?';
+  });
+}
+/* Entrée d'un jeu d'essai, chaque ligne précédée de sa variable. Les lignes que
+   l'amorce ne lit pas sont « à lire » : le programme les lit lui-même. */
+function showEntree(v, noms) {
+  if (v === '' || !noms || !noms.length) return show(v);
+  const lignes = v.replace(/\n+$/, '').split('\n');
+  return '<span class="entree">' + lignes.map((l, i) =>
+    `<span class="vn">${i < noms.length ? esc(noms[i]) : (i === noms.length ? 'à lire' : '')}</span>`
+    + `<span>${esc(l)}</span>`).join('') + '</span>';
+}
 
 /* ───────────────── worker Pyodide ─────────────────
    L'exécution se fait dans un worker : une boucle infinie
@@ -675,7 +702,8 @@ function afficherAccueil() {
         <h3>⁝≡ Comment ça marche</h3>
         <ol>
           <li>Choisissez un niveau, puis un exercice dans la liste.</li>
-          <li>Écrivez votre programme : <b>input()</b> pour lire, <b>print()</b> pour afficher.</li>
+          <li>Écrivez votre programme : <b>input()</b> pour lire, <b>print()</b> pour afficher.
+            Première fois ? <a href="debuter.html">Débuter : input() et print()</a>.</li>
           <li>Lancez un jeu d'essai, ou <b>Tout tester</b> d'un coup.</li>
           <li>Bloqué ? Ouvrez l'<b>indice</b> : il renvoie à la page de cours.</li>
           <li>Réussi ? La <b>solution experte</b> s'ouvre pour aller plus loin.</li>
@@ -1028,7 +1056,7 @@ function openExo(id) {
       <table class="tests" id="jeux">
         <tr><th style="width:42%">Entrée</th><th>Sortie attendue</th><th style="width:78px"></th></tr>
         ${e.tests.map((t, i) => `<tr>
-            <td><pre class="io">${show(t.stdin)}</pre></td>
+            <td><pre class="io">${showEntree(t.stdin, nomsEntree(e))}</pre></td>
             <td><pre class="io">${showIO(t.attendu)}</pre></td>
             <td><button class="mini" data-jeu="${i}" ${S.ready ? '' : 'disabled'}>▶ Tester</button></td>
           </tr>`).join('')}
@@ -1039,8 +1067,10 @@ function openExo(id) {
       <div class="editor-head"><strong>Votre solution</strong>
         <span class="hint">Lisez avec <code>input()</code>, écrivez avec <code>print()</code>
           &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> pour tester</span>
+        <a class="aide-mini arene-cache" href="debuter.html" target="_blank" rel="noopener"
+           title="Comment lire les entrées et afficher le résultat">❓ Débuter : input() et print()</a>
         <a class="fiche-mini" href="ressources/cheat-sheet-python.pdf" target="_blank"
-           rel="noopener">📄 Cheat Sheet</a></div>
+           rel="noopener" style="margin-left:14px">📄 Cheat Sheet</a></div>
       <div class="editor-wrap">
         <div class="gutter" id="gutter">1</div>
         <textarea id="code" spellcheck="false" placeholder="# Votre code Python ici"></textarea>
@@ -1329,7 +1359,7 @@ function runTests() {
         ${rows.map(({ ok, t, r }) => `
           <tr class="${ok ? '' : 'fail'}">
             <td><span class="badge ${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'}</span></td>
-            <td><pre class="io">${show(t.stdin)}</pre></td>
+            <td><pre class="io">${showEntree(t.stdin, nomsEntree(e))}</pre></td>
             <td><pre class="io">${showIO(t.attendu)}</pre></td>
             <td><pre class="io">${r.error
                   ? `<span style="color:var(--ko)">${esc(r.error)}</span>`
