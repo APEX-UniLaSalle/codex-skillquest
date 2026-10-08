@@ -20,6 +20,7 @@ fonction du mode arène, décrite plus bas.
 ├── r.html              60 questions, trois jeux de données, un seul niveau
 ├── coderpad.html       préparation à l'examen (6 exercices input() → fonction)
 ├── debuter.html        débuter : input() et print(), règles de comparaison, erreurs fréquentes, 4 exercices
+├── arene.html          le mode arène expliqué aux enseignants et aux étudiants, Python, SQL et R
 ├── session.js          mode arène, côté navigateur
 ├── netlify/functions/  session.mjs, la seule fonction serveur : horloge, classement et soumissions des arènes
 ├── package.json        sa dépendance, @netlify/blobs, installée par Netlify au déploiement
@@ -134,6 +135,13 @@ choix, déjà en mémoire, la sortie et le graphique. SQL : une base au choix, l
 résultats en tableau, 500 lignes au plus ; la règle du Codex tient, sélection seule.
 
 ## Mode arène
+
+Page publique : `arene.html`, liée depuis l'accueil, l'accueil de chaque langage et la
+fenêtre « Lancer » ou « Rejoindre ». Elle se tient à jour avec cette section.
+
+Une arène appartient à sa page. Qui la rejoint depuis une autre page, par le code ou par
+un rechargement, y est conduit ; ce changement de page n'est pas compté comme une sortie
+du plein écran.
 
 Pages Python, R et SQL. Une arène : un groupe fait le même exercice, avec
 un chrono commun, un classement et la remise des solutions au lanceur. Elle reste ouverte

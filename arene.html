@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — Le mode arène</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:20px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:13px;margin-right:16px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:14px}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+nav.sommaire{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:14px;margin:6px 0 4px}
+h2{font-size:17px;margin:34px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px;scroll-margin-top:12px}
+h3{font-size:15px;margin:20px 0 6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+ol.etapes,ul.regles{margin:8px 0;padding-left:22px}
+ol.etapes li,ul.regles li{margin:6px 0}
+table.cmp{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
+table.cmp th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:7px 12px 7px 0;border-bottom:1px solid var(--bord);vertical-align:bottom}
+table.cmp td{padding:8px 12px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
+table.cmp td:first-child{font-weight:600;width:24%}
+.medailles{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.medailles div{background:var(--carte);border:1px solid var(--bord);border-radius:8px;padding:8px 16px;font-size:14px}
+.medailles b{font-size:18px;margin-right:6px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+   background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
+.tbl{overflow-x:auto}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:13px;
+   text-align:center}
+a{color:var(--orange)}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header>
+  <a href="index.html" class="retour">← Le Codex</a>
+  <a href="python.html" class="retour">Python</a>
+  <a href="sql.html" class="retour">SQL</a>
+  <a href="r.html" class="retour">R</a>
+  <h1>Le mode arène</h1>
+  <p>Un exercice, un groupe, un chrono commun, un classement</p>
+</header>
+
+<main>
+  <div class="intro">
+    <p>Une arène réunit un groupe sur le même exercice, avec un chrono commun.
+    Chaque participant soumet sa solution une fois. Le classement se fait sur les tests réussis, puis sur le temps.</p>
+    <p>L'arène fonctionne sur les trois parcours du Codex : Python, SQL et R.
+    Un enseignant la lance pour une séance. Des étudiants la lancent entre eux pour s'entraîner.</p>
+    <p>L'arène reste ouverte après la première manche. Le lanceur enchaîne d'autres exercices avec le même code et les mêmes participants.</p>
+  </div>
+
+  <nav class="sommaire">
+    <a href="#lancer">Lancer</a>
+    <a href="#rejoindre">Rejoindre</a>
+    <a href="#manche">Une manche</a>
+    <a href="#modes">Évaluation ou entraînement</a>
+    <a href="#score">Note et médaille</a>
+    <a href="#fin">Fin et manches suivantes</a>
+    <a href="#langages">Selon le langage</a>
+    <a href="#donnees">Données et limites</a>
+    <a href="#questions">Questions fréquentes</a>
+  </nav>
+
+  <h2 id="lancer">Lancer une arène</h2>
+  <ol class="etapes">
+    <li>Ouvrez un exercice : choisi dans la liste, ou tiré au hasard avec les filtres.</li>
+    <li>Cliquez sur <b>⚔️ Lancer une arène</b>, sous l'énoncé.</li>
+    <li>Réglez la durée. Elle est préremplie avec la durée conseillée de l'exercice.</li>
+    <li>Entrez un pseudo. L'adresse <code>@etu.unilasalle.fr</code> est demandée si vous jouez vous-même en évaluation.</li>
+    <li>Deux cases sont cochées par défaut : <b>Je participe aussi</b> et <b>Je garde l'accès aux indices et aux solutions</b>. Un enseignant qui ne joue pas décoche la première.</li>
+    <li>Choisissez le mode : <b>Évaluation</b>, par défaut, ou <b>Entraînement</b>.</li>
+  </ol>
+  <p>Le Codex affiche un code de six caractères en grand, pour le vidéoprojecteur, avec la liste de ceux qui ont rejoint.
+  « 🔗 Lien » copie une adresse qui ouvre directement la fenêtre pour rejoindre. Le chrono démarre quand le lanceur clique sur <b>Démarrer</b>.</p>
+  <p>Aucun compte ni mot de passe n'est nécessaire.</p>
+
+  <h2 id="rejoindre">Rejoindre une arène</h2>
+  <ol class="etapes">
+    <li>Ouvrez une page d'exercices du Codex : Python, SQL ou R. Si l'arène porte sur un autre langage, le Codex vous conduit sur sa page.</li>
+    <li>Cliquez sur <b>⚔️ Rejoindre une arène</b>, dans l'en-tête.</li>
+    <li>Entrez le code de l'arène et un pseudo. Le pseudo s'affiche au classement.</li>
+    <li>Entrez votre adresse <code>@etu.unilasalle.fr</code>. Elle est exigée en évaluation et facultative en entraînement. Seul le lanceur la voit.</li>
+    <li>Dans une arène d'évaluation, choisissez <b>En évaluation</b> ou <b>Hors évaluation</b>. Le choix est définitif.</li>
+  </ol>
+  <p>On peut rejoindre à tout moment, entre deux manches comme en cours de manche.
+  Avant le départ, seul le lanceur connaît l'exercice.</p>
+
+  <h2 id="manche">Le déroulement d'une manche</h2>
+  <ol class="etapes">
+    <li>Le lanceur démarre. Un compte à rebours de dix secondes s'affiche sur tous les postes.</li>
+    <li>Le même exercice s'ouvre partout, à partir du même point de départ : l'amorce en Python, la requête de départ en SQL, le code de départ en R.</li>
+    <li>Pendant la manche, ceux qui ont rejoint n'ont ni indice ni solution. La liste des exercices, les filtres et le retour à l'accueil sont inaccessibles.</li>
+    <li>« Tout tester » reste disponible pour vérifier son travail. Il ne compte pas.</li>
+    <li><b>Soumettre</b> joue les tests une dernière fois et envoie le code. La soumission est unique et définitive.</li>
+    <li>À la fin du temps, le code de ceux qui n'ont pas soumis est remis de lui-même au lanceur. Il vaut 0 à la note et ne compte pas comme une réussite.</li>
+  </ol>
+  <p>Le lanceur peut mettre le chrono en pause, le reprendre, et le prolonger d'une ou deux minutes.
+  Les pauses ne comptent pas dans les temps. Une prolongation rouvre la soumission de ceux dont le code avait été remis automatiquement.</p>
+  <p>Un exercice est réussi quand tous ses tests passent.</p>
+
+  <h2 id="modes">Évaluation ou entraînement</h2>
+  <div class="tbl">
+  <table class="cmp">
+    <tr><th></th><th>Évaluation</th><th>Entraînement</th></tr>
+    <tr><td>Plein écran</td><td>Demandé. Chaque sortie du plein écran ou de l'onglet est comptée et montrée au lanceur.</td><td>Non demandé.</td></tr>
+    <tr><td>Sortie constatée</td><td>La soumission de la manche n'est pas comptée, sauf si le lanceur accorde les points.</td><td>Sans effet.</td></tr>
+    <tr><td>Après sa soumission</td><td>Le participant ne revoit plus son code. Il suit le chrono et le classement sur un écran d'attente.</td><td>Le participant retrouve les indices, la solution et la liste des exercices. Il voit les solutions des autres participants qui ont soumis.</td></tr>
+    <tr><td>Exercices</td><td>Tous du même niveau, d'une manche à l'autre.</td><td>Libres.</td></tr>
+    <tr><td>Résultat</td><td>Note sur 20 et médaille, cumulées sur les manches. Classement cumulé visible des participants en évaluation.</td><td>Classement de la manche, sans note.</td></tr>
+    <tr><td>Adresse étudiante</td><td>Exigée.</td><td>Facultative.</td></tr>
+  </table>
+  </div>
+  <p>Dans une arène d'évaluation, un participant peut choisir <b>Hors évaluation</b>.
+  Il joue alors sans plein écran ni note, et retrouve indices et solution après sa soumission.</p>
+
+  <h2 id="score">Note et médaille, en évaluation</h2>
+  <ul class="regles">
+    <li>Tous les exercices de l'arène sont du même niveau. Le serveur refuse une relance sur un autre niveau.</li>
+    <li>Chaque manche donne le pourcentage de tests réussis. La note sur 20 est la moyenne de ces pourcentages sur les manches closes.</li>
+    <li>Une manche sans soumission, avec une remise automatique ou avec une soumission non comptée vaut 0.</li>
+    <li>La manche en cours n'entre dans la moyenne d'un participant qu'une fois qu'il a soumis.</li>
+    <li>La médaille n'est attribuée qu'après une heure d'exercices cumulée sur l'arène, prolongations comprises. Avant, le podium et le bilan indiquent les minutes manquantes.</li>
+  </ul>
+  <div class="medailles">
+    <div><b>10</b>Bronze</div>
+    <div><b>15</b>Argent</div>
+    <div><b>20</b>Or</div>
+  </div>
+  <p>Les seuils sont ceux du socle SkillQuest pour un savoir-faire.</p>
+
+  <h2 id="fin">Fin de manche et manches suivantes</h2>
+  <ul class="regles">
+    <li>Le lanceur voit le podium en grand. Le classement suit le taux de tests réussis, puis le temps. Ceux qui n'ont rien soumis sont classés en dernier.</li>
+    <li>Chaque participant voit un bilan personnel.</li>
+    <li>Pour la manche suivante, le lanceur ouvre un autre exercice et clique sur <b>⚔️ Relancer l'arène sur cet exercice</b>. Le code et les participants restent les mêmes.</li>
+    <li><b>📋 Solutions</b> montre au lanceur le code soumis par chacun, avec son adresse. Le lanceur y accorde ou retire les points d'une sortie du plein écran, et peut exclure un participant.</li>
+    <li>Deux exports couvrent toutes les manches : un fichier Markdown lisible et un fichier JSON brut.</li>
+    <li>Après une heure d'exercices en évaluation, <b>⤓ Fichier pour l'application</b> produit un classeur au format d'import de l'application SkillQuest : une ligne par participant en évaluation avec son adresse, la compétence, l'XP de la médaille, la date, l'heure et la note.</li>
+  </ul>
+  <p>Le lanceur qui quitte l'arène perd l'accès aux solutions et aux exports. Il exporte d'abord.</p>
+
+  <h2 id="langages">Selon le langage</h2>
+  <div class="tbl">
+  <table class="cmp">
+    <tr><th></th><th>Python</th><th>SQL</th><th>R</th></tr>
+    <tr><td>Page</td><td><a href="python.html">python.html</a></td><td><a href="sql.html">sql.html</a></td><td><a href="r.html">r.html</a></td></tr>
+    <tr><td>Niveaux en évaluation</td><td>Programmation I à IV</td><td>SQL I à III</td><td>Un seul niveau, R I</td></tr>
+    <tr><td>Point de départ</td><td>L'amorce : les lignes de lecture avec <code>input()</code>.</td><td>La requête de départ de l'exercice.</td><td>Le code de départ de l'exercice.</td></tr>
+    <tr><td>Ce qui est testé</td><td>Le programme est joué sur chaque jeu d'essai. La sortie affichée est comparée à la sortie attendue.</td><td>La requête est jouée sur chaque base de test. Le résultat est comparé à celui de la requête de référence.</td><td>La réponse est contrôlée une fois : résultat, sortie ou graphique selon l'exercice.</td></tr>
+    <tr><td>Taux de réussite</td><td>Jeux d'essai réussis sur le total.</td><td>Bases de test réussies sur le total.</td><td>Tout ou rien : un test, réussi ou non.</td></tr>
+    <tr><td>Particularités</td><td>Python se charge dans le navigateur au premier passage.</td><td>Seules les requêtes de sélection s'exécutent.</td><td>R demande une connexion. Une vérification qui dépasse dix secondes compte comme non réussie.</td></tr>
+  </table>
+  </div>
+  <p>Une arène est liée à son langage. Rejointe depuis une autre page, elle s'ouvre sur la page de son langage. Ce changement de page n'est pas compté comme une sortie du plein écran.</p>
+
+  <h2 id="donnees">Données et limites</h2>
+  <ul class="regles">
+    <li>Le serveur conserve l'exercice, la durée, le mode, les pseudos, les adresses, les sorties du plein écran et les codes soumis. L'arène s'efface au bout de 24 heures.</li>
+    <li>Le pseudo est visible de tous les participants. L'adresse n'est visible que du lanceur.</li>
+    <li>Les temps sont mesurés sur l'horloge du serveur.</li>
+    <li>Les tests sont joués par le navigateur du participant. Le serveur ne les rejoue pas.</li>
+    <li>Le navigateur ne permet ni d'imposer ni de retenir le plein écran. Une sortie est seulement constatée.</li>
+    <li>L'arène sert à l'entraînement et aux séances. L'évaluation certificative reste sur SEB.</li>
+  </ul>
+
+  <h2 id="questions">Questions fréquentes</h2>
+  <h3>Je recharge la page pendant une manche.</h3>
+  <p>L'arène reprend avec le dernier code testé. En évaluation, le rechargement compte comme une sortie du plein écran. Fermer l'onglet fait oublier l'arène au navigateur.</p>
+  <h3>J'ai quitté l'arène et je reviens.</h3>
+  <p>Rejoignez avec la même adresse : votre état est repris, soumission comprise. Un second pseudo ne donne pas une seconde soumission.</p>
+  <h3>J'arrive en cours de manche.</h3>
+  <p>L'exercice s'ouvre au point de départ, avec le temps restant.</p>
+  <h3>Le code est refusé.</h3>
+  <p>Le code compte six caractères, sans la lettre O ni la lettre I. Une arène s'efface 24 heures après sa création.</p>
+  <h3>Le lanceur m'a exclu.</h3>
+  <p>Le pseudo et l'adresse exclus ne peuvent plus rejoindre cette arène.</p>
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — Mode arène.
+  <span id="tampon" style="opacity:.65">Version du 8 octobre 2026 · 3ff399b</span>
+</footer>
+</body>
+</html>

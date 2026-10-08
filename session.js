@@ -155,6 +155,7 @@ window.Session = (() => {
   dialog.sessDlg .deux{display:flex;gap:10px}
   dialog.sessDlg .deux>div{flex:1}
   dialog.sessDlg .aide{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
+  dialog.sessDlg .aide-arene{margin-left:auto;font-size:12.5px;color:var(--link-txt);white-space:nowrap}
   dialog.sessDlg .pied{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
   dialog.sessDlg .etat{font-size:12.5px;color:var(--ko);margin-left:auto}
   dialog.sessDlg .sess-exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:13px}
@@ -231,6 +232,7 @@ window.Session = (() => {
       <button class="primary" id="sessOk">Rejoindre</button>
       <button id="sessAnnul">Annuler</button>
       <span class="etat" id="sessEtat" aria-live="polite"></span>
+      <a class="aide-arene" href="arene.html" target="_blank" rel="noopener">Comment fonctionne l'arène ?</a>
     </div>
   </dialog>
   <dialog class="sessDlg" id="sessSol">
@@ -508,6 +510,7 @@ window.Session = (() => {
       $('#sessMsg').textContent = 'Connexion perdue, nouvel essai…';
       return;
     }
+    if (allerSurSaPage(vue.page)) return;
     if (vue.etat !== dernierEtat) {
       const demarre = vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat);
       const arrive = dernierEtat !== 'compte_a_rebours' && !enEpreuve(dernierEtat);
@@ -704,11 +707,25 @@ window.Session = (() => {
     const code = $('#sessInCode').value.trim().toUpperCase();
     $('#sessChoixEval').style.display = 'none'; modeArene = null;
     if (!/^[A-HJ-NP-Z2-9]{6}$/.test(code)) return;
+    const s = await lireArene(code);
+    if (s) { modeArene = s.mode; if (modeArene === 'eval') $('#sessChoixEval').style.display = ''; }
+  }
+  // vue publique d'une arène, sans s'y inscrire : son mode et sa page
+  async function lireArene(code) {
     try {
       const rep = await fetch(`${API}?code=${code}`, { cache: 'no-store' });
       const d = await rep.json();
-      if (rep.ok && d.session) { modeArene = d.session.mode; if (modeArene === 'eval') $('#sessChoixEval').style.display = ''; }
-    } catch {}
+      return rep.ok && d.session ? d.session : null;
+    } catch { return null; }
+  }
+  /* Une arène appartient à une page : Python, SQL ou R. Qui la rejoint depuis une
+     autre page y est conduit ; l'arène suit par sessionStorage. Le changement de
+     page n'est pas une sortie du plein écran. */
+  function allerSurSaPage(page) {
+    if (!page || page === H.page) return false;
+    S.versPage = true; stocker();
+    location.replace(page + '.html');
+    return true;
   }
 
   function ouvrirDialogue(codePrerempli, mode = 'J') {
@@ -748,6 +765,11 @@ window.Session = (() => {
         S = { code };   // appel() lit S.code
         const d = await appel('POST', { action: 'rejoindre', code, nom, email, eval: evalOui });
         $('#sessDlg').close();
+        const arene = await lireArene(code);
+        if (arene && arene.page !== H.page) {
+          S = { code, nom: d.nom || nom, jeton: d.jeton, eval: evalOui, frais: true };
+          allerSurSaPage(arene.page); return;
+        }
         suivre({ code, nom: d.nom || nom, jeton: d.jeton, eval: evalOui, frais: true });   // le serveur rend le pseudo connu
         if (vue.pleinEcran && evalOui) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
@@ -925,9 +947,11 @@ window.Session = (() => {
     const code = new URLSearchParams(location.search).get('arene');
     const st0 = lireStock();
     if (st0 && st0.code && (!code || st0.code === code.toUpperCase())) {
+      const versPage = !!st0.versPage; delete st0.versPage;
       suivre(st0);
-      // recharger la page fait sortir du plein écran sans événement : on le compte
-      setTimeout(() => { if (moiEnEval() && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie(); }, 2500);
+      // recharger la page fait sortir du plein écran sans événement : on le compte,
+      // sauf quand le Codex vient de conduire le participant sur la page de l'arène
+      if (!versPage) setTimeout(() => { if (moiEnEval() && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie(); }, 2500);
     }
     else if (code && st0 && st0.code) { avis = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; suivre(st0); }
     else if (code) ouvrirDialogue(code.toUpperCase());
