@@ -125,6 +125,24 @@ qui lit dans une boucle n'est pas étiquetée.
 fréquentes, quatre exercices. Le lien « Débuter » de l'éditeur y mène ; il disparaît
 pendant une arène.
 
+## Liens vers le cours
+
+Règle du 9 octobre 2026 : un lien vers le cours mène à la section qui traite la notion,
+pas en tête de la page. Les trois générateurs posent l'ancre : `build_entrainement.py`
+pour Python (table `NOTION_SECTION` de `liens_cours.py`, renvois ASCII, RVB, bases et
+logique compris), `sql/construire_banque_sql.py` et `r/construire_banque_r.py` par
+`sections_cours.py`, qui choisit la section d'une fiche d'après son nom et sa syntaxe.
+
+Sur le site, une ancre est le titre tel qu'il est écrit, émojis compris, sans les
+accents graves ni le gras : `#🔹 hist() – Histogramme`. L'adresse de page reste sous sa
+forme canonique, parenthèses en clair : une parenthèse codée fait rediriger le site, qui
+perd l'ancre. Un titre avec une formule `$…$` ou une barre oblique n'est pas choisi.
+
+`sections_cours.py` garde le relevé des titres de chaque page, fait le 9 octobre 2026.
+Une ancre absente du relevé arrête la construction. Quand une page de cours change de
+titres : Chrome télécharge le Markdown publié des pages (`cours_codex.json`), on
+régénère le relevé et on reprend les règles de la page concernée.
+
 ## Bac à sable
 
 Sur les trois pages, une carte « 🧪 Bac à sable » sur l'accueil ouvre un éditeur libre,
