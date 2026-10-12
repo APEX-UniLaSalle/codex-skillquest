@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 9 octobre 2026 · f2b9e1b</span>
+        <span id="tampon" style="opacity:.65">Version du 12 octobre 2026 · ae1e081</span>
       </div>
     </div>
   </div>
@@ -780,12 +780,13 @@ let DICO = {};
 /* Constructions du langage proposées à la complétion. Le mode SQL de CodeMirror
    ne connaît que des mots isolés : « INNER JOIN » ou « GROUP BY » n'y figurent pas.
    La liste suit les six mots-clés du cours, puis les jointures et les fonctions
-   d'agrégation les plus utilisées. */
+   d'agrégation les plus utilisées. Les mots-clés vus plus tard dans le programme
+   n'y figurent pas (règle de Vincent Tellier, 12 octobre 2026). */
 const CONSTRUCTIONS = [
-  'SELECT', 'SELECT DISTINCT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
+  'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY',
   'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'FULL JOIN', 'CROSS JOIN', 'JOIN', 'ON',
   'AS', 'AND', 'OR', 'NOT', 'IN', 'NOT IN', 'EXISTS', 'BETWEEN', 'LIKE',
-  'IS NULL', 'IS NOT NULL', 'ORDER BY ... ASC', 'ORDER BY ... DESC', 'LIMIT',
+  'IS NULL', 'IS NOT NULL', 'ORDER BY ... ASC', 'ORDER BY ... DESC',
   'UNION', 'UNION ALL', 'CASE WHEN ... THEN ... ELSE ... END',
   'COUNT(', 'SUM(', 'AVG(', 'MIN(', 'MAX(', 'ROUND(', 'COALESCE(',
   'UPPER(', 'LOWER(', 'LENGTH(', 'SUBSTR(', 'YEAR(', 'MONTH(', 'DAY(', 'HOUR('
@@ -1755,7 +1756,7 @@ function montrerTable(table, lignes) {
   cible.innerHTML = `
     <div class="cadre">${tableau(res)}</div>
     <div class="sous">
-      <code>SELECT * FROM ${esc(table)} LIMIT ${lignes};</code>
+      <span>Aperçu de la table ${esc(table)}</span>
       <span>${vues} ligne${vues > 1 ? 's' : ''} sur ${total === null ? '?' : total}${
         res ? ` · ${res.columns.length} colonne${res.columns.length > 1 ? 's' : ''}` : ''}</span>
       ${reste ? `<button type="button" id="plusLignes">Afficher ${
