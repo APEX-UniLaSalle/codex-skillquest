@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 13 octobre 2026 · 5ee7482</span>
+        <span id="tampon" style="opacity:.65">Version du 16 octobre 2026 · 07a7c37</span>
       </div>
     </div>
   </div>
@@ -742,11 +742,14 @@ let TITRE_EXERCICE = '', ORDRE_LIGNES = true;
    des compétences SQL si elle est décidée. Le rang d'une question est contrôlé à
    la construction de la banque — il ne peut pas être inférieur à ce que sa
    requête de référence exige. Doit rester en accord avec sql/niveau_sql.py. */
-const ORDRE_NIVEAUX = [1, 2, 3];
+const ORDRE_NIVEAUX = [1, 2, 3, 4];
+/* Règle de Vincent Tellier du 16 octobre 2026 : SQL II en deux étapes, a et b,
+   pour une seule compétence et un seul examen. */
 const NIVEAUX = {
-  1: { nom: 'SQL II',  resume: 'écrire sur un chemin donné' },
-  2: { nom: 'SQL III', resume: 'choisir le chemin' },
-  3: { nom: 'SQL IV',  resume: 'construire un raisonnement' },
+  1: { nom: 'SQL IIa', code: 'IIA', resume: '1 ou 2 tables, au plus 4 mots-clés' },
+  2: { nom: 'SQL IIb', code: 'IIB', resume: 'plus de 2 tables, 5 ou 6 mots-clés, ou jointure externe' },
+  3: { nom: 'SQL III', code: 'III', resume: 'sous-requête dans le FROM, ou auto-jointure' },
+  4: { nom: 'SQL IV',  code: 'IV',  resume: 'sous-requête ailleurs, FULL JOIN ou UNION' },
 };
 const nomNiveau = r => (NIVEAUX[r] || {}).nom || '—';
 /* Par défaut, une question ne montre que les tables qu'elle met en jeu : un
@@ -1649,6 +1652,14 @@ async function chargerBanque() {
       }).join('');
   remplirNotions();
   volumes();
+  /* Lien direct vers un niveau, pour les pages d'entraînement du cours :
+     sql.html?niveau=III préselectionne SQL III ; IIa, IIb, III, IV. Ajouté le 15 octobre 2026. */
+  try {
+    const voulu = (new URLSearchParams(location.search).get('niveau') || '').toUpperCase().replace(/^SQL\s*/, '');
+    // « II » seul ouvre l'étape a, première de la compétence
+    const rang = Object.keys(NIVEAUX).find(k => NIVEAUX[k].code === (voulu === 'II' ? 'IIA' : voulu));
+    if (rang && niveaux.includes(+rang)) document.getElementById('fNiveau').value = rang;
+  } catch (e) { /* paramètre illisible : tous les niveaux */ }
   ['fBase', 'fNiveau', 'fNotion', 'fEtat', 'fRech'].forEach(id =>
     document.getElementById(id).addEventListener('input', dessinerListe));
   document.getElementById('hasard').onclick = questionAuHasard;
@@ -1820,7 +1831,7 @@ function ouvrirIntro(slug) {
     .map(([r, n]) => `<span class="palier">${esc(NIVEAUX[r].nom)} · ${n}</span>`).join('');
 
   // sur une enquête, on reprend là où l'on s'était arrêté ; sinon, au début
-  const ordre = b.enquete ? qs.slice().sort((a, c) => a.id - c.id) : qs;
+  const ordre = b.enquete ? qs.slice().sort((a, c) => (a.etape ?? a.id) - (c.etape ?? c.id)) : qs;
   const suite = ordre.find(q => !(progression[q.id] && progression[q.id].ok)) || ordre[0];
 
   document.getElementById('intro').innerHTML = `
@@ -2146,7 +2157,7 @@ function afficherEtapeSuivante() {
   const base = BASES[Q.base] || {};
   if (!base.enquete) { zone.hidden = true; zone.innerHTML = ''; return; }
 
-  const etapes = BANQUE.filter(q => q.base === Q.base).sort((a, b) => a.id - b.id);
+  const etapes = BANQUE.filter(q => q.base === Q.base).sort((a, b) => (a.etape ?? a.id) - (b.etape ?? b.id));
   const rang = etapes.findIndex(q => q.id === Q.id);
   const suivante = etapes[rang + 1];
   zone.hidden = false;
