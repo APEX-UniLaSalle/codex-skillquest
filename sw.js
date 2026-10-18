@@ -2,7 +2,7 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v158';
+const VERSION = 'skillquest-entrainement-v160';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
 // Les moteurs ne dépendent pas de VERSION : avant le 1er octobre 2026, chaque
 // mise en ligne d'une banque faisait retélécharger les 10 Mo de Pyodide à tous.
@@ -18,6 +18,7 @@ const A_PRECHARGER = [
   './sql.html',
   './r.html',
   './session.js',
+  './mysql.js',
   './theme.css',
   './theme.js',
   './data/sql.json',

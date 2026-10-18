@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 16 octobre 2026 · 07a7c37</span>
+        <span id="tampon" style="opacity:.65">Version du 17 octobre 2026 · 4450ec4</span>
       </div>
     </div>
   </div>
@@ -731,6 +731,7 @@ FROM CONCERT;</textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
 <script src="session.js"></script>
+<script src="mysql.js"></script>
 <script>
 /* La banque porte plusieurs bases de données ; chaque question désigne la sienne.
    SCHEMA et DATA reflètent la base de la question ouverte. */
@@ -870,7 +871,7 @@ function verifierSyntaxe() {
   }
   let st = null;
   try {
-    st = bases[0].db.prepare(req);
+    st = bases[0].db.prepare(adapterMySQL(req));
     zone.className = 'syntaxe ok';
     zone.textContent = 'syntaxe correcte';
   } catch (e) {
@@ -930,50 +931,8 @@ function comparer(attendu, obtenu) {
 /* Chaque jeu d'essai est la base complète, dont on retire des lignes. */
 function ouvrir(j) {
   const d = new SQL.Database();
-  d.create_function('MONTH', v => v ? parseInt(String(v).substr(5, 2), 10) : null);
-  d.create_function('YEAR',  v => v ? parseInt(String(v).substr(0, 4), 10) : null);
-  d.create_function('DAY',   v => v ? parseInt(String(v).substr(8, 2), 10) : null);
-  // HOUR ne veut rien dire sur une date seule : on ne le calcule que sur un horodatage
-  d.create_function('HOUR',  v => v && String(v).length >= 13 ? parseInt(String(v).substr(11, 2), 10) : null);
-  /* CONCAT n'existe pas en SQLite alors que les étudiants l'apprennent sur MySQL.
-     sql.js déduit le nombre d'arguments de la longueur de la fonction : on
-     enregistre donc une variante par arité usuelle. Comme MySQL, le résultat
-     est NULL dès qu'un argument l'est. */
-  const coller = (...v) => v.some(x => x === null) ? null : v.join('');
-  d.create_function('CONCAT', (a, b) => coller(a, b));
-  d.create_function('CONCAT', (a, b, c) => coller(a, b, c));
-  d.create_function('CONCAT', (a, b, c, e) => coller(a, b, c, e));
-  d.create_function('CONCAT', (a, b, c, e, f) => coller(a, b, c, e, f));
-  /* CONCAT_WS, à l'inverse de CONCAT, ignore les NULL : c'est tout son intérêt. */
-  const colleSep = (s, ...v) => s === null ? null : v.filter(x => x !== null).join(s);
-  d.create_function('CONCAT_WS', (s, a, b) => colleSep(s, a, b));
-  d.create_function('CONCAT_WS', (s, a, b, c) => colleSep(s, a, b, c));
-  d.create_function('CONCAT_WS', (s, a, b, c, e) => colleSep(s, a, b, c, e));
-
-  /* Le reste de la Cheat Sheet, que SQLite ne connaît pas sous ces noms-là.
-     Doit rester en accord avec fonctions_mysql() de sql/construire_banque_sql.py :
-     ce qui est contrôlé à la fabrication doit s'exécuter ici à l'identique.
-     Manquent, et c'est irrémédiable : LEFT() et RIGHT(), dont SQLite réserve le
-     nom aux jointures, et DATE_ADD(), dont l'INTERVAL n'est pas un argument. */
-  const jour = v => v ? new Date(String(v).slice(0, 10) + 'T00:00:00Z') : null;
-  d.create_function('MINUTE', v => v && String(v).length >= 16 ? parseInt(String(v).substr(14, 2), 10) : null);
-  d.create_function('SECOND', v => v && String(v).length >= 19 ? parseInt(String(v).substr(17, 2), 10) : null);
-  d.create_function('DATEDIFF', (a, b) =>
-    a && b ? Math.round((jour(a) - jour(b)) / 86400000) : null);
-  d.create_function('LAST_DAY', v => {
-    if (!v) return null;
-    const t = jour(v);
-    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0))
-      .toISOString().slice(0, 10);
-  });
-  // MySQL numérote la semaine du lundi (0) au dimanche (6) ; JavaScript, du dimanche
-  d.create_function('WEEKDAY', v => v ? (jour(v).getUTCDay() + 6) % 7 : null);
-  d.create_function('CHAR_LENGTH', v => v === null ? null : String(v).length);
-  d.create_function('SUBSTRING', (s, p) => s === null ? null : String(s).slice(Math.max(0, p - 1)));
-  d.create_function('SUBSTRING', (s, p, n) =>
-    s === null ? null : String(s).substr(Math.max(0, p - 1), n));
-  d.create_function('TRUNCATE', (x, n) =>
-    x === null ? null : Math.trunc(x * Math.pow(10, n)) / Math.pow(10, n));
+  /* Fonctions de MySQL que SQLite ignore ou lit autrement : voir mysql.js. */
+  fonctionsMySQL(d);
   d.run(SCHEMA); d.run(DATA);
   /* Chaque jeu d'essai est la base complète, que l'on retaille par quelques ordres
      SQL. Décrire un jeu par ses ordres plutôt que par des options figées permet
@@ -983,8 +942,16 @@ function ouvrir(j) {
 }
 
 function jouer(b, req) {
-  try { const r = b.db.exec(req); return { r: r.length ? r[0] : null, err: null }; }
-  catch (e) { return { r: null, err: String(e.message || e) }; }
+  const sql = adapterMySQL(req);
+  try { const r = b.db.exec(sql); return { r: r.length ? r[0] : null, err: null }; }
+  catch (e) {
+    // un INTERVAL que la réécriture n'a pas su lire : on dit quoi écrire à la place
+    if (/\bINTERVAL\b/i.test(sansTexte(sql)))
+      return { r: null, err: "Cette forme d'INTERVAL n'est pas reconnue par le Codex. "
+        + "Écrivez DATE_ADD(date, INTERVAL n UNITÉ), DATE_SUB(…) ou date + INTERVAL n UNITÉ, "
+        + "avec une colonne, une date ou une fonction comme date." };
+    return { r: null, err: String(e.message || e) };
+  }
 }
 
 /* Le Codex n'exécute que des requêtes de sélection.
@@ -995,7 +962,10 @@ function jouer(b, req) {
 
    On nomme le mot fautif : « votre requête est refusée » n'apprend rien, « DELETE
    n'est pas admis ici » se comprend tout de suite. */
-const ECRITURE = /\b(insert|update|delete|drop|alter|create|replace|truncate|attach|detach|pragma|vacuum|reindex|begin|commit|rollback|savepoint|grant|revoke)\b/i;
+/* REPLACE et TRUNCATE sont aussi des fonctions de lecture, REPLACE(s, a, b) et
+   TRUNCATE(x, n) : on ne les refuse que suivis d'autre chose qu'une parenthèse,
+   c'est-à-dire comme ordres (REPLACE INTO, TRUNCATE TABLE). */
+const ECRITURE = /\b(?:insert|update|delete|drop|alter|create|attach|detach|pragma|vacuum|reindex|begin|commit|rollback|savepoint|grant|revoke)\b|\b(?:replace|truncate)\b(?!\s*\()/i;
 /* On cherche le mot dans le *code*, pas dans les données : une requête qui
    filtre sur « %update% » est parfaitement légitime, et se ferait refuser si l'on
    fouillait aussi les chaînes de caractères. Littéraux et commentaires sont donc
@@ -2213,7 +2183,7 @@ Session.init({
     return { ok, total: bases.length, source: req };
   },
   pret: () => bases.length > 0,
-  competence: () => Q ? `SQL ${['', 'I', 'II', 'III'][Q.niveau] || Q.niveau}` : 'SQL',
+  competence: () => Q ? ({ 1: 'SQL II', 2: 'SQL II', 3: 'SQL III', 4: 'SQL IV' })[Q.niveau] || 'SQL' : 'SQL',
   // le verrou tombe : la solution s'ouvre comme après un « Tout tester »
   deverrouiller: () => { deverrouillerSolution(); majBoutonArene(); },
 });
