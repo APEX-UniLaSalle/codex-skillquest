@@ -310,9 +310,15 @@ function fonctionsMySQL(d) {
    Les littéraux sont mis de côté le temps de la réécriture : une chaîne
    « 'INTERVAL 3 DAY' » ne doit pas être touchée. */
 const UNITES = 'MICROSECOND|SECOND|MINUTE|HOUR|DAY|WEEK|MONTH|QUARTER|YEAR|SECOND_MICROSECOND|MINUTE_MICROSECOND|MINUTE_SECOND|HOUR_MICROSECOND|HOUR_SECOND|HOUR_MINUTE|DAY_MICROSECOND|DAY_SECOND|DAY_MINUTE|DAY_HOUR|YEAR_MONTH';
+const MESSAGE_BARRES = "|| n'est pas une concaténation en MySQL : c'est un OU logique, "
+  + "et 'a' || 'b' y vaut 0. Pour assembler des textes, écrivez CONCAT(a, ' ', b).";
 function adapterMySQL(req) {
   const lits = [];
   let s = String(req || '').replace(/'(?:[^']|'')*'|"(?:[^"]|"")*"/g, m => `\u0001${lits.push(m) - 1}\u0002`);
+  // || : en MySQL, c'est un OU logique, et 'a' || 'b' vaut 0. SQLite y voit une
+  // concaténation : la requête réussirait ici et échouerait à l'examen.
+  // Décision de Julien du 20 octobre 2026 : refuser, et renvoyer vers CONCAT().
+  if (/\|\|/.test(s.replace(/--[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, ''))) throw new Error(MESSAGE_BARRES);
   const LIT = '\\u0001\\d+\\u0002';
   const VAL = `(?:${LIT}|-?\\s*\\d+(?:\\.\\d+)?|-?\\s*[A-Za-z_][\\w]*(?:\\.[A-Za-z_][\\w]*)?)`;
   const OPE = `(?:${LIT}|[A-Za-z_][\\w]*\\s*\\([^()]*\\)|[A-Za-z_][\\w]*(?:\\.[A-Za-z_][\\w]*)?|\\d+(?:\\.\\d+)?)`;

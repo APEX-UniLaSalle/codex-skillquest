@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 17 octobre 2026 · 4450ec4</span>
+        <span id="tampon" style="opacity:.65">Version du 20 octobre 2026 · 2c291e0</span>
       </div>
     </div>
   </div>
@@ -942,8 +942,8 @@ function ouvrir(j) {
 }
 
 function jouer(b, req) {
-  const sql = adapterMySQL(req);
-  try { const r = b.db.exec(sql); return { r: r.length ? r[0] : null, err: null }; }
+  let sql = '';
+  try { sql = adapterMySQL(req); const r = b.db.exec(sql); return { r: r.length ? r[0] : null, err: null }; }
   catch (e) {
     // un INTERVAL que la réécriture n'a pas su lire : on dit quoi écrire à la place
     if (/\bINTERVAL\b/i.test(sansTexte(sql)))
