@@ -731,7 +731,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 20 octobre 2026 · eb554e3</span>
+        <span id="tampon" style="opacity:.65">Version du 21 octobre 2026 · 556e90b</span>
       </div>
     </div>
   </div>
@@ -1363,7 +1363,19 @@ Session.init({
         controle = webR.evalRString(`${appel}(${litteral(Q.prelude)}, ${litteral(code)}, ${litteral(Q.reference)})`);
       }
       const etat = await Promise.race([controle, garde]);
-      return { ok: etat === 'ok' ? 1 : 0, total: 1, source: code };
+      // soupçons de réponse écrite en dur : la sortie de la référence, comparée aux
+      // littéraux du code soumis ; une alerte pour le lanceur, sans effet sur la note
+      let suspect = [];
+      if (Q.comparer !== 'graphique' && Q.reference) {
+        try {
+          const sortie = await Promise.race([webR.evalRString(Q.comparer === 'sortie'
+              ? `paste(capture.output(.codex_run(${litteral(Q.prelude)}, ${litteral(Q.reference)})), collapse = "\\n")`
+              : `paste(capture.output(print(.codex_valeur(${litteral(Q.prelude)}, ${litteral(Q.reference)}))), collapse = "\\n")`),
+            new Promise(r => setTimeout(() => r(''), 3000))]);
+          suspect = Session.soupcons({ page: 'r', source: code, sorties: String(sortie || '').split('\n'), references: [Q.prelude || '', Q.reference, Q.depart || ''] });
+        } catch (e) { suspect = []; }
+      }
+      return { ok: etat === 'ok' ? 1 : 0, total: 1, source: code, suspect };
     } catch (e) { return { ok: 0, total: 1, source: code }; }
   },
   pret: () => pret,

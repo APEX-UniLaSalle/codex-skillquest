@@ -46,6 +46,7 @@ window.Session = (() => {
   let avis = '';                // message qui reste affiché dans la barre malgré les rendus
   let verrouPrec = false;
   let manchePrec = null;        // pour remettre à zéro ce qui dépend de la manche
+  let mancheSol = null;         // manche affichée dans les solutions du lanceur ; null : la manche en cours
 
   const $ = s => document.querySelector(s);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -276,6 +277,54 @@ window.Session = (() => {
 
   /* Classement d'une manche : taux de réussite décroissant, puis temps croissant.
      Ceux qui n'ont rien soumis ferment la marche. */
+  /* Soupçons de réponse écrite en dur, décision de Julien du 21 octobre 2026.
+     Une alerte pour le lanceur, jamais une note : c'est lui qui invalide.
+     Calculés dans le navigateur du participant, qui a sous la main les sorties
+     attendues ; le serveur ne garde que les trois codes connus. */
+  const MOTIFS = {
+    sans_entree: 'ne lit pas l’entrée',
+    sortie_ecrite: 'écrit en dur une sortie attendue',
+    sans_table: 'n’interroge aucune table',
+  };
+  function litterauxDe(src, page) {
+    const lits = [];
+    let c = String(src || '').replace(/'''[\s\S]*?'''|"""[\s\S]*?"""|'(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*"/g,
+      m => { lits.push(m.replace(/^('''|"""|'|")/, '').replace(/('''|"""|'|")$/, '')); return ' '; });
+    c = page === 'sql' ? c.replace(/--[^\n]*/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ') : c.replace(/#[^\n]*/g, ' ');
+    const nums = c.match(/(?<![\w.])\d+(?:\.\d+)?(?![\w.])/g) || [];
+    return { code: c, lits: [...lits, ...nums].map(x => x.trim()).filter(Boolean) };
+  }
+  function soupcons({ page, source, entrees = [], sorties = [], references = [] }) {
+    const out = [];
+    const { code, lits } = litterauxDe(source, page);
+    if (page === 'python' && entrees.some(e => String(e || '').trim()) && !/\binput\s*\(|sys\.stdin/.test(code)) out.push('sans_entree');
+    if (page === 'sql' && code.trim() && !/\bFROM\b/i.test(code)) out.push('sans_table');
+    const refs = new Set(references.flatMap(r => litterauxDe(r, page).lits));
+    const ent = new Set(entrees.flatMap(e => String(e == null ? '' : e).split(/\s+/)).filter(Boolean));
+    const cibles = new Set();
+    for (const x of sorties) {
+      const t = String(x == null ? '' : x).trim();
+      if (!t) continue;
+      cibles.add(t);
+      for (const k of t.split(/[\s,;|]+/)) {
+        if (/^\[\d+\]$/.test(k)) continue;           // l'indice [1] d'un affichage R
+        const u = k.replace(/^[\[("']+/, '').replace(/[\])"']+$/, '');
+        if (u.length >= 2) cibles.add(u);
+      }
+    }
+    if (lits.some(l => l.length >= 2 && cibles.has(l) && !refs.has(l) && !ent.has(l))) out.push('sortie_ecrite');
+    return out;
+  }
+  const motifs = s => (s && s.suspect || []).map(k => MOTIFS[k]).filter(Boolean);
+  const etiquette = s => s.invalide ? 'invalidée' : s.compte === false ? 'non comptée' : '';
+  const boutonInvalider = (s, manche) => `<button class="mini" data-invalider="${esc(s.nom)}" data-manche="${manche}" data-valeur="${s.invalide ? '0' : '1'}" title="${s.invalide ? 'Rendre ses points à cette soumission' : 'La soumission vaut 0, par exemple une réponse écrite en dur'}">${s.invalide ? 'Rétablir' : 'Invalider'}</button>`;
+  const brancherInvalidation = (racine, msg, apres) => racine.querySelectorAll('button[data-invalider]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await appel('POST', { action: 'invalider', code: S.code, cle: S.cle, nom: b.dataset.invalider, manche: Number(b.dataset.manche), invalide: b.dataset.valeur === '1' }); }
+    catch (e) { $(msg).textContent = e.message; }
+    apres();
+  });
+
   function classement() {
     const so = vue.soumissions || [];
     const noms = [...new Set([...(vue.tousParticipants || vue.participants), ...so.map(x => x.nom)])];
@@ -306,8 +355,9 @@ window.Session = (() => {
         <tr><th></th><th>Nom</th><th>Tests</th><th>Temps</th>${ev ? '<th>Moyenne</th><th>Médaille</th>' : ''}</tr>
         ${l.map((x, i) => { const k = score(x.nom); return `<tr class="${x.s && x.s.reussi && x.s.compte !== false ? 'ok' : ''}">
           <td>${i + 1}</td><td>${esc(x.nom)}${sorties[x.nom] ? ` <small>⚠ ${sorties[x.nom]}</small>` : ''}${(vue.horsEval || []).some(h => meme(h, x.nom)) ? ' <small>hors évaluation</small>' : ''}</td>
-          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && x.s.compte === false ? ' <small>non comptée</small>' : ''}
-            ${ev && x.s && x.s.sorties ? `<br><button class="mini" data-compter="${esc(x.nom)}" data-valeur="${x.s.compte === false ? '1' : '0'}">${x.s.compte === false ? 'Accorder les points' : 'Retirer les points'}</button>` : ''}</td>
+          <td>${x.s ? `${x.s.ok}/${x.s.total}` : '—'}${x.s && x.s.auto ? ' <small>remis à la fin</small>' : ''}${x.s && etiquette(x.s) ? ` <small>${etiquette(x.s)}</small>` : ''}${motifs(x.s).length ? ` <small style="color:var(--ko)">⚠ code suspect</small>` : ''}
+            ${S.cle && x.s ? `<br>${boutonInvalider(x.s, vue.manche)}` : ''}
+            ${ev && x.s && x.s.sorties && !x.s.invalide ? `<br><button class="mini" data-compter="${esc(x.nom)}" data-valeur="${x.s.compte === false ? '1' : '0'}">${x.s.compte === false ? 'Accorder les points' : 'Retirer les points'}</button>` : ''}</td>
           <td>${x.s && x.s.temps != null ? mmss(x.s.temps) : '—'}</td>
           ${ev ? `<td>${k ? `${k.note}/20` : '—'}</td><td>${k && k.medaille ? k.medaille : k && !k.valide ? '<small>pas encore</small>' : '—'}</td>` : ''}</tr>`; }).join('')}
       </table>
@@ -320,6 +370,7 @@ window.Session = (() => {
         catch (e) { $('#sessMsg').textContent = e.message; }
         rendre();
       });
+      brancherInvalidation($('#sessGrandPodium'), '#sessMsg', rendre);
       return;
     }
     $('#sessGrandCode').textContent = vue.code;
@@ -590,7 +641,7 @@ window.Session = (() => {
     try {
       const r = await H.tester();
       const d = await appel('POST', { action: 'soumettre', code: S.code, nom: S.nom, jeton: S.jeton,
-        source: r.source, ok: r.ok, total: r.total, auto, manche: manche || vue.manche });
+        source: r.source, ok: r.ok, total: r.total, suspect: r.suspect || [], auto, manche: manche || vue.manche });
       if (!manche) maSoumission = d.soumission || null;
       $('#sessMsg').textContent = auto ? 'Temps écoulé : votre code a été remis.' : '';
     } catch (e) { $('#sessMsg').textContent = e.message; }
@@ -624,8 +675,14 @@ window.Session = (() => {
     }
     $('#sessExpMd').style.display = ''; $('#sessExpJson').style.display = '';
     $('#sessExpApp').style.display = vue.mode === 'eval' && vue.valide ? '' : 'none';
-    const so = vue.soumissions || [];
-    $('#sessSolTitre').textContent = `Solutions soumises — ${vue.titre || 'exercice ' + vue.exo}`;
+    const manches = vue.manches || [];
+    const mv = manches.find(m => m.manche === mancheSol && m.manche !== vue.manche) || null;
+    const numero = mv ? mv.manche : vue.manche;
+    const so = mv ? (mv.soumissions || []) : (vue.soumissions || []);
+    $('#sessSolTitre').textContent = `Solutions soumises — ${(mv ? mv.titre : vue.titre) || 'exercice ' + (mv ? mv.exo : vue.exo)}${manches.length > 1 ? ` · manche ${numero}` : ''}`;
+    const choixManche = manches.length > 1 ? `<p class="vide" style="margin:0 0 10px">Manche : ${manches.map(m =>
+      `<button class="mini" data-manche-vue="${m.manche}"${m.manche === numero ? ' disabled' : ''}>${m.manche}</button>`).join(' ')}</p>` : '';
+    const brancherManches = () => corps.querySelectorAll('button[data-manche-vue]').forEach(b => b.onclick = () => { mancheSol = Number(b.dataset.mancheVue); voirSolutions(); });
     const manquent = vue.participants.filter(p => !so.some(s => meme(s.nom, p)));
     $('#sessSolMsg').textContent = `${so.length} soumise${so.length > 1 ? 's' : ''} sur ${vue.participants.length} participant${vue.participants.length > 1 ? 's' : ''}`
       + (manquent.length ? ` · sans soumission : ${manquent.join(', ')}` : '');
@@ -637,25 +694,29 @@ window.Session = (() => {
       try { await appel('POST', { action: 'exclure', code: S.code, cle: S.cle, nom: b.dataset.exclure }); } catch (e) { $('#sessSolMsg').textContent = e.message; }
       voirSolutions();
     });
-    if (!so.length) { corps.innerHTML = listeParts + '<p class="vide">Aucune soumission pour l’instant.</p>'; brancherExclusion(); return; }
+    if (!so.length) { corps.innerHTML = choixManche + listeParts + '<p class="vide">Aucune soumission pour l’instant.</p>'; brancherExclusion(); brancherManches(); return; }
     const ev = vue.mode === 'eval';
-    corps.innerHTML = listeParts + `<table>
+    corps.innerHTML = choixManche + listeParts + `<table>
       <tr><th>Nom</th><th>État</th><th>Temps</th><th>Code soumis</th></tr>
       ${so.map(s => `<tr>
         <td>${esc(s.nom)}${vue.emails && vue.emails[s.nom] ? `<br><small>${esc(vue.emails[s.nom])}</small>` : ''}${s.sorties ? `<br><small style="color:var(--ko)">⚠ ${s.sorties} sortie${s.sorties > 1 ? 's' : ''} du plein écran</small>` : ''}
-          ${ev && s.sorties ? `<br><button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Retirer les points' : 'Accorder les points'}</button>` : ''}</td>
-        <td class="etat ${s.reussi && s.compte !== false ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}${s.compte === false ? '<br><small>non comptée</small>' : ''}</td>
+          ${motifs(s).length ? `<br><small style="color:var(--ko)">⚠ code suspect : ${motifs(s).join(', ')}</small>` : ''}
+          <br>${boutonInvalider(s, numero)}
+          ${ev && s.sorties && !s.invalide ? ` <button class="mini" data-compter="${esc(s.nom)}" data-valeur="${s.compte ? '0' : '1'}">${s.compte ? 'Retirer les points' : 'Accorder les points'}</button>` : ''}</td>
+        <td class="etat ${s.reussi && s.compte !== false ? 'ok' : 'ko'}">${s.reussi ? 'Réussi' : `${s.ok}/${s.total} tests`}${s.auto ? '<br><small>remis à la fin</small>' : ''}${etiquette(s) ? `<br><small>${etiquette(s)}</small>` : ''}</td>
         <td>${s.temps == null ? '—' : mmss(s.temps)}</td>
         <td><pre>${esc(s.source || '(vide)')}</pre></td>
       </tr>`).join('')}
     </table>`;
     corps.querySelectorAll('button[data-compter]').forEach(b => b.onclick = async () => {
       b.disabled = true;
-      try { await appel('POST', { action: 'compter', code: S.code, cle: S.cle, nom: b.dataset.compter, manche: vue.manche, compte: b.dataset.valeur === '1' }); }
+      try { await appel('POST', { action: 'compter', code: S.code, cle: S.cle, nom: b.dataset.compter, manche: numero, compte: b.dataset.valeur === '1' }); }
       catch (e) { $('#sessSolMsg').textContent = e.message; }
       voirSolutions();
     });
+    brancherInvalidation(corps, '#sessSolMsg', voirSolutions);
     brancherExclusion();
+    brancherManches();
   }
 
   /* ───── dialogue ───── */
@@ -846,7 +907,7 @@ window.Session = (() => {
         .sort((a, b) => ((b.s && b.s.total ? b.s.ok / b.s.total : 0) - (a.s && a.s.total ? a.s.ok / a.s.total : 0))
           || ((a.s && a.s.temps != null ? a.s.temps : Infinity) - (b.s && b.s.temps != null ? b.s.temps : Infinity)));
       for (const { nom, s: x } of lignes)
-        md.push(`| ${nom.replace(/\|/g, '\\|')} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'}${x && x.compte === false ? ', non comptée' : ''} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${x && x.sorties || 0} |`);
+        md.push(`| ${nom.replace(/\|/g, '\\|')} | ${!x ? 'non remis' : x.reussi ? 'réussi' : x.auto ? 'remis à la fin' : 'soumis'}${x && etiquette(x) ? ', ' + etiquette(x) : ''}${motifs(x).length ? ', code suspect : ' + motifs(x).join(', ') : ''} | ${x ? `${x.ok}/${x.total}` : '—'} | ${x && x.temps != null ? mmss(x.temps) : '—'} | ${x && x.sorties || 0} |`);
       md.push('');
       for (const x of so) md.push(`### ${x.nom.replace(/^#+/, '')}`, '', '```', (x.source || '').replace(/```/g, '` ` `'), '```', '');
     }
@@ -962,5 +1023,5 @@ window.Session = (() => {
   const verrouille = () => !!(S && vue && !S.indices && (vue.etat === 'compte_a_rebours' || enEpreuve(vue.etat))
     && !((vue.mode === 'entrainement' || (S.nom && !S.cle && S.eval === false)) && moiSoumis()));
 
-  return { init, verrouille, lancer, relancer, peutRelancer, ouvrirDialogue, get active() { return !!S; } };
+  return { init, verrouille, lancer, relancer, peutRelancer, ouvrirDialogue, soupcons, get active() { return !!S; } };
 })();

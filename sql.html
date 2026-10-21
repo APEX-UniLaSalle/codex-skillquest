@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 20 octobre 2026 · eb554e3</span>
+        <span id="tampon" style="opacity:.65">Version du 21 octobre 2026 · 556e90b</span>
       </div>
     </div>
   </div>
@@ -2180,7 +2180,10 @@ Session.init({
     const req = lireCode();
     if (!Q || motInterdit(req)) return { ok: 0, total: bases.length, source: req };
     const ok = bases.filter(b => { const o = jouer(b, req); return !o.err && comparer(b.attendu, o.r).ok; }).length;
-    return { ok, total: bases.length, source: req };
+    // soupçons de réponse écrite en dur : une alerte pour le lanceur, sans effet sur la note
+    const cellules = bases.flatMap(b => b.attendu ? b.attendu.values.flat() : []).filter(v => v != null).map(String);
+    const suspect = Session.soupcons({ page: 'sql', source: req, sorties: cellules, references: [REFERENCE, DEPART, Q.enonce || ''] });
+    return { ok, total: bases.length, source: req, suspect };
   },
   pret: () => bases.length > 0,
   competence: () => Q ? ({ 1: 'SQL II', 2: 'SQL II', 3: 'SQL III', 4: 'SQL IV' })[Q.niveau] || 'SQL' : 'SQL',

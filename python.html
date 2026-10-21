@@ -425,7 +425,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 20 octobre 2026 · eb554e3</span>
+        <span id="tampon" style="opacity:.65">Version du 21 octobre 2026 · 556e90b</span>
       </div>
     </div>
   </div>
@@ -1490,7 +1490,10 @@ Session.init({
     if (!e || !S.ready) return resoudre({ ok: 0, total: e ? e.tests.length : 0, source });
     execute(source, e.tests, (out, err) => {
       const ok = err ? 0 : out.filter((r, i) => !r.error && r.stdout === e.tests[i].attendu.replace(/\n+$/, '')).length;
-      resoudre({ ok, total: e.tests.length, source });
+      // soupçons de réponse écrite en dur : une alerte pour le lanceur, sans effet sur la note
+      const suspect = Session.soupcons({ page: 'python', source, entrees: e.tests.map(t => t.stdin),
+        sorties: e.tests.map(t => t.attendu), references: [e.solution, e.simple, e.amorce].filter(x => typeof x === 'string') });
+      resoudre({ ok, total: e.tests.length, source, suspect });
     }, false);
   }),
 });

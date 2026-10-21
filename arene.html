@@ -145,7 +145,8 @@ a{color:var(--orange)}
     <li>Le lanceur voit le podium en grand. Le classement suit le taux de tests réussis, puis le temps. Ceux qui n'ont rien soumis sont classés en dernier.</li>
     <li>Chaque participant voit un bilan personnel.</li>
     <li>Pour la manche suivante, le lanceur ouvre un autre exercice et clique sur <b>⚔️ Relancer l'arène sur cet exercice</b>. Le code et les participants restent les mêmes.</li>
-    <li><b>📋 Solutions</b> montre au lanceur le code soumis par chacun, avec son adresse. Le lanceur y accorde ou retire les points d'une sortie du plein écran, et peut exclure un participant.</li>
+    <li><b>📋 Solutions</b> montre au lanceur le code soumis par chacun, avec son adresse. Le lanceur y accorde ou retire les points d'une sortie du plein écran, et peut exclure un participant. Il peut aussi invalider une soumission, par exemple une réponse écrite en dur : elle vaut 0, en évaluation comme en entraînement, et se rétablit d'un clic. Les manches précédentes restent accessibles.</li>
+    <li><b>⚠ Code suspect</b> signale au lanceur une soumission qui ne lit pas l'entrée, écrit en dur une sortie attendue, ou interroge une requête SQL sans table. C'est une alerte : la note ne change que si le lanceur invalide.</li>
     <li>Deux exports couvrent toutes les manches : un fichier Markdown lisible et un fichier JSON brut.</li>
     <li>Après une heure d'exercices en évaluation, <b>⤓ Fichier pour l'application</b> produit un classeur au format d'import de l'application SkillQuest : une ligne par participant en évaluation avec son adresse, la compétence, l'XP de la médaille, la date, l'heure et la note.</li>
   </ul>
@@ -190,7 +191,7 @@ a{color:var(--orange)}
 
 <footer>
   Le Codex · UniLaSalle — Mode arène.
-  <span id="tampon" style="opacity:.65">Version du 20 octobre 2026 · eb554e3</span>
+  <span id="tampon" style="opacity:.65">Version du 21 octobre 2026 · 556e90b</span>
 </footer>
 </body>
 </html>

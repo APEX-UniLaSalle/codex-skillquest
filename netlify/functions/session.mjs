@@ -62,6 +62,13 @@
        montré au lanceur ; sa soumission de la manche n'est pas comptée, sauf
        décision du lanceur :
      POST {action:'compter', code, cle, nom, manche, compte}  → {session}
+     POST {action:'invalider', code, cle, nom, manche, invalide} → {session}
+       le lanceur invalide une soumission, par exemple une réponse écrite en dur :
+       elle vaut 0, en évaluation comme en entraînement, sans motif enregistré.
+       invalide:false la rétablit. Décision de Julien du 21 octobre 2026.
+       La soumission porte aussi suspect, une liste de soupçons calculés par le
+       navigateur du participant (sans_entree, sortie_ecrite, sans_table) :
+       une alerte pour le lanceur, sans effet sur la note.
      POST {action:'demarrer', code, cle}                      → {session}
      POST {action:'prolonger', code, cle, secondes}           → {session}
      POST {action:'pause', code, cle} / {action:'reprendre', code, cle} → {session}
@@ -100,6 +107,8 @@ const tirerCode = () =>
 const tirerSecret = () => crypto.randomUUID();
 
 /* Seuils du socle pour un savoir-faire : Bronze 10/20, Argent 15/20, Or 20/20. */
+// soupçons qu'un navigateur peut déclarer sur une soumission : une alerte, jamais une note
+const SOUPCONS = ['sans_entree', 'sortie_ecrite', 'sans_table'];
 const medaille = note => note >= 20 ? 'Or' : note >= 15 ? 'Argent' : note >= 10 ? 'Bronze' : null;
 
 const meme = (a, b) => String(a).localeCompare(String(b), 'fr', { sensitivity: 'base' }) === 0;
@@ -146,6 +155,7 @@ async function vue(store, meta, lanceur = false, participant = null) {
   const partDe = nom => parts.find(x => x.nom.localeCompare(nom, 'fr', { sensitivity: 'base' }) === 0);
   const enEval = nom => { const p = partDe(nom); return !!p && p.eval !== false; };
   const compte = s => {
+    if (s.invalide) return false;      // invalidée par le lanceur, dans tous les modes
     if (meta.mode !== 'eval' || !enEval(s.nom)) return true;
     if (typeof s.compte === 'boolean') return s.compte;
     const p = partDe(s.nom);
@@ -366,6 +376,17 @@ export default async (req) => {
     return repondre();
   }
 
+  if (action === 'invalider') {
+    if (!lanceur) return erreur('Seul le lanceur décide.', 403);
+    const nom = nettoyerNom(corps.nom);
+    const manche = Number(corps.manche) || meta.manche;
+    const soum = await store.get(cleSoum(code, manche, nom), { type: 'json' });
+    if (!soum) return erreur('Soumission inconnue.', 404);
+    soum.invalide = !!corps.invalide;
+    await store.setJSON(cleSoum(code, manche, nom), soum);
+    return repondre();
+  }
+
   if (action === 'exclure') {
     if (!lanceur) return erreur('Seul le lanceur peut exclure.', 403);
     const nom = nettoyerNom(corps.nom);
@@ -462,6 +483,7 @@ export default async (req) => {
       ok, total,
       reussi: dansLeTemps && total > 0 && ok === total,
       source: String(corps.source || '').slice(0, MAX_SOURCE),
+      suspect: (Array.isArray(corps.suspect) ? corps.suspect : []).filter(x => SOUPCONS.includes(x)),
     };
     await store.setJSON(cleSoum(code, soumission.manche, nom), soumission);
     return repondre({ soumission });
