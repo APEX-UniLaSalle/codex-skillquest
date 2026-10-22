@@ -39,6 +39,53 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
 footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:13px;
    text-align:center}
 a{color:var(--orange)}
+
+/* Accueil de la page : le principe en grand, le détail sous la ligne de flottaison.
+   Demande de Julien du 22 octobre 2026 : l'arrivée doit donner envie. */
+.hero{max-width:1100px;margin:0 auto;padding:34px 26px 20px}
+.hero .sur{margin:0 0 10px;color:var(--orange);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px}
+.hero h1{margin:0;font-size:clamp(32px,4.6vw,50px);line-height:1.1;letter-spacing:-.01em}
+.hero .accroche{margin:16px 0 0;font-size:clamp(17px,2.2vw,21px);color:var(--doux);max-width:640px}
+.hero .grille{display:grid;grid-template-columns:1.25fr 1fr;gap:36px;align-items:center}
+.etapes3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:40px 0 0}
+.etapes3 div{background:var(--carte);border:1px solid var(--bord);border-radius:12px;padding:16px 16px 14px}
+.etapes3 .ic{font-size:28px;line-height:1}
+.etapes3 b{display:block;margin:10px 0 4px;font-size:16px}
+.etapes3 span{color:var(--doux);font-size:14px;line-height:1.45}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 0;align-items:center}
+.actions a.btn{display:inline-block;padding:11px 20px;border-radius:10px;font-weight:700;text-decoration:none;
+   background:var(--orange);color:var(--fond);border:1px solid var(--orange)}
+.actions a.btn.sec{background:transparent;color:var(--orange)}
+.actions a.btn:hover{filter:brightness(1.08)}
+.ecran{background:var(--fond2);border:1px solid var(--bord);border-radius:16px;padding:22px;
+   box-shadow:0 18px 40px rgba(0,0,0,.18)}
+.ecran .lib{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--doux)}
+.ecran .code{font:700 clamp(30px,4.4vw,44px)/1.1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;margin:4px 0 14px;color:var(--orange)}
+.ecran .chrono{float:right;font:700 22px ui-monospace,SFMono-Regular,Menlo,monospace}
+.ecran ol{margin:6px 0 0;padding:0;list-style:none}
+.ecran li{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--bord);font-size:14.5px}
+.ecran li em{font-style:normal;color:var(--doux)}
+.ecran .note{margin:12px 0 0;font-size:12px;color:var(--doux)}
+.hero .pourquoi{font-size:14px;font-weight:700;margin:24px 0 6px;color:var(--texte);text-transform:uppercase;letter-spacing:.06em}
+.buts{list-style:none;margin:0;padding:0}
+.buts li{margin:5px 0;font-size:16px}
+.hero .mini{margin:10px 0 0;font-size:13px;color:var(--doux)}
+.ecran .bandeau{margin:-22px -22px 16px;padding:12px 22px;border-radius:16px 16px 0 0;background:var(--carte);border-bottom:1px solid var(--bord);font-size:14px}
+.ecran .bandeau b{color:var(--orange)}
+.joueurs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:6px}
+.joueurs span{display:flex;align-items:center;gap:8px;background:var(--carte);border:1px solid var(--bord);border-radius:10px;padding:6px 8px;font-size:13.5px;overflow:hidden;white-space:nowrap}
+.joueurs i{flex:none;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--orange);color:var(--fond);font-style:normal;font-weight:700;font-size:13px}
+.joueurs .libre{color:var(--doux);border-style:dashed}
+.joueurs .libre i{background:transparent;color:var(--doux);border:1px dashed var(--bord)}
+.suite{display:block;text-align:center;margin:34px 0 0;color:var(--doux);text-decoration:none;font-size:14px}
+.suite:hover{color:var(--orange)}
+.detail-titre{font-size:22px;margin:0 0 6px}
+@media (max-width:820px){
+  .hero{padding-top:24px}
+  .joueurs{grid-template-columns:repeat(2,1fr)}
+  .hero .grille{grid-template-columns:1fr;gap:26px}
+  .etapes3{grid-template-columns:1fr}
+}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -48,17 +95,59 @@ a{color:var(--orange)}
   <a href="python.html" class="retour">Python</a>
   <a href="sql.html" class="retour">SQL</a>
   <a href="r.html" class="retour">R</a>
-  <h1>Le mode arène</h1>
-  <p>Un exercice, un groupe, un chrono commun, un classement</p>
 </header>
 
-<main>
+<section class="hero">
+  <div class="grille">
+    <div>
+      <p class="sur">⚔️ Le mode arène du Codex</p>
+      <h1>Un exercice, un groupe,<br>un chrono.</h1>
+      <p class="accroche">Tout le groupe résout le même exercice en même temps. Chacun soumet sa solution une fois. Le classement s'affiche à la fin du chrono.</p>
+      <p class="pourquoi">Pourquoi jouer ?</p>
+      <ul class="buts">
+        <li>⭐ Résoudre un problème vite et juste, sous un temps limité.</li>
+        <li>⭐ Lire, après la manche, le code de ceux qui ont trouvé autrement.</li>
+        <li>⭐ S'entraîner aux conditions d'une évaluation de programmation.</li>
+      </ul>
+      <div class="actions">
+        <a class="btn" href="python.html">Lancer en Python</a>
+        <a class="btn sec" href="sql.html">En SQL</a>
+        <a class="btn sec" href="r.html">En R</a>
+      </div>
+      <p class="mini">Aucun compte ni mot de passe. Python, SQL et R.</p>
+    </div>
+    <div class="ecran" aria-label="Exemple d'écran projeté avant le départ d'une arène">
+      <div class="bandeau">Arène de 5 min · <b>démarre dans 00:08</b></div>
+      <div class="lib">Code à saisir pour rejoindre</div>
+      <div class="code">K7MQ2X</div>
+      <div class="lib">Ils ont rejoint</div>
+      <div class="joueurs">
+        <span><i>A</i>Ada</span><span><i>L</i>Linus</span><span><i>G</i>Grace</span><span><i>A</i>Alan</span><span><i>M</i>Margaret</span><span class="libre"><i>+</i>libre</span>
+      </div>
+      <div class="lib" style="margin-top:16px">À la fin du chrono</div>
+      <ol>
+        <li><span>🥇 Grace</span><em>6/6 tests · 03:12</em></li>
+        <li><span>🥈 Ada</span><em>6/6 tests · 04:05</em></li>
+        <li><span>🥉 Alan</span><em>5/6 tests · 04:40</em></li>
+      </ol>
+      <p class="note">Exemple d'écran projeté. Pseudos et temps fictifs.</p>
+    </div>
+  </div>
+  <div class="etapes3">
+    <div><span class="ic">📣</span><b>1. Lancer</b><span>Ouvrez un exercice, cliquez sur ⚔️ Lancer une arène. Le code s'affiche en grand pour le vidéoprojecteur.</span></div>
+    <div><span class="ic">💻</span><b>2. Coder</b><span>Chacun rejoint avec le code et un pseudo. Au départ, le même exercice s'ouvre sur tous les postes.</span></div>
+    <div><span class="ic">🏆</span><b>3. Comparer</b><span>Le classement suit les tests réussis, puis le temps. Le lanceur enchaîne une autre manche.</span></div>
+  </div>
+  <a class="suite" href="#details">Lancer, rejoindre, évaluation, note : tout le détail ↓</a>
+</section>
+
+<main id="details">
+  <h2 class="detail-titre" style="border:0;color:var(--texte);margin-top:0">Tout savoir sur l'arène</h2>
   <div class="intro">
     <p>Une arène réunit un groupe sur le même exercice, avec un chrono commun.
     Chaque participant soumet sa solution une fois. Le classement se fait sur les tests réussis, puis sur le temps.</p>
-    <p>L'arène fonctionne sur les trois parcours du Codex : Python, SQL et R.
-    Un enseignant la lance pour une séance. Des étudiants la lancent entre eux pour s'entraîner.</p>
-    <p>L'arène reste ouverte après la première manche. Le lanceur enchaîne d'autres exercices avec le même code et les mêmes participants.</p>
+    <p>Un enseignant la lance pour une séance. Des étudiants la lancent entre eux pour s'entraîner.
+    L'arène reste ouverte après la première manche : le lanceur enchaîne d'autres exercices avec le même code et les mêmes participants.</p>
   </div>
 
   <nav class="sommaire">
@@ -191,7 +280,7 @@ a{color:var(--orange)}
 
 <footer>
   Le Codex · UniLaSalle — Mode arène.
-  <span id="tampon" style="opacity:.65">Version du 21 octobre 2026 · 556e90b</span>
+  <span id="tampon" style="opacity:.65">Version du 22 octobre 2026 · 1b90a63</span>
 </footer>
 </body>
 </html>
