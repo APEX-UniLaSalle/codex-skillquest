@@ -68,7 +68,8 @@ a{color:var(--orange)}
 .ecran .note{margin:12px 0 0;font-size:12px;color:var(--doux)}
 .hero .pourquoi{font-size:14px;font-weight:700;margin:24px 0 6px;color:var(--texte);text-transform:uppercase;letter-spacing:.06em}
 .buts{list-style:none;margin:0;padding:0}
-.buts li{margin:5px 0;font-size:16px}
+.buts li{margin:6px 0;font-size:16px;padding-left:18px;position:relative}
+.buts li::before{content:"";position:absolute;left:0;top:.62em;width:8px;height:8px;border-radius:2px;background:var(--orange)}
 .hero .mini{margin:10px 0 0;font-size:13px;color:var(--doux)}
 .ecran .bandeau{margin:-22px -22px 16px;padding:12px 22px;border-radius:16px 16px 0 0;background:var(--carte);border-bottom:1px solid var(--bord);font-size:14px}
 .ecran .bandeau b{color:var(--orange)}
@@ -105,9 +106,9 @@ a{color:var(--orange)}
       <p class="accroche">Tout le groupe résout le même exercice en même temps. Chacun soumet sa solution une fois. Le classement s'affiche à la fin du chrono.</p>
       <p class="pourquoi">Pourquoi jouer ?</p>
       <ul class="buts">
-        <li>⭐ Résoudre un problème vite et juste, sous un temps limité.</li>
-        <li>⭐ Lire, après la manche, le code de ceux qui ont trouvé autrement.</li>
-        <li>⭐ S'entraîner aux conditions d'une évaluation de programmation.</li>
+        <li>Résoudre un problème vite et juste, sous un temps limité.</li>
+        <li>Lire, après la manche, le code de ceux qui ont trouvé autrement.</li>
+        <li>S'entraîner aux conditions d'une évaluation de programmation.</li>
       </ul>
       <div class="actions">
         <a class="btn" href="python.html">Lancer en Python</a>
@@ -280,7 +281,7 @@ a{color:var(--orange)}
 
 <footer>
   Le Codex · UniLaSalle — Mode arène.
-  <span id="tampon" style="opacity:.65">Version du 22 octobre 2026 · 1b90a63</span>
+  <span id="tampon" style="opacity:.65">Version du 22 octobre 2026 · 136d978</span>
 </footer>
 </body>
 </html>
