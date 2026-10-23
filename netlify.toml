@@ -21,3 +21,10 @@
   for = "/api/*"
   [headers.values]
     Cache-Control = "no-store"
+
+# Carnets : notebooks des cours convertis en pages, non référencés (23 octobre 2026).
+# Ni portail ni menu n'y mène ; les moteurs de recherche ne les indexent pas.
+[[headers]]
+  for = "/carnets/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"

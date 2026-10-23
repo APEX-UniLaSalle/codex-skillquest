@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Notation Polonaise Inverse — Le Codex</title>
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="carnet.css">
+</head>
+<body>
+<header class="c-tete">
+  <div class="c-ligne"><a href="../index.html" class="c-retour">← Le Codex</a><span class="c-comp">Piles et Files</span></div>
+  <div class="c-actions">
+    <button id="cTout" class="principal">▶ Tout exécuter</button>
+    <button id="cRedemarrer" title="Arrête Python et efface les variables">↺ Redémarrer Python</button>
+    <span id="cEtat" class="c-etat">Python se charge à la première exécution.</span>
+  </div>
+</header>
+<main id="carnet" class="c-carnet"></main>
+<footer class="c-pied">Le Codex · UniLaSalle — carnet converti depuis <code>Notation_Polonaise_Inverse.ipynb</code>. Le code s'exécute dans votre navigateur.</footer>
+<script type="application/json" id="cDonnees">{"nom": "notation-polonaise-inverse", "cellules": [{"type": "md", "source": "# **Notation Polonaise Inverse**\n\nLa Notation Polonaise Inverse (NPI), également connue sous le nom de notation post-fixée, permet d'écrire des formules arithmétiques sans utiliser de parenthèses, en plaçant chaque opérateur juste après ses deux opérandes. L'expression 2+3 devient en NPI 2 3 +.\n\nPrenons quelques exemples :\n2+6−1 s’écrit 2 6 + 1 -\n5∗3+4 s’écrit 5 3 * 4 +\n((1+2)∗4)+3 s’écrit 1 2 + 4 * 3 +\n\nPour évaluer une telle expression, il faut lire l’expression de gauche à droite et d’appliquer chaque opérateur aux deux opérandes qui le précèdent.\n\nSi l’opérateur n’est pas le dernier symbole de l'expression, on replace le résultat du calcul dans l’expression et on recommence avec l’opérateur suivant.\n\nCe problème est résolu grâce à une pile. On lit tous les éléments de l'expression, et :\n*   Si le caractère lu est un opérande, on l'empile\n*   Si le caractère lu est un opérateur, on dépile les deux éléments situés en haut de la pile, on calcule le résultat en appliquant l'opérateur sur les deux opérandes dépilées (attention à l'ordre dans les cas - et /), et on empile le résultat.\nUne fois que tous les caractères ont été lus, la pile ne contient plus qu'un seul élément qui est le résultat final.\n\nPour réaliser cet exercice, nous utiliserons la classe Pile vue dans le chapitre sur [les piles](https://mybinder.org/v2/gh/GeoLabUniLaSalle/Python/HEAD?filepath=Les_piles.ipynb)."}, {"type": "code", "source": "class Pile:\n  \n  def __init__(self):\n    self.elements = []\n    \n  def empile(self, element):\n    self.elements.append(element)\n\n  def depile(self):\n    if self.elements:\n      return self.elements.pop()\n  \n  def taille(self):\n    return len(self.elements)\n\n  def sommet(self):\n    if len(self.elements)==0:\n         raise Exception(\"La pile est vide\")\n    return self.elements[-1]\n    \n  def __str__(self):\n    out = str(self.elements[0])\n    for x in self.elements[1:]:\n      out = str(x) + \" -> \" + out\n    out = \"Pile : \" + out\n    return out", "sorties": [], "correction": false}, {"type": "md", "source": "Ecrivez un programme qui réalise le calcul d'une expression en NPI. Les caractères autorisés dans l'expressions sont les chiffres de 0 à 9, et les opérateurs +, -, *, /.\n\nVoici 2 fonctions qui nous seront utiles :\n- est_Operateur(x) qui prend un caractère en paramètre et retourne True s'il s'agit d'un opérateur, False sinon.\n- calcul(op, n, m) qui prend en paramètre : op, un opérateur parmi les 4 opérateurs autorisés et n et m, les deux nombres sur lesquels réaliser le calcul. La fonction retourne le résultat du calcul."}, {"type": "code", "source": "def est_Operateur(x):\n  if x in '+-*/':\n    return True\n  else:\n    return False\n\ndef calcul(op,m,n):\n  if op=='+':\n    return n+m\n  elif op=='-':\n    return n-m\n  elif op=='*':\n    return n*m\n  else:\n    return n/m", "sorties": [], "correction": false}, {"type": "md", "source": "Réalisez la fonction calcul_NPI(x) qui prend en paramètre une expression en NPI sous la forme d'une liste de str et qui affiche le résultat du calcul.\n\nTestez votre programme sur l'expression 5 8 3 - * 3 * 3 1 - 2 * 3 / +."}, {"type": "code", "source": "s = '5 8 3 - * 3 * 3 1 - 2 * 3 / +'\ne = s.split()\n\ndef calcul_NPI(x):\n  # A completer\n\nprint(calcul_NPI(e))", "sorties": [], "correction": false}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="marked.min.js"></script>
+<script src="carnet.js"></script>
+</body>
+</html>

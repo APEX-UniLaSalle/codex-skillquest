@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>📍 Exercice 1 — Somme des entiers de 1 à n — Le Codex</title>
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="carnet.css">
+</head>
+<body>
+<header class="c-tete">
+  <div class="c-ligne"><a href="../index.html" class="c-retour">← Le Codex</a><span class="c-comp">Récursivité</span></div>
+  <div class="c-actions">
+    <button id="cTout" class="principal">▶ Tout exécuter</button>
+    <button id="cRedemarrer" title="Arrête Python et efface les variables">↺ Redémarrer Python</button>
+    <span id="cEtat" class="c-etat">Python se charge à la première exécution.</span>
+  </div>
+</header>
+<main id="carnet" class="c-carnet"></main>
+<footer class="c-pied">Le Codex · UniLaSalle — carnet converti depuis <code>Recursivite_exercices.ipynb</code>. Le code s'exécute dans votre navigateur.</footer>
+<script type="application/json" id="cDonnees">{"nom": "recursivite-exercices", "cellules": [{"type": "md", "source": "## 📍 Exercice 1 — Somme des entiers de 1 à n\n\nImplémente une fonction récursive `somme(n)` qui retourne la somme des entiers de 1 à `n`."}, {"type": "code", "source": "def somme(n):\n    # à compléter\n    pass", "sorties": [], "correction": false}, {"type": "md", "source": "> 💡 Astuce : utilise une condition d'arrêt pour `n == 0`."}, {"type": "code", "source": "# ✅ Correction\n# Clique sur cette cellule si tu es bloqué\n\ndef somme(n):\n    if n == 0:\n        return 0\n    else:\n        return n + somme(n - 1)", "sorties": [], "correction": true}, {"type": "md", "source": "## 📍 Exercice 2 — Puissance\n\nImplémente une fonction récursive `puissance(x, n)` qui retourne `x` à la puissance `n`."}, {"type": "code", "source": "def puissance(x, n):\n    # à compléter\n    pass", "sorties": [], "correction": false}, {"type": "code", "source": "# ✅ Correction\n\ndef puissance(x, n):\n    if n == 0:\n        return 1\n    else:\n        return x * puissance(x, n - 1)", "sorties": [], "correction": true}, {"type": "md", "source": "## 📍 Exercice 3 — Suite de Fibonacci\n\nImplémente une fonction récursive `fibonacci(n)` qui retourne le `n`-ième terme de la suite de Fibonacci."}, {"type": "code", "source": "def fibonacci(n):\n    # à compléter\n    pass", "sorties": [], "correction": false}, {"type": "code", "source": "# ✅ Correction\n\ndef fibonacci(n):\n    if n <= 1:\n        return n\n    else:\n        return fibonacci(n - 1) + fibonacci(n - 2)", "sorties": [], "correction": true}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="marked.min.js"></script>
+<script src="carnet.js"></script>
+</body>
+</html>

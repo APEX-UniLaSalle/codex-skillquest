@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>La suite de Hamming — Le Codex</title>
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="carnet.css">
+</head>
+<body>
+<header class="c-tete">
+  <div class="c-ligne"><a href="../index.html" class="c-retour">← Le Codex</a><span class="c-comp">Piles et Files</span></div>
+  <div class="c-actions">
+    <button id="cTout" class="principal">▶ Tout exécuter</button>
+    <button id="cRedemarrer" title="Arrête Python et efface les variables">↺ Redémarrer Python</button>
+    <span id="cEtat" class="c-etat">Python se charge à la première exécution.</span>
+  </div>
+</header>
+<main id="carnet" class="c-carnet"></main>
+<footer class="c-pied">Le Codex · UniLaSalle — carnet converti depuis <code>La_suite_de_Hamming.ipynb</code>. Le code s'exécute dans votre navigateur.</footer>
+<script type="application/json" id="cDonnees">{"nom": "suite-de-hamming", "cellules": [{"type": "md", "source": "# **La suite de Hamming**\n\nUn nombre de Hamming est un entier naturel non nul dont les facteurs premiers sont inférieurs ou égal à 5.\nLes 30 premiers nombres de Hamming sont les suivants.\n1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 24, 25, 27, 30, 32, 36, 40, 45, 48, 50, 54, 60, 64, 72, 75, 80.\nLe problème de Hamming consiste à énumérer les n premiers entiers de Hamming par ordre croissant.\n\nUne solution par « force brute » au problème de Hamming est de parcourir les entiers un par un et, pour chacun d’entre eux, de l'enfiler dans une file s’il s’agit d’un nombre de Hamming, jusqu’à obtenir une file de taille n. Cette démarche montre vite ses limites : le 2001e entier de Hamming est égal à 8 100 000 000 et le 2002se à 8 153 726 976 : il faudrait tester plus de 53 millions de nombres avant d’augmenter notre liste d’un élément.\n\nOn adopte donc une autre stratégie : Tout nombre de Hamming différent de 1 etant un produit par 2, 3 ou 5 d'un nombre de Hamming plus petit, nous réalisons 3 files f2, f3 et f5 qui contiendront les nombres de Hamming trouvés et multipliés par 2, 3 ou 5.\n\nInitialement, f2, f3 et f5 ne contiennent que l'entier 1.\n*   On détermine x le plus petit nombre en tête d'une des 3 files, et on l'affiche.\n*   On retire x des files qui le contiennent.\n*   On ajoute en queue de files, 2x à f2, 3x à f3, et 5x à f5.\n\nPour montrer cet exemple, nous utiliserons la classe File vue dans le chapitre sur [les files](https://mybinder.org/v2/gh/GeoLabUniLaSalle/Python/HEAD?filepath=Les_files.ipynb)."}, {"type": "code", "source": "class File:\n  \n  def __init__(self):\n    self.elements = []\n    \n  def enfile(self, element):\n    self.elements.append(element)\n\n  def defile(self):\n    if self.elements:\n      return self.elements.pop(0)\n  \n  def taille(self):\n    return len(self.elements)\n\n  def sommet(self):\n    if len(self.elements)==0:\n         raise Exception(\"La file est vide\")\n    return self.elements[0]\n    \n  def __str__(self):\n    out = str(self.elements[0])\n    for x in self.elements[1:]:\n      out = str(x) + \" -> \" + out\n    out = \"File : \" + out\n    return out", "sorties": [], "correction": false}, {"type": "md", "source": "Ecrivez un programme qui affiche les x premiers nombres de Hamming."}, {"type": "code", "source": "def hamming(n):\n  # A compléter\n\nhamming(2002)", "sorties": [], "correction": false}, {"type": "md", "source": "Notons que cette méthode, même si elle est plus efficace que la méthode par \"force brute\", n'est pas optimale parce que le même nombre peut se retrouver dans plusieurs des 3 files alors qu'une seule suffirait."}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="marked.min.js"></script>
+<script src="carnet.js"></script>
+</body>
+</html>

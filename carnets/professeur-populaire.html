@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Professeur populaire ★★☆ — Le Codex</title>
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="carnet.css">
+</head>
+<body>
+<header class="c-tete">
+  <div class="c-ligne"><a href="../index.html" class="c-retour">← Le Codex</a><span class="c-comp">Optimisation de problème</span></div>
+  <div class="c-actions">
+    <button id="cTout" class="principal">▶ Tout exécuter</button>
+    <button id="cRedemarrer" title="Arrête Python et efface les variables">↺ Redémarrer Python</button>
+    <span id="cEtat" class="c-etat">Python se charge à la première exécution.</span>
+  </div>
+</header>
+<main id="carnet" class="c-carnet"></main>
+<footer class="c-pied">Le Codex · UniLaSalle — carnet converti depuis <code>Professeur_populaire.ipynb</code>. Le code s'exécute dans votre navigateur.</footer>
+<script type="application/json" id="cDonnees">{"nom": "professeur-populaire", "cellules": [{"type": "md", "source": "## **Professeur populaire ★★☆**\n\n\n\n\n*Exercice disponible sur la plateforme TOSA : Battle Dev Hello Works - Novembre 2018 : https://www.isograd.com/FR/solutionconcours.php*\n\n\n\n**Enoncé**\n\n\nVous vous êtes enfin décidé à monétiser vos connaissances en algorithmique en proposant des cours particuliers à des parents remplis d'espoirs injustifiés. Vous devenez rapidement très populaire, trop populaire, vous n'êtes plus sûr de pouvoir assurer tous vos cours. Pour avoir plus de chance d'acquérir votre savoir, tous vos élèves vous proposent deux créneaux de 60 minutes pendant lesquels ils sont disponibles, vous ne pourrez leur donner cours que sur un seul de ces deux créneaux (si vous avez le temps).\n\nSachant que vous ne pouvez donner cours qu'à un seul élève en même temps et que vous ne pouvez pas commencer un cours et en terminer un autre à la même minute, combien d'élèves différents pouvez-vous prendre au maximum ?\n\nIndication : vous pouvez procéder par énumération exhaustive (force brute).\n\n**Format des données**\n\n*Entrée*\n\n\nLigne 1 : un entier N entre 3 et 8 inclus, le nombre d'étudiants.\n\nLignes 2 à N+1 : deux entiers entre 0 et 1000 inclus, les deux débuts de créneaux (en minutes) auxquels un étudiant est disponible, chaque créneau a une durée de 60 minutes à partir des débuts indiqués.\n\n\n\n*Sortie*\n\nLe nombre maximum d'étudiant différents qu'il est possible de prendre.\n\n*Exemple*\n\nPour l'entrée suivante :\n\n\n5\n\n205 300\n\n210 370\n\n290 380\n\n120 305\n\n390 110\n\nLa réponse attendue est 4. Vous pourrez par exemple prendre les 4 étudiants suivants :\n- L'étudiant 1 sur son premier créneau de 205 à 265\n- L'étudiant 2 sur son second créneau de 370 à 430\n- L'étudiant 3 sur son premier créneau de 290 à 350\n- L'étudiant 4 sur son premier créneau de 120 à 180\nIl est possible de prendre d'autres combinaisons de 4 étudiants sur différents créneaux, mais il n'en existe aucune à 5 étudiants."}, {"type": "md", "source": "## **Données**\n\n*Accès aux données*"}, {"type": "code", "source": "import csv\nfiledir = ('https://codex-skillquest.netlify.app/carnets/donnees/Professeur_populaire/')\n\nimport ssl\nssl._create_default_https_context = ssl._create_unverified_context\n\nimport urllib.request\n\nfor x in range(1,6):\n  f = urllib.request.urlopen(str(filedir+\"input\"+str(x)+\".txt\"))\n\n  data=[]\n  for i in f:\n      line=i.decode('utf-8').strip()\n      data.append(line)\n  print('Entrée',x,':',data)\n\n  f = urllib.request.urlopen(str(filedir+\"output\"+str(x)+\".txt\"))\n  for i in f:\n      line=i.decode('utf-8').strip()\n  print('Sortie',x,':',line,'\\n')", "sorties": [{"genre": "stdout", "donnee": "Entrée 1 : ['3', '60 400', '120 340', '120 400']\nSortie 1 : 2 \n\nEntrée 2 : ['5', '205 300', '210 370', '290 380', '120 305', '390 110']\nSortie 2 : 4 \n\nEntrée 3 : ['6', '69 150', '65 166', '67 13', '199 116', '33 8', '27 82']\nSortie 3 : 3 \n\nEntrée 4 : ['6', '347 94', '256 500', '335 480', '479 57', '135 300', '247 388']\nSortie 4 : 5 \n\nEntrée 5 : ['8', '799 978', '180 600', '907 852', '967 576', '697 37', '682 391', '364 214', '220 833']\nSortie 5 : 8 \n\n"}], "correction": false}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="marked.min.js"></script>
+<script src="carnet.js"></script>
+</body>
+</html>

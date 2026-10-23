@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Les classes — Le Codex</title>
+<script src="../theme.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="../theme.css">
+<link rel="stylesheet" href="carnet.css">
+</head>
+<body>
+<header class="c-tete">
+  <div class="c-ligne"><a href="../index.html" class="c-retour">← Le Codex</a><span class="c-comp">Classes</span></div>
+  <div class="c-actions">
+    <button id="cTout" class="principal">▶ Tout exécuter</button>
+    <button id="cRedemarrer" title="Arrête Python et efface les variables">↺ Redémarrer Python</button>
+    <span id="cEtat" class="c-etat">Python se charge à la première exécution.</span>
+  </div>
+</header>
+<main id="carnet" class="c-carnet"></main>
+<footer class="c-pied">Le Codex · UniLaSalle — carnet converti depuis <code>Les_classes.ipynb</code>. Le code s'exécute dans votre navigateur.</footer>
+<script type="application/json" id="cDonnees">{"nom": "classes-introduction", "cellules": [{"type": "md", "source": "# **Les classes**\n\nDans ce chapitre, nous allons voir comment créer et utiliser nos propres classes en Python.\n\nDébutons par la création d'une classe Voiture, constituée d’un constructeur, d’une méthode permettant d'accélérer, et d’une méthode permettant d’afficher une instance"}, {"type": "code", "source": "class Voiture :\n  \"\"\"\n  Classe pour représenter une voiture.\n  \"\"\"\n  \n  def __init__(self, puissance, vitesse) :\n    \"\"\"\n    Creation d'une nouvelle voiture constituée d'une puissance en chevaux fiscaux, et d'une vitesse en km/h.\n    \"\"\"\n    self.puissance = puissance\n    self.vitesse = vitesse\n\n  def accelere(self, x) :\n    \"\"\"\n    Accélere de x km/h.\n    \"\"\"\n    self.vitesse += x\n\n  def __str__(self) :\n    \"\"\"\n    Méthode invoquée lors de l'affichage d'une instance.\n    \"\"\"\n    return 'Voiture : '+str(self.puissance)+' CV - '+str(self.vitesse)+' km/h'", "sorties": [], "correction": false}, {"type": "md", "source": "Nous allons maintennant créer une instance de Voiture et consulter la valeur de ses attributs."}, {"type": "code", "source": "v = Voiture(puissance=6, vitesse=40) # appel à __init__\nprint(v.puissance)\nprint(v.vitesse)\nprint(v) # appel à __str__", "sorties": [{"genre": "stdout", "donnee": "6\n40\nVoiture : 6 CV - 40 km/h\n"}], "correction": false}, {"type": "md", "source": "Il est possible d'utiliser les méthodes définies dans la classe Voiture."}, {"type": "code", "source": "v.accelere(2)\nprint(vs)", "sorties": [{"genre": "stdout", "donnee": "Voiture : 6 CV - 42 km/h\n"}], "correction": false}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="marked.min.js"></script>
+<script src="carnet.js"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# Le Codex. Les carnets sont accessibles par leur seule adresse directe :
+# ils ne sont pas indexés. Décision du 23 octobre 2026.
+User-agent: *
+Disallow: /carnets/
