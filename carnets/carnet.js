@@ -83,7 +83,9 @@ onmessage = async ev => {
 
   /* Une sortie de cellule : texte, image, résultat, erreur. */
   function ajouter(zone, genre, donnee) {
-    if (genre === 'clear') { zone.innerHTML = ''; return; }
+    // clear_output(wait=True) : l'effacement attend la sortie suivante, comme dans Jupyter
+    if (genre === 'clear') { if (donnee === 'wait') zone.dataset.attente = '1'; else zone.innerHTML = ''; return; }
+    if (zone.dataset.attente) { zone.innerHTML = ''; delete zone.dataset.attente; }
     if (genre === 'image') {
       const img = document.createElement('img');
       img.src = 'data:image/png;base64,' + donnee; img.alt = 'Figure';
@@ -110,7 +112,7 @@ onmessage = async ev => {
       let erreur = false;
       attentes.set(id, {
         recevoir: (genre, donnee) => { if (genre === 'erreur') erreur = true; ajouter(zone, genre, donnee); },
-        finir: (arrete) => { num.textContent = arrete ? '[ ]' : `[${id}]`; bouton.disabled = false; fin(!erreur && !arrete); },
+        finir: (arrete) => { delete zone.dataset.attente; num.textContent = arrete ? '[ ]' : `[${id}]`; bouton.disabled = false; fin(!erreur && !arrete); },
       });
       worker.postMessage({ type: 'run', id, code: editeur.getValue() });
     });

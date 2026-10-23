@@ -11,4 +11,5 @@ def display(*objets, **kwargs):
 
 
 def clear_output(wait=False):
-    codex_carnet.emettre('clear')
+    # wait=True : la sortie s'efface au moment où arrive la suivante, sans clignoter
+    codex_carnet.emettre('clear', 'wait' if wait else '')

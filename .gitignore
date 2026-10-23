@@ -1,2 +1,5 @@
 .DS_Store
 node_modules
+
+# cache de Python laissé par les essais des carnets
+__pycache__/

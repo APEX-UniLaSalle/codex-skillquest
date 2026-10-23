@@ -13,6 +13,7 @@ import io
 import os
 import re
 import sys
+import time
 import traceback
 
 os.environ.setdefault('MPLBACKEND', 'AGG')
@@ -120,8 +121,20 @@ def _urlopen_codex(url, *a, **k):
     return io.BytesIO(texte.encode('utf-8'))
 
 
+def _attendre(secondes):
+    fin = time.perf_counter() + max(0.0, float(secondes))
+    while time.perf_counter() < fin:
+        pass
+
+
 def preparer():
     ESPACE['__codex_timeit__'] = __codex_timeit__
+    # Si time.sleep ne suspend rien dans ce Python, une attente active le remplace :
+    # une animation garde son rythme. Elle ne bloque que le Worker, pas la page.
+    t = time.perf_counter()
+    time.sleep(0.02)
+    if time.perf_counter() - t < 0.015:
+        time.sleep = _attendre
     try:
         import ssl  # noqa: F401
     except ImportError:
