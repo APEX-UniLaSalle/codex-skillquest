@@ -82,10 +82,10 @@ window.Session = (() => {
   /* ───── style et gabarits ───── */
   const STYLE = `
   #sessBar{background:var(--panel2);border-bottom:1px solid var(--line);padding:9px 18px;
-    display:none;gap:12px 22px;align-items:center;flex-wrap:wrap;font-size:13.5px;position:sticky;top:0;z-index:19}
+    display:none;gap:12px 22px;align-items:center;flex-wrap:wrap;font-size:15px;position:sticky;top:0;z-index:19}
   #sessBar.on{display:flex}
-  #sessBar .code{font-size:22px;font-weight:700;letter-spacing:3px;color:var(--accent);font-family:ui-monospace,Menlo,monospace}
-  #sessBar .chrono{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;min-width:84px}
+  #sessBar .code{font-size:24px;font-weight:700;letter-spacing:3px;color:var(--accent);font-family:ui-monospace,Menlo,monospace}
+  #sessBar .chrono{font-size:27.5px;font-weight:700;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;min-width:84px}
   #sessBar .chrono.fin{color:var(--ko)}
   #sessBar .titre{color:var(--muted)}
   #sessBar .titre b{color:var(--ink);font-weight:600}
@@ -98,8 +98,8 @@ window.Session = (() => {
   #sessBar .liste span.soumis{opacity:.6}
   #sessBar .liste em{color:var(--muted);font-style:normal}
   #sessBar .actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  #sessBar .msg{color:var(--muted);font-size:12.5px}
-  #sessBtn{font-size:12.5px;padding:5px 11px}
+  #sessBar .msg{color:var(--muted);font-size:14px}
+  #sessBtn{font-size:14px;padding:5px 11px}
   body.arene-verrou .arene-cache{display:none !important}
   body.arene-verrou .arene-fige{pointer-events:none;opacity:.45}
   #sessGrand2{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;flex-direction:column;
@@ -133,12 +133,12 @@ window.Session = (() => {
   #sessAttente .a-class th{color:var(--muted);font-size:.7em;text-transform:uppercase;letter-spacing:.3px}
   #sessAttente .a-class tr.moi td{color:var(--ok);font-weight:600}
   #sessAttente .a-class em{color:var(--muted);font-style:normal;display:block;padding:.6em}
-  #sessAttente .a-note{color:var(--muted);font-size:13.5px;margin:0}
+  #sessAttente .a-note{color:var(--muted);font-size:15px;margin:0}
 
-  #sessFin .bilan{font-size:15px;line-height:1.6}
-  #sessFin .a-class table{width:100%;border-collapse:collapse;font-size:13.5px}
+  #sessFin .bilan{font-size:17px;line-height:1.6}
+  #sessFin .a-class table{width:100%;border-collapse:collapse;font-size:15px}
   #sessFin .a-class td,#sessFin .a-class th{text-align:left;padding:.3em .6em;border-bottom:1px solid var(--line)}
-  #sessFin .a-class th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  #sessFin .a-class th{color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.3px}
   #sessFin .a-class tr.moi td{color:var(--ok);font-weight:600}
   #sessFin .a-class em{color:var(--muted);font-style:normal;display:block;padding:.4em 0}
   #sessFin .bilan b{font-weight:650}
@@ -147,29 +147,29 @@ window.Session = (() => {
   dialog.sessDlg{border:1px solid var(--line);border-radius:6px;padding:0;max-width:460px;
     width:calc(100% - 32px);background:var(--panel);color:var(--ink);font:inherit}
   dialog.sessDlg::backdrop{background:rgba(60,56,54,.45)}
-  dialog.sessDlg h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:15px;color:var(--accent)}
+  dialog.sessDlg h3{margin:0;padding:13px 18px;border-bottom:1px solid var(--line);font-size:17px;color:var(--accent)}
   dialog.sessDlg .corps{padding:14px 18px}
-  dialog.sessDlg label{display:block;font-size:13px;font-weight:600;margin:10px 0 5px}
+  dialog.sessDlg label{display:block;font-size:14.5px;font-weight:600;margin:10px 0 5px}
   dialog.sessDlg label:first-child{margin-top:0}
   dialog.sessDlg input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:5px;font:inherit;background:var(--bg);color:var(--ink)}
-  dialog.sessDlg input.code{font-family:ui-monospace,Menlo,monospace;font-size:20px;letter-spacing:4px;text-transform:uppercase;text-align:center}
+  dialog.sessDlg input.code{font-family:ui-monospace,Menlo,monospace;font-size:22px;letter-spacing:4px;text-transform:uppercase;text-align:center}
   dialog.sessDlg .deux{display:flex;gap:10px}
   dialog.sessDlg .deux>div{flex:1}
-  dialog.sessDlg .aide{margin:6px 0 0;font-size:12.5px;color:var(--muted)}
-  dialog.sessDlg .aide-arene{margin-left:auto;font-size:12.5px;color:var(--link-txt);white-space:nowrap}
+  dialog.sessDlg .aide{margin:6px 0 0;font-size:14px;color:var(--muted)}
+  dialog.sessDlg .aide-arene{margin-left:auto;font-size:14px;color:var(--link-txt);white-space:nowrap}
   dialog.sessDlg .pied{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
-  dialog.sessDlg .etat{font-size:12.5px;color:var(--ko);margin-left:auto}
-  dialog.sessDlg .sess-exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:13px}
+  dialog.sessDlg .etat{font-size:14px;color:var(--ko);margin-left:auto}
+  dialog.sessDlg .sess-exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:14.5px}
   dialog.sessDlg .sess-exo b{font-weight:600}
   dialog.sessDlg input[type=checkbox]{accent-color:var(--accent)}
   dialog#sessSol{max-width:960px}
   #sessSol .corps{max-height:70vh;overflow:auto}
-  #sessSol table{width:100%;border-collapse:collapse;font-size:13px}
+  #sessSol table{width:100%;border-collapse:collapse;font-size:14.5px}
   #sessSol th,#sessSol td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-  #sessSol th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.3px}
+  #sessSol th{color:var(--muted);font-weight:600;font-size:13.5px;text-transform:uppercase;letter-spacing:.3px}
   #sessSol td.etat.ok{color:var(--ok);font-weight:600}
   #sessSol td.etat.ko{color:var(--ko)}
-  #sessSol pre{margin:0;font:12.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;
+  #sessSol pre{margin:0;font:14px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word;
     background:var(--bg);border-radius:4px;padding:6px 8px;max-height:260px;overflow:auto}
   #sessSol .vide{color:var(--muted)}`;
 
@@ -243,7 +243,7 @@ window.Session = (() => {
       <button id="sessExpMd" title="Toutes les manches, un fichier lisible">⤓ Markdown</button>
       <button id="sessExpJson" title="Toutes les manches, données brutes">⤓ JSON</button>
       <button id="sessExpApp" style="display:none" title="Les validations, au format d'import de l'application SkillQuest">⤓ Fichier pour l'application</button>
-      <span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:12.5px;color:var(--muted)"></span></div>
+      <span class="msg" id="sessSolMsg" style="margin-left:auto;font-size:14px;color:var(--muted)"></span></div>
   </dialog>
   <div id="sessAttente" role="dialog" aria-label="Solution soumise, en attente de la fin de la manche">
     <div class="a-titre">Solution soumise</div>
@@ -510,7 +510,7 @@ window.Session = (() => {
                    : `${Math.round(k.dureeTotale / 60)} min d’exercices sur 60 : jouez encore ${k.manque} min d’exercices pour valider la compétence.`}</p>` : '';
     $('#sessFinCorps').innerHTML = `<div class="bilan">${corps}${scoreTxt}${moiEnEval() ? `<div class="a-class" style="margin:8px 0">${tableauCumul()}</div>` : ''}
       <p>Les indices, la solution et la liste des exercices sont de nouveau accessibles.</p>
-      <p style="color:var(--muted);font-size:13px">Restez dans l’arène : le lanceur peut ouvrir une nouvelle manche sur un autre exercice.</p></div>`;
+      <p style="color:var(--muted);font-size:14.5px">Restez dans l’arène : le lanceur peut ouvrir une nouvelle manche sur un autre exercice.</p></div>`;
     const d = $('#sessFin'); if (!d.open) d.showModal();
   }
 

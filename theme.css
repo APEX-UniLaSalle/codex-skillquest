@@ -77,13 +77,13 @@
 }
 
 /* ── fond et typographie ── */
-body{font-family:var(--ui);font-size:14.5px;
+body{font-family:var(--ui);font-size:16.5px;
   background:var(--bg) radial-gradient(ellipse at top, color-mix(in srgb, var(--panel) 55%, var(--bg)) 0%, var(--bg) 60%) fixed}
 h1,h2,h3,.card h2,.hero h2,.parc h3,.niv h3,.theme h3,.intro h2,#titreQ{font-family:var(--serif);font-weight:600;letter-spacing:0}
-header h1{font-variant:small-caps;letter-spacing:.06em;font-size:18px}
+header h1{font-variant:small-caps;letter-spacing:.06em;font-size:20px}
 header h1::before{content:"◆";font-size:9px;color:var(--or);margin-right:8px;vertical-align:2px;font-family:var(--ui)}
-.hero h2,.intro h2{font-variant:small-caps;letter-spacing:.04em;font-weight:600;font-size:32px}
-.statement,.enonce,#enonce,.hero p,.intro .texte p{font-family:var(--prose);font-size:15.5px;line-height:1.6}
+.hero h2,.intro h2{font-variant:small-caps;letter-spacing:.04em;font-weight:600;font-size:33.5px}
+.statement,.enonce,#enonce,.hero p,.intro .texte p{font-family:var(--prose);font-size:17.5px;line-height:1.6}
 .etiq,.num,.sub-h,.bloc h3,.intro .texte h3,.exo .num,.qst .num,table.tests th,table.jeux th,table.res th,th,
 .bac-carte .num,.examen .num,.niv .num,footer h2{font-family:var(--ui);letter-spacing:.14em;text-transform:uppercase;font-weight:500}
 .exo .num,.qst .num{letter-spacing:0;text-transform:none}
@@ -126,4 +126,28 @@ code,.statement code,.enonce code,#enonce code,.notion h4 code{background:var(--
 pre code,.console-body code,textarea code,.CodeMirror code{background:transparent;color:inherit}
 
 /* ── bouton jour / nuit ── */
-#themeBtn{font-size:12.5px;padding:5px 10px;line-height:1}
+#themeBtn{font-size:14px;padding:5px 10px;line-height:1}
+
+/* ── Lisibilité, 23 octobre 2026 ──────────────────────────────────────────
+   Demande de Julien : des textes plus gros et les traits des carnets sur toutes
+   les pages. Les tailles des pages sont agrandies par agrandir_textes.py ; cette
+   section harmonise l'en-tête et les boutons. */
+header{padding:12px 22px;gap:12px 16px}
+button,.fiche,select,input[type=search],input[type=text],input[type=number]{border-radius:8px}
+header button,header .fiche,header a.fiche{padding:8px 14px;line-height:1.2;white-space:nowrap}
+.editor-head strong,.editor-head a{white-space:nowrap}
+#themeBtn{font-size:14px;padding:8px 12px;line-height:1.2;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);cursor:pointer}
+#themeBtn:hover{border-color:var(--or-texte)}
+.CodeMirror{font-size:15px;line-height:1.55}
+/* le texte agrandi ne doit pas élargir la colonne de travail : les longues chaînes se coupent */
+main>*{min-width:0}
+.constraint,.statement,.enonce,#enonce,pre.io,table.tests td{overflow-wrap:anywhere}
+@media (max-width:640px){
+  header{padding:10px 14px}
+  header .sub{display:none}
+  /* #status porte les boutons de l'en-tête : une ligne entière, l'état de chargement dessous */
+  #status{flex-basis:100%;margin-left:0;flex-wrap:wrap;gap:8px;font-size:13px}
+  #status #statusTxt{flex:1 1 60%;min-width:0}
+  header button,header .fiche,header a.fiche{padding:7px 10px}
+}

@@ -85,12 +85,18 @@ onmessage = async ev => {
   function ajouter(zone, genre, donnee) {
     // clear_output(wait=True) : l'effacement attend la sortie suivante, comme dans Jupyter
     if (genre === 'clear') { if (donnee === 'wait') zone.dataset.attente = '1'; else zone.innerHTML = ''; return; }
-    if (zone.dataset.attente) { zone.innerHTML = ''; delete zone.dataset.attente; }
     if (genre === 'image') {
+      const src = 'data:image/png;base64,' + donnee;
+      // Animation (display puis clear_output(wait=True)) : la même image est mise à jour
+      // sur place, une fois la suivante décodée, sans vider la zone ; pas de flash.
+      const seule = zone.children.length === 1 && zone.firstElementChild.tagName === 'IMG' ? zone.firstElementChild : null;
+      if (zone.dataset.attente && seule) { delete zone.dataset.attente; remplacer(seule, src); return; }
+      if (zone.dataset.attente) { zone.innerHTML = ''; delete zone.dataset.attente; }
       const img = document.createElement('img');
-      img.src = 'data:image/png;base64,' + donnee; img.alt = 'Figure';
+      img.src = src; img.alt = 'Figure';
       zone.appendChild(img); return;
     }
+    if (zone.dataset.attente) { zone.innerHTML = ''; delete zone.dataset.attente; }
     const classe = genre === 'erreur' ? 'c-err' : genre === 'stderr' ? 'c-stderr' : genre === 'resultat' ? 'c-res' : 'c-out';
     const dernier = zone.lastElementChild;
     if (dernier && dernier.tagName === 'PRE' && dernier.dataset.genre === genre && genre !== 'resultat') {
@@ -99,6 +105,18 @@ onmessage = async ev => {
     const pre = document.createElement('pre');
     pre.className = classe; pre.dataset.genre = genre; pre.textContent = donnee;
     zone.appendChild(pre);
+  }
+
+  /* Change l'image affichée sans passer par une image vide : la nouvelle est décodée
+     d'abord, et une image plus ancienne arrivée en retard ne remplace pas la plus récente. */
+  function remplacer(img, src) {
+    const jeton = (img._jeton || 0) + 1;
+    img._jeton = jeton;
+    const n = new Image();
+    n.src = src;
+    (n.decode ? n.decode() : Promise.resolve()).catch(() => {}).then(() => {
+      if (img._jeton === jeton) img.src = src;
+    });
   }
 
   async function executer(cellule) {

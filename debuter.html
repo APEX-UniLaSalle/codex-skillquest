@@ -8,18 +8,18 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--texte);
-     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
-header h1{margin:0;font-size:20px}
+header h1{margin:0;font-size:22px}
 header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
-   text-decoration:none;font-size:13px;margin-right:16px}
+   text-decoration:none;font-size:14.5px;margin-right:16px}
 header .retour:hover{text-decoration:underline}
-header p{margin:4px 0 0;color:var(--doux);font-size:14px}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
 .fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
-   font-size:12.5px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
 .fiche:hover{border-color:var(--orange);color:var(--orange)}
 main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
-h2{font-size:17px;margin:34px 0 10px;color:var(--orange);
+h2{font-size:18.5px;margin:34px 0 10px;color:var(--orange);
    border-bottom:1px solid var(--bord);padding-bottom:6px}
 .intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
    border-radius:8px;padding:14px 18px;margin:18px 0}
@@ -28,48 +28,48 @@ ul.regles{margin:8px 0;padding-left:22px}
 ul.regles li{margin:5px 0}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
 .trio{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;margin:12px 0;align-items:stretch}
-.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;
+.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux)}
 @media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
 pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
-   border-radius:8px;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
    overflow-x:auto;white-space:pre}
 pre .c{color:#9C8F9A}
-table.lignes{border-collapse:collapse;font-size:14px;margin:10px 0}
-table.lignes th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
+table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
 table.lignes td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord);
-   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14.5px}
 .vn{color:var(--doux);font-style:italic}
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
    background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
-.erreurs{width:100%;border-collapse:collapse;font-size:14px;margin:10px 0}
-.erreurs th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+.erreurs{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+.erreurs th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux);padding:6px 10px 6px 0;border-bottom:1px solid var(--bord)}
 .erreurs td{padding:8px 10px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
 .ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
    padding:16px 18px;margin:14px 0}
-.ex h3{margin:0 0 4px;font-size:16px}
-.ex .cons{margin:0 0 10px;font-size:15px}
-.ex .jeux{color:var(--doux);font-size:13px;margin:0 0 10px}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{margin:0 0 10px;font-size:17px}
+.ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
 textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
    border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
-   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
 .actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
 button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
-   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:14px}
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
 button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
 button:disabled{opacity:.5;cursor:default}
 .sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
-   padding:11px 14px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
    white-space:pre-wrap;display:none}
 .sortie.visible{display:block}
 .ok{color:#9CC5A4}.ko{color:#E89A86}
 details{margin-top:10px}
-summary{cursor:pointer;color:var(--bleu);font-size:14px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
 details pre{margin-top:8px}
-.etat{color:var(--doux);font-size:13px}
-footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:13px;
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
    text-align:center}
 a{color:var(--orange)}
 </style>
@@ -205,7 +205,7 @@ print(total)               <span class="c"># 24</span></pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 23 octobre 2026 · d3d385d</span>
+  <span id="tampon" style="opacity:.65">Version du 23 octobre 2026 · 658b099</span>
 </footer>
 
 <script>

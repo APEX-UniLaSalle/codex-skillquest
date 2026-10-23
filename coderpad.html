@@ -14,50 +14,50 @@
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--texte);
-     font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
 header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
-header h1{margin:0;font-size:20px}
+header h1{margin:0;font-size:22px}
 header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
-   text-decoration:none;font-size:13px}
+   text-decoration:none;font-size:14.5px}
 header .retour:hover{text-decoration:underline}
-header p{margin:4px 0 0;color:var(--doux);font-size:14px}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
 .fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
-   font-size:12.5px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
 .fiche:hover{border-color:var(--orange);color:var(--orange)}
 main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
-h2{font-size:17px;margin:30px 0 10px;color:var(--orange);
+h2{font-size:18.5px;margin:30px 0 10px;color:var(--orange);
    border-bottom:1px solid var(--bord);padding-bottom:6px}
 .intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
    border-radius:8px;padding:14px 18px;margin:18px 0}
 .intro p{margin:8px 0}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:10px 0}
-.duo>div>h3{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+.duo>div>h3{margin:0 0 6px;font-size:14.5px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux)}
 pre{margin:0;background:var(--sombre);color:var(--sombreTexte);padding:12px 14px;
-   border-radius:8px;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+   border-radius:8px;font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
    overflow-x:auto;white-space:pre}
 .ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
    padding:16px 18px;margin:14px 0}
-.ex h3{margin:0 0 4px;font-size:16px}
-.ex .cons{color:var(--doux);font-size:14px;margin:0 0 10px}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{color:var(--doux);font-size:16px;margin:0 0 10px}
 textarea{width:100%;min-height:150px;background:var(--sombre);color:var(--sombreTexte);
    border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
-   font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
 .actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
 button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
-   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:14px}
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
 button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
 button:disabled{opacity:.5;cursor:default}
 .sortie{margin-top:10px;background:var(--sombre);color:var(--sombreTexte);border-radius:8px;
-   padding:11px 14px;font:12.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
    white-space:pre-wrap;display:none}
 .sortie.visible{display:block}
 .ok{color:#A9B665}.ko{color:#EA6962}
 details{margin-top:10px}
-summary{cursor:pointer;color:var(--bleu);font-size:14px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
 details pre{margin-top:8px}
-.etat{color:var(--doux);font-size:13px}
-footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:13px;
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
    text-align:center}
 a{color:var(--orange)}
 </style>
@@ -117,7 +117,7 @@ print(total)</pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 23 octobre 2026 · d3d385d</span>
+  <span id="tampon" style="opacity:.65">Version du 23 octobre 2026 · 658b099</span>
 </footer>
 
 <script>
@@ -270,7 +270,7 @@ __resultats
     const etat = document.getElementById('etat');
     etat.innerHTML = 'Python n’a pas pu être chargé. Vérifiez votre connexion, puis '
       + '<a href="#" id="reinit">rechargez la page en vidant le cache</a>.'
-      + (detail ? `<br><span style="font-size:12px">${detail}</span>` : '');
+      + (detail ? `<br><span style="font-size:13.5px">${detail}</span>` : '');
     const lien = document.getElementById('reinit');
     if (lien) lien.onclick = async (ev) => {
       ev.preventDefault();
