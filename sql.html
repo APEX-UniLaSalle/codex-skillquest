@@ -723,7 +723,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 23 octobre 2026 · 658b099</span>
+        <span id="tampon" style="opacity:.65">Version du 28 octobre 2026 · b54171c</span>
       </div>
     </div>
   </div>
@@ -1347,7 +1347,7 @@ function preparerBases() {
   bases.length = 0;
   for (const j of JEUX) {
     const d = ouvrir(j);
-    const r = d.exec(REFERENCE);
+    const r = d.exec(adapterMySQL(REFERENCE));   // le corrigé est lu comme la réponse : division MySQL
     bases.push({ db: d, titre: j.titre, desc: j.desc, attendu: r.length ? r[0] : null });
   }
   afficherSchema(bases[0].db, 'plan', SCHEMA_COMPLET ? null : (Q && Q.tables));

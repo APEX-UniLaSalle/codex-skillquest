@@ -14,9 +14,10 @@
    Doit rester en accord avec fonctions_mysql() et adapter_mysql() de
    sql/construire_banque_sql.py : ce qui est contrôlé à la fabrication doit
    s'exécuter ici à l'identique.
-   Reste une différence, assumée : 10 / 4 vaut 2 ici et 2.5 sous MySQL. SQLite
-   divise deux entiers en entier ; écrire 10.0 / 4 donne le même résultat
-   partout. */
+   La division suit MySQL depuis le 28 octobre 2026, à la demande de Vincent
+   Tellier : 10 / 4 vaut 2.5, comme sur CoderPad. SQLite divisait deux entiers
+   en entier, y compris les colonnes DECIMAL à valeur ronde (45.00 / 4 donnait
+   11) ; adapterMySQL() réécrit chaque « / » en « * 1.0 / ». */
 
 // sql.js enregistre une fonction avec autant d'arguments que sa longueur : -1
 // la déclare variadique, ce qui permet CONCAT(a, b, c, …) et les arguments facultatifs
@@ -306,7 +307,7 @@ function fonctionsMySQL(d) {
   F('IF', (c, a, b) => vrai(c) ? a : b);
 }
 
-/* Réécriture des deux syntaxes de MySQL que SQLite ne sait pas analyser.
+/* Réécriture des syntaxes de MySQL que SQLite analyse mal ou lit autrement.
    Les littéraux sont mis de côté le temps de la réécriture : une chaîne
    « 'INTERVAL 3 DAY' » ne doit pas être touchée. */
 const UNITES = 'MICROSECOND|SECOND|MINUTE|HOUR|DAY|WEEK|MONTH|QUARTER|YEAR|SECOND_MICROSECOND|MINUTE_MICROSECOND|MINUTE_SECOND|HOUR_MICROSECOND|HOUR_SECOND|HOUR_MINUTE|DAY_MICROSECOND|DAY_SECOND|DAY_MINUTE|DAY_HOUR|YEAR_MONTH';
@@ -337,5 +338,10 @@ function adapterMySQL(req) {
   s = s.replace(new RegExp(`\\bTRIM\\s*\\(\\s*(${VAL})\\s+FROM\\s+`, 'gi'), (m, rem) => `TRIM_MYSQL('BOTH', ${rem}, `);
   // LEFT( et RIGHT( : certaines versions de SQLite y voient le début d'une jointure
   s = s.replace(/\b(LEFT|RIGHT)\s*\(/gi, (m, f) => f.toUpperCase() + '_MYSQL(');
+  // « / » : division décimale, comme MySQL. « a / b » devient « a * 1.0 / b » ;
+  // * et / ont la même priorité et se lisent de gauche à droite, donc le 1.0
+  // s'applique à tout l'opérande de gauche : a + b / c → a + b * 1.0 / c.
+  // Les commentaires sont laissés tels quels. Décision du 28 octobre 2026.
+  s = s.replace(/--[^\n]*|\/\*[\s\S]*?\*\/|\//g, m => m === '/' ? ' * 1.0 /' : m);
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => lits[+i]);
 }
