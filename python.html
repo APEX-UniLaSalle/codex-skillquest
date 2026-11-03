@@ -429,7 +429,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · f82c7de</span>
+        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 4c5d26e</span>
       </div>
     </div>
   </div>
@@ -594,6 +594,11 @@ async function boot() {
   for (const n of S.niveaux) await charger(n.slug);   // pour compter la progression
   S.slug = S.niveaux[0].slug;
   afficherAccueil();
+  // python.html?niveau=I … ?niveau=IV ouvre directement un niveau, comme
+  // sql.html?niveau= : liens des pages Débuter et Atelier (3 novembre 2026)
+  const voulu = (new URLSearchParams(location.search).get('niveau') || '').toUpperCase();
+  const slug = { I: 'prog1', II: 'prog2', III: 'prog3', IV: 'prog4' }[voulu];
+  if (slug && S.niveaux.some(n => n.slug === slug)) ouvrirNiveau(slug);
 }
 
 async function charger(slug) {

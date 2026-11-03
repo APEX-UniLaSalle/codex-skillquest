@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — Atelier : prise en main de Python</title>
+<!-- Écrit le 3 novembre 2026 : transposition sur le Codex de la page de cours
+     « Atelier - Prise en main de Python » (Programmation I). Mise en forme et
+     exécution reprises de debuter.html. -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:22px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:14.5px;margin-right:16px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
+.fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+.fiche:hover{border-color:var(--orange);color:var(--orange)}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+h2{font-size:18.5px;margin:34px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+ul.regles{margin:8px 0;padding-left:22px}
+ul.regles li{margin:5px 0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.trio{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;margin:12px 0;align-items:stretch}
+.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux)}
+@media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
+pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
+   border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+pre .c{color:#9C8F9A}
+table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
+table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.lignes td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord);
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14.5px}
+.vn{color:var(--doux);font-style:italic}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+   background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
+.erreurs{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+.erreurs th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:6px 10px 6px 0;border-bottom:1px solid var(--bord)}
+.erreurs td{padding:8px 10px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
+.ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
+   padding:16px 18px;margin:14px 0}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{margin:0 0 10px;font-size:17px}
+.ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
+textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
+   border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
+button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;display:none}
+.sortie.visible{display:block}
+.ok{color:#9CC5A4}.ko{color:#E89A86}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
+details pre{margin-top:8px}
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
+   text-align:center}
+a{color:var(--orange)}
+
+.demo{margin:10px 0 4px}
+.demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
+.demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
+
+/* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
+   border-left:5px solid var(--bleu);border-radius:10px;padding:14px 18px;text-decoration:none;color:var(--texte)}
+.suite a.carte:hover{background:var(--fond2)}
+.suite .carte .num{font-size:13px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--bleu)}
+.suite .carte h3{margin:4px 0 6px;font-size:18px}
+.suite .carte p{margin:0;font-size:15.5px;color:var(--doux)}
+.suite .carte.examen{border-left-color:var(--orange)}
+.suite .carte.examen .num{color:var(--orange)}
+.suite .niveaux{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suite .niveaux a{padding:6px 12px;border:1px solid var(--bord);border-radius:6px;text-decoration:none;
+   font-size:15px;background:var(--fond)}
+.suite .niveaux a:hover{border-color:var(--orange)}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header>
+  <a href="python.html" class="retour">← Exercices Python</a>
+  <a href="debuter.html" class="retour">Débuter : input() et print()</a>
+  <a href="index.html" class="retour">Le Codex</a>
+  <h1>Atelier : prise en main de Python</h1>
+  <p>Huit notions pour écrire ses premiers programmes, puis les exercices du Codex</p>
+  <a class="fiche" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener">📄 Cheat Sheet Python</a>
+</header>
+
+<main>
+  <div class="intro">
+    <p>Chaque notion se présente en deux temps : une <strong>démonstration</strong> à exécuter, puis un <strong>exercice</strong> à écrire et à tester.</p>
+    <p>Le Codex compare ce que votre programme affiche à la sortie attendue, caractère par caractère. Les règles de lecture et d'affichage sont expliquées dans
+    <a href="debuter.html">Débuter : input() et print()</a>.</p>
+    <p class="etat" id="etat">Chargement de Python…</p>
+  </div>
+
+  <h2>1. Afficher avec print()</h2>
+  <p><code>print()</code> affiche une ligne. Deux <code>print()</code> affichent deux lignes.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>print("Bonjour")
+print("SkillQuest")</pre>
+    <p class="ent">Ce programme ne lit aucune entrée.</p>
+    <div class="actions"><button class="principal" data-demo="0" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo0"></div>
+  </div>
+  <div id="ex0"></div>
+  <h2>2. Lire un texte avec input()</h2>
+  <p><code>input()</code> lit une ligne de l'entrée et la rend sous forme de texte. <code>print(a, b)</code> sépare les valeurs par une espace.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>prenom = input()
+print("Bonjour", prenom)</pre>
+    <p class="ent">Entrée : Camille</p>
+    <div class="actions"><button class="principal" data-demo="1" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo1"></div>
+  </div>
+  <div id="ex1"></div>
+  <h2>3. Lire un nombre et calculer</h2>
+  <p><code>input()</code> rend du texte. <code>int(input())</code> le convertit en entier, ce qui permet de calculer.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>longueur = int(input())
+largeur = int(input())
+print(longueur * largeur)</pre>
+    <p class="ent">Entrée : 6 ⏎ 4</p>
+    <div class="actions"><button class="principal" data-demo="2" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo2"></div>
+  </div>
+  <div id="ex2"></div>
+  <h2>4. Plusieurs valeurs sur une ligne</h2>
+  <p><code>input().split()</code> découpe la ligne aux espaces et rend une liste de textes.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>morceaux = input().split()
+longueur = int(morceaux[0])
+largeur = int(morceaux[1])
+print(longueur * largeur)</pre>
+    <p class="ent">Entrée : 6 4</p>
+    <div class="actions"><button class="principal" data-demo="3" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo3"></div>
+  </div>
+  <div id="ex3"></div>
+  <h2>5. Tester une condition : if, else</h2>
+  <p><code>if</code> exécute un bloc quand la condition est vraie, <code>else</code> exécute l'autre bloc. Le bloc est décalé de quatre espaces.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>note = int(input())
+if note >= 10:
+    print("Validé")
+else:
+    print("Non validé")</pre>
+    <p class="ent">Entrée : 12</p>
+    <div class="actions"><button class="principal" data-demo="4" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo4"></div>
+  </div>
+  <div id="ex4"></div>
+  <h2>6. Répéter avec une boucle for</h2>
+  <p><code>for i in range(1, n + 1):</code> répète le bloc pour i allant de 1 à n.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>n = int(input())
+for i in range(1, n + 1):
+    print(i)</pre>
+    <p class="ent">Entrée : 3</p>
+    <div class="actions"><button class="principal" data-demo="5" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo5"></div>
+  </div>
+  <div id="ex5"></div>
+  <h2>7. Lire plusieurs lignes dans une boucle</h2>
+  <p>La première ligne annonce le nombre de valeurs qui suivent. La boucle appelle <code>input()</code> une fois par valeur.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>n = int(input())
+total = 0
+for i in range(n):
+    total = total + int(input())
+print(total)</pre>
+    <p class="ent">Entrée : 3 ⏎ 12 ⏎ 7 ⏎ 5</p>
+    <div class="actions"><button class="principal" data-demo="6" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo6"></div>
+  </div>
+  <div id="ex6"></div>
+  <h2>8. Lire un message d'erreur</h2>
+  <p>Le message d'erreur donne le type de l'erreur et sa cause. Ici, <code>input()</code> rend le texte <code>"18"</code>, auquel Python ne sait pas ajouter le nombre 1 : c'est une <code>TypeError</code>. La correction est <code>int(input())</code>.</p>
+  <div class="demo">
+    <p class="lbl">Démonstration</p>
+<pre>age = input()
+print(age + 1)</pre>
+    <p class="ent">Entrée : 18</p>
+    <div class="actions"><button class="principal" data-demo="7" disabled>Exécuter</button></div>
+    <div class="sortie" id="demo7"></div>
+  </div>
+  <div id="ex7"></div>
+
+  <h2>9. Passer aux exercices du Codex</h2>
+  <p>Les exercices du Codex suivent le même principe : un énoncé, une amorce, des jeux d'essai. Les exercices réussis sont conservés dans votre navigateur.</p>
+  <div class="suite">
+      <div class="carte"><div class="num">Exercices du Codex</div><h3>Niveaux I à IV</h3>
+      <p>Les exercices du Codex, du plus simple au plus difficile. Commencez par Programmation I.</p>
+      <div class="niveaux"><a href="python.html?niveau=I">Programmation I</a><a href="python.html?niveau=II">Programmation II</a><a href="python.html?niveau=III">Programmation III</a><a href="python.html?niveau=IV">Programmation IV</a></div></div>
+      <a class="carte examen" href="coderpad.html"><div class="num">Avant l'examen</div><h3>Préparation au test CoderPad</h3>
+      <p>À l'examen, les données arrivent en paramètres et le résultat se rend avec <code>return</code>. Six exercices pour prendre le pli.</p></a>
+  </div>
+  <p>En groupe, le <a href="arene.html">mode arène</a> lance un exercice pour tous, avec un chrono commun et un classement.</p>
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 4c5d26e</span>
+</footer>
+
+<script>
+const EXERCICES = [
+ {
+  "titre": "Deux lignes",
+  "consigne": "Affichez <code>Camille</code>, puis <code>GEO1</code> sur la ligne suivante. Ce programme ne lit rien.",
+  "depart": "",
+  "cas": [
+   [
+    "",
+    "Camille\nGEO1"
+   ]
+  ],
+  "corrige": "print(\"Camille\")\nprint(\"GEO1\")\n"
+ },
+ {
+  "titre": "Ma ville",
+  "consigne": "Une ligne : le nom d'une ville. Affichez <code>J'habite à</code> suivi de la ville.",
+  "depart": "",
+  "cas": [
+   [
+    "Beauvais",
+    "J'habite à Beauvais"
+   ],
+   [
+    "Amiens",
+    "J'habite à Amiens"
+   ]
+  ],
+  "corrige": "ville = input()\nprint(\"J'habite à\", ville)\n"
+ },
+ {
+  "titre": "Total d'un achat",
+  "consigne": "Deux lignes : un prix unitaire, puis une quantité. Affichez le total.",
+  "depart": "",
+  "cas": [
+   [
+    "3\n5",
+    "15"
+   ],
+   [
+    "12\n2",
+    "24"
+   ],
+   [
+    "7\n0",
+    "0"
+   ]
+  ],
+  "corrige": "prix = int(input())\nquantite = int(input())\nprint(prix * quantite)\n"
+ },
+ {
+  "titre": "Somme sur une ligne",
+  "consigne": "Une ligne : deux entiers séparés par une espace. Affichez leur somme.",
+  "depart": "",
+  "cas": [
+   [
+    "12 7",
+    "19"
+   ],
+   [
+    "0 5",
+    "5"
+   ],
+   [
+    "100 250",
+    "350"
+   ]
+  ],
+  "corrige": "morceaux = input().split()\nprint(int(morceaux[0]) + int(morceaux[1]))\n"
+ },
+ {
+  "titre": "Pair ou impair",
+  "consigne": "Une ligne : un entier. Affichez <code>Pair</code> ou <code>Impair</code>. Le reste de la division par 2 s'écrit <code>n % 2</code>.",
+  "depart": "",
+  "cas": [
+   [
+    "7",
+    "Impair"
+   ],
+   [
+    "4",
+    "Pair"
+   ],
+   [
+    "0",
+    "Pair"
+   ]
+  ],
+  "corrige": "n = int(input())\nif n % 2 == 0:\n    print(\"Pair\")\nelse:\n    print(\"Impair\")\n"
+ },
+ {
+  "titre": "Table de multiplication",
+  "consigne": "Une ligne : un entier. Affichez sa table de multiplication de 1 à 10, un résultat par ligne.",
+  "depart": "",
+  "cas": [
+   [
+    "7",
+    "7\n14\n21\n28\n35\n42\n49\n56\n63\n70"
+   ],
+   [
+    "3",
+    "3\n6\n9\n12\n15\n18\n21\n24\n27\n30"
+   ]
+  ],
+  "corrige": "n = int(input())\nfor i in range(1, 11):\n    print(n * i)\n"
+ },
+ {
+  "titre": "La plus grande valeur",
+  "consigne": "Même entrée : un nombre n, puis n lignes d'un entier. Affichez la plus grande valeur.",
+  "depart": "n = int(input())\n",
+  "cas": [
+   [
+    "3\n12\n7\n5",
+    "12"
+   ],
+   [
+    "1\n40",
+    "40"
+   ],
+   [
+    "4\n-3\n-1\n-8\n-2",
+    "-1"
+   ]
+  ],
+  "corrige": "n = int(input())\nplus_grand = int(input())\nfor i in range(n - 1):\n    valeur = int(input())\n    if valeur > plus_grand:\n        plus_grand = valeur\nprint(plus_grand)\n"
+ },
+ {
+  "titre": "Un input() de trop",
+  "consigne": "L'entrée contient deux lignes : une longueur, puis une largeur. Le programme ci-dessous lève une <code>EOFError</code>. Lisez le message, corrigez le programme, puis affichez l'aire.",
+  "depart": "longueur = int(input())\nlargeur = int(input())\nhauteur = int(input())\nprint(longueur * largeur)\n",
+  "cas": [
+   [
+    "6\n4",
+    "24"
+   ],
+   [
+    "10\n3",
+    "30"
+   ]
+  ],
+  "corrige": "longueur = int(input())\nlargeur = int(input())\nprint(longueur * largeur)\n"
+ }
+];
+const DEMOS = [["print(\"Bonjour\")\nprint(\"SkillQuest\")\n", ""], ["prenom = input()\nprint(\"Bonjour\", prenom)\n", "Camille"], ["longueur = int(input())\nlargeur = int(input())\nprint(longueur * largeur)\n", "6\n4"], ["morceaux = input().split()\nlongueur = int(morceaux[0])\nlargeur = int(morceaux[1])\nprint(longueur * largeur)\n", "6 4"], ["note = int(input())\nif note >= 10:\n    print(\"Validé\")\nelse:\n    print(\"Non validé\")\n", "12"], ["n = int(input())\nfor i in range(1, n + 1):\n    print(i)\n", "3"], ["n = int(input())\ntotal = 0\nfor i in range(n):\n    total = total + int(input())\nprint(total)\n", "3\n12\n7\n5"], ["age = input()\nprint(age + 1)\n", "18"]];
+
+let pyodide = null;
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function dessiner(){
+  EXERCICES.forEach((e, i) => {
+    document.getElementById('ex' + i).innerHTML = `
+    <div class="ex">
+      <h3>Exercice ${i + 1} — ${e.titre}</h3>
+      <p class="cons">${e.consigne}</p>
+      <p class="jeux">Jeux d'essai : ${e.cas.map(c => (c[0] ? esc(c[0].replace(/\n/g, ' ⏎ ')) : 'aucune entrée') + ' → ' + esc(c[1].replace(/\n/g, ' ⏎ '))).join(' · ')}</p>
+      <textarea id="code${i}" spellcheck="false" placeholder="# votre programme">${esc(e.depart)}</textarea>
+      <div class="actions">
+        <button class="principal" data-i="${i}" disabled>Tester</button>
+        <button data-reset="${i}">Réinitialiser</button>
+        <span class="etat" id="verdict${i}"></span>
+      </div>
+      <div class="sortie" id="sortie${i}"></div>
+      <details><summary>Voir une solution</summary>
+        <pre>${esc(e.corrige)}</pre></details>
+    </div>`;
+  });
+  document.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => tester(+b.dataset.i));
+  document.querySelectorAll('button[data-demo]').forEach(b => b.onclick = () => demo(+b.dataset.demo));
+  document.querySelectorAll('button[data-reset]').forEach(b =>
+    b.onclick = () => {
+      const i = +b.dataset.reset;
+      document.getElementById('code' + i).value = EXERCICES[i].depart;
+      document.getElementById('sortie' + i).classList.remove('visible');
+      document.getElementById('verdict' + i).textContent = '';
+    });
+}
+
+const RUNNER = `
+import sys, io, builtins
+def __executer__(code, data):
+    lignes = data.split('\\n'); pos = [0]
+    def _input(invite=''):
+        if pos[0] < len(lignes):
+            pos[0] += 1; return lignes[pos[0] - 1]
+        raise EOFError("plus aucune ligne à lire : votre programme appelle input() plus souvent que le nombre de lignes fournies")
+    sortie = io.StringIO(); ancien_in, ancien_out = builtins.input, sys.stdout
+    builtins.input = _input; sys.stdout = sortie; erreur = None
+    try:
+        exec(compile(code, '<programme>', 'exec'), {'__name__': '__main__'})
+    except SyntaxError as e:
+        erreur = 'SyntaxError ligne ' + str(e.lineno) + ' : ' + str(e.msg)
+    except BaseException as e:
+        erreur = type(e).__name__ + ' : ' + str(e)
+    finally:
+        builtins.input = ancien_in; sys.stdout = ancien_out
+    return [sortie.getvalue().rstrip('\\n'), erreur]
+`;
+
+
+function demo(i){
+  const [code, entree] = DEMOS[i];
+  const executer = pyodide.globals.get('__executer__');
+  const [obtenu, erreur] = executer(code, entree).toJs();
+  executer.destroy();
+  const s = document.getElementById('demo' + i);
+  s.classList.add('visible');
+  s.innerHTML = (obtenu ? esc(obtenu) : '') + (erreur ? (obtenu ? '\n' : '') + `<span class="ko">${esc(erreur)}</span>` : '');
+}
+
+function tester(i){
+  const e = EXERCICES[i];
+  const code = document.getElementById('code' + i).value;
+  const sortie = document.getElementById('sortie' + i);
+  const verdict = document.getElementById('verdict' + i);
+  sortie.classList.add('visible');
+  const executer = pyodide.globals.get('__executer__');
+  let reussis = 0;
+  sortie.innerHTML = e.cas.map(([entree, attendu]) => {
+    const [obtenu, erreur] = executer(code, entree).toJs();
+    const ok = !erreur && obtenu === attendu;
+    if (ok) reussis++;
+    const lue = entree ? esc(entree.replace(/\n/g, ' ⏎ ')) : '(aucune)';
+    const vu = s => esc(s.replace(/\n/g, ' ⏎ '));
+    if (ok) return `<span class="ok">RÉUSSI</span>  entrée ${lue} → ${vu(obtenu)}`;
+    return `<span class="ko">ÉCHOUÉ</span>  entrée ${lue} → `
+      + (erreur ? `<span class="ko">${esc(erreur)}</span>` : `${vu(obtenu) || '(rien)'}`)
+      + `  — attendu ${vu(attendu)}`;
+  }).join('\n');
+  executer.destroy();
+  verdict.textContent = `${reussis} / ${e.cas.length} jeux d'essai réussis`;
+  verdict.style.color = reussis === e.cas.length ? 'var(--vert)' : 'var(--rouge)';
+}
+
+(async () => {
+  dessiner();
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+  const echec = () => {
+    document.getElementById('etat').textContent =
+      'Python n’a pas pu être chargé. Vérifiez votre connexion, puis rechargez la page.';
+  };
+  script.onload = async () => {
+    try {
+      pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+      pyodide.runPython(RUNNER);
+    } catch (err) { echec(); return; }
+    document.getElementById('etat').textContent =
+      'Python est prêt : exécutez les démonstrations, écrivez vos programmes, puis cliquez sur Tester.';
+    document.querySelectorAll('button[data-i], button[data-demo]').forEach(b => b.disabled = false);
+  };
+  script.onerror = echec;
+  document.head.appendChild(script);
+})();
+</script>
+</body>
+</html>

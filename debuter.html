@@ -72,6 +72,21 @@ details pre{margin-top:8px}
 footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
    text-align:center}
 a{color:var(--orange)}
+
+/* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
+   border-left:5px solid var(--bleu);border-radius:10px;padding:14px 18px;text-decoration:none;color:var(--texte)}
+.suite a.carte:hover{background:var(--fond2)}
+.suite .carte .num{font-size:13px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--bleu)}
+.suite .carte h3{margin:4px 0 6px;font-size:18px}
+.suite .carte p{margin:0;font-size:15.5px;color:var(--doux)}
+.suite .carte.examen{border-left-color:var(--orange)}
+.suite .carte.examen .num{color:var(--orange)}
+.suite .niveaux{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suite .niveaux a{padding:6px 12px;border:1px solid var(--bord);border-radius:6px;text-decoration:none;
+   font-size:15px;background:var(--fond)}
+.suite .niveaux a:hover{border-color:var(--orange)}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -201,11 +216,22 @@ print(total)               <span class="c"># 24</span></pre>
   <h2>7. À vous</h2>
   <p class="etat" id="etat">Chargement de Python…</p>
   <div id="exercices"></div>
+
+  <h2>8. Et ensuite</h2>
+  <div class="suite">
+      <a class="carte" href="prise-en-main.html"><div class="num">Atelier</div><h3>Prise en main de Python</h3>
+      <p>Huit notions, de <code>print()</code> à la boucle <code>for</code> : une démonstration, puis un exercice testé.</p></a>
+      <div class="carte"><div class="num">Exercices du Codex</div><h3>Niveaux I à IV</h3>
+      <p>Les exercices du Codex, du plus simple au plus difficile. Commencez par Programmation I.</p>
+      <div class="niveaux"><a href="python.html?niveau=I">Programmation I</a><a href="python.html?niveau=II">Programmation II</a><a href="python.html?niveau=III">Programmation III</a><a href="python.html?niveau=IV">Programmation IV</a></div></div>
+      <a class="carte examen" href="coderpad.html"><div class="num">Avant l'examen</div><h3>Préparation au test CoderPad</h3>
+      <p>À l'examen, les données arrivent en paramètres et le résultat se rend avec <code>return</code>. Six exercices pour prendre le pli.</p></a>
+  </div>
 </main>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · f82c7de</span>
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 4c5d26e</span>
 </footer>
 
 <script>
