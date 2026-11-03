@@ -112,7 +112,13 @@ button:hover:not(:disabled){border-color:var(--or-texte);color:var(--accent)}
 :root[data-theme="dark"] .fiche:hover{background:var(--or);color:#241C28}
 
 /* ── consoles et éditeurs : carte-navy dans les deux modes, texte parchemin ── */
-textarea,.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{background:var(--term) !important;color:#F4EDDC}
+textarea:not(dialog textarea),.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{background:var(--term) !important;color:#F4EDDC}
+/* Le texte d'une zone de saisie sombre est forcé clair : sans cela, une règle de page
+   plus précise (#customIn, #bacIn) gardait un texte foncé sur le fond sombre. Les
+   champs des fenêtres (signalement, arène) gardent le fond clair de leur page.
+   Signalé le 3 novembre 2026. */
+textarea:not(dialog textarea){color:#F4EDDC !important}
+textarea:not(dialog textarea)::placeholder{color:#A69A94}
 .CodeMirror-gutters{background:color-mix(in srgb, var(--term) 85%, #000) !important;border-right:1px solid #3D3043 !important}
 .CodeMirror-linenumber{color:#A69A94 !important}
 
