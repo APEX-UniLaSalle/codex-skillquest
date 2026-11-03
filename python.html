@@ -293,6 +293,10 @@
 .examen h3{margin:4px 0 6px;font-size:18.5px}
 .examen p{margin:0;font-size:15px;line-height:1.7;color:var(--doux,#7C6F64)}
 .examen-fleche{margin-left:auto;font-size:27.5px;color:var(--orange,#AF3A03);flex:none}
+/* accès à la page Débuter, en tête des niveaux (3 novembre 2026) : même carte
+   que la préparation à l'examen, couleur bleue */
+.examen.debuter{margin:4px 0 22px;border-left-color:var(--bleu,#45707A)}
+.examen.debuter .num,.examen.debuter .examen-fleche{color:var(--bleu,#45707A)}
 /* lien vers la fiche de syntaxe, en-tête et accueil */
 .fiche{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:14.5px;
   font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--accent);
@@ -425,7 +429,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · c988597</span>
+        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · f82c7de</span>
       </div>
     </div>
   </div>
@@ -666,6 +670,16 @@ function afficherAccueil() {
         <p class="bilan"></p>
       </div>
     </div>
+
+    <a class="examen debuter" href="debuter.html">
+      <div class="examen-txt">
+        <div class="num">Première fois ?</div>
+        <h3>Débuter : input() et print()</h3>
+        <p>Comment un exercice lit ses données avec <code>input()</code> et rend son
+           résultat avec <code>print()</code>. À lire avant le premier exercice.</p>
+      </div>
+      <div class="examen-fleche">→</div>
+    </a>
 
     <div class="niveaux">
       ${S.niveaux.map(n => {
