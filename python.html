@@ -303,29 +303,32 @@
     background:var(--code);font-size:14.5px;font-weight:600;flex:none;flex-wrap:wrap}
   .zone-corps{flex:1;min-height:0;overflow:auto}
   .zone-corps[hidden]{display:none !important}
-  .z-editeur .editor-head .hint{display:none}
   .z-enonce{overflow:auto;display:block}
-  .z-aide .zone-corps{padding:0 14px 12px}
-  .z-aide .vide,.z-sortie .vide{color:var(--muted);font-size:14.5px;margin:12px 0}
+  .z-enonce #aide{margin-top:16px}
+  .z-enonce #aide .vide{color:var(--muted);font-size:14.5px;margin:10px 0 0}
+  .z-tests .zone-corps{padding:0 10px}
+  .z-tests .zone-tete .hint{margin-left:auto;font-weight:600}
+  .z-tests .zone-tete .hint.ok{color:var(--ok)} .z-tests .zone-tete .hint.ko{color:var(--ko)}
+  .z-tests .actions{flex:none}
+  .z-tests #run{flex:1;font-size:16px;padding:9px 15px}
+  table.jeux .num-jeu{display:inline-block;min-width:34px;text-align:center;padding:3px 6px;border-radius:4px;
+    border:1px solid var(--line);font-weight:700;font-size:13.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  table.jeux tr.pass .num-jeu{background:var(--ok);border-color:var(--ok);color:#fff}
+  table.jeux tr.fail{background:var(--ko-soft)}
+  table.jeux tr.fail .num-jeu{background:var(--ko);border-color:var(--ko);color:#fff}
+  table.jeux tr.encours .num-jeu{border-color:var(--warn);color:var(--warn)}
+  .z-console .console-body{flex:1;min-height:0;max-height:none;border-radius:0}
+  .z-editeur .editor-head #reset{margin-left:8px}
   .z-editeur .editor-wrap{flex:1;min-height:0;overflow:hidden}
   .z-editeur .editor-wrap .CodeMirror,.z-editeur .editor-wrap .CodeMirror-scroll{height:100%;min-height:0}
   .z-editeur textarea#code{resize:none;min-height:0;overflow:auto}
-  .z-editeur .actions{flex:none}
-  .onglets{display:flex;gap:0;flex:none;border-bottom:1px solid var(--line);background:var(--code)}
-  .onglets button{border:0;border-radius:0;background:none;padding:8px 16px;font-size:14.5px;
-    border-bottom:3px solid transparent;color:var(--muted)}
-  .onglets button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
-  .z-sortie #res{padding:0 14px 12px}
-  .z-sortie .ong-console{display:flex;flex-direction:column}
-  .z-sortie .console-body{flex:1;max-height:none;border-radius:0}
-  .z-sortie .verdict{margin:12px 0 10px}
   @media(max-width:900px){
     body.quatre section.work{grid-template-columns:minmax(0,1fr);grid-template-rows:none;height:auto;min-height:0}
     .zone,.z-enonce{overflow:visible}
     .zone-corps{overflow:visible}
     .z-editeur .editor-wrap{min-height:300px}
     .z-editeur .editor-wrap .CodeMirror,.z-editeur .editor-wrap .CodeMirror-scroll{height:auto;min-height:300px}
-    .z-sortie .console-body{max-height:320px}
+    .z-console .console-body{max-height:320px}
   }
 
 /* accès à la préparation de l'examen, depuis l'accueil */
@@ -476,7 +479,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 42d7f16</span>
+        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 3240ada</span>
       </div>
     </div>
   </div>
@@ -593,7 +596,7 @@ function spawnWorker() {
       S.ready = true;
       document.getElementById('dot').className = 'dot ready';
       document.getElementById('statusTxt').textContent = 'Python prêt';
-      const b = document.getElementById('run'); if (b) b.disabled = false;
+      document.querySelectorAll('#run, #exec, #jeux button[data-jeu]').forEach(b => b.disabled = false);
       const bb = document.getElementById('bacRun'); if (bb) bb.disabled = false;
     } else if (ev.data.type === 'result' && S.pending) {
       clearTimeout(S.timer); const cb = S.pending; S.pending = null; cb(ev.data.out);
@@ -772,7 +775,7 @@ function afficherAccueil() {
           <li>Écrivez votre programme : <b>input()</b> pour lire, <b>print()</b> pour afficher.
             Première fois ? <a href="debuter.html">Débuter : input() et print()</a>.</li>
           <li>En groupe ? Le <a href="arene.html">mode arène</a> lance un exercice pour tous, avec chrono commun et classement.</li>
-          <li>Lancez un jeu d'essai, ou <b>Tout tester</b> d'un coup.</li>
+          <li>Lancez un jeu d'essai, ou <b>Tous les tests</b> d'un coup.</li>
           <li>Bloqué ? Ouvrez l'<b>indice</b> : il renvoie à la page de cours.</li>
           <li>Réussi ? La <b>solution experte</b> s'ouvre pour aller plus loin.</li>
         </ol>
@@ -937,11 +940,14 @@ function calerZones() {
 window.addEventListener('resize', calerZones);
 document.getElementById('voileListe').onclick = () => volet(false);
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') volet(false); });
-function onglet(nom) {
-  document.querySelectorAll('.onglets button').forEach(b => b.classList.toggle('on', b.dataset.onglet === nom));
-  const r = document.getElementById('ongRes'), c = document.getElementById('ongConsole');
-  if (r) r.hidden = nom !== 'res';
-  if (c) c.hidden = nom !== 'console';
+/* État d'un jeu d'essai dans le bloc des jeux : '' (non joué), pass, fail, encours. */
+function marquerJeu(i, etat) {
+  const tr = document.getElementById('jeu' + i);
+  if (tr) tr.className = etat || '';
+}
+function verdictJeux(texte, classe) {
+  const v = document.getElementById('verdictTests');
+  if (v) { v.textContent = texte; v.className = 'hint ' + (classe || ''); }
 }
 
 async function loadNiveau(slug) {
@@ -1130,6 +1136,7 @@ function openExo(id) {
   document.body.classList.add('quatre');
   volet(false);
   const liste = filtered(), rang = liste.findIndex(x => x.id === e.id);
+  const noms = nomsEntree(e);
   document.getElementById('work').innerHTML = `
     <div class="barre-exo arene-cache">
       <button id="ouvrirListe" title="Afficher la liste des exercices">☰ Exercices</button>
@@ -1151,66 +1158,51 @@ function openExo(id) {
       ${e.entree ? `<div class="sub-h">♨ Entrée</div><div class="constraint">${esc(e.entree)}</div>` : ''}
       ${e.sortie ? `<div class="sub-h">♨ Sortie</div><div class="constraint">${esc(e.sortie)}</div>` : ''}
       ${e.contraintes ? `<div class="sub-h">📋 Contraintes</div><div class="constraint">${e.contraintes}</div>` : ''}
-      <div class="sub-h">⁝≡ Jeux d'essai</div>
-      <table class="tests" id="jeux">
-        <tr><th style="width:42%">Entrée</th><th>Sortie attendue</th><th style="width:78px"></th></tr>
-        ${e.tests.map((t, i) => `<tr>
-            <td><pre class="io">${showEntree(t.stdin, nomsEntree(e))}</pre></td>
-            <td><pre class="io">${showIO(t.attendu)}</pre></td>
-            <td><button class="mini" data-jeu="${i}" ${S.ready ? '' : 'disabled'}>▶ Tester</button></td>
-          </tr>`).join('')}
-      </table>
+      <div id="aide">${aideAvant(e)}</div>
     </div>
 
     <div class="panel zone z-editeur">
       <div class="editor-head"><strong>Votre solution</strong>
-        <span class="hint">Lisez avec <code>input()</code>, écrivez avec <code>print()</code>
-          &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> pour tester</span>
-        <a class="aide-mini arene-cache" href="debuter.html" target="_blank" rel="noopener"
-           title="Comment lire les entrées et afficher le résultat">❓ Débuter : input() et print()</a>
-        <a class="fiche-mini" href="ressources/cheat-sheet-python.pdf" target="_blank"
-           rel="noopener" style="margin-left:14px">📄 Cheat Sheet</a></div>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> : tous les tests · code conservé dans ce navigateur</span>
+        <button id="reset" class="mini" title="Revenir à l'amorce de l'exercice">Effacer</button></div>
       <div class="editor-wrap">
         <div class="gutter" id="gutter">1</div>
         <textarea id="code" spellcheck="false" placeholder="# Votre code Python ici"></textarea>
       </div>
+    </div>
+
+    <div class="panel zone z-tests">
+      <div class="zone-tete">⁝≡ Jeux d'essai <span class="hint" id="verdictTests"></span></div>
+      <div class="zone-corps">
+        <table class="tests jeux" id="jeux">
+          <tr><th style="width:48px"></th><th>Entrée</th><th>Sortie attendue</th><th style="width:96px"></th></tr>
+          ${e.tests.map((t, i) => `<tr id="jeu${i}">
+              <td><span class="num-jeu">${String(i + 1).padStart(2, '0')}</span></td>
+              <td><pre class="io">${showEntree(t.stdin, noms)}</pre></td>
+              <td><pre class="io">${showIO(t.attendu)}</pre></td>
+              <td><button class="mini" data-jeu="${i}" ${S.ready ? '' : 'disabled'}>▶ Tester</button></td>
+            </tr>`).join('')}
+        </table>
+      </div>
       <div class="actions">
-        <button class="primary" id="run" ${S.ready ? '' : 'disabled'}>▶▶ Tout tester</button>
-        <button id="reset">Effacer</button>
-        ${!window.Session ? '' : !Session.active ? '<button id="sessLancer" title="Mode arène : chrono commun et classement pour un groupe, sur cet exercice">⚔️ Lancer une arène</button>'
-          : Session.peutRelancer() ? '<button id="sessLancer" title="Manche suivante de l’arène, sur cet exercice">⚔️ Relancer l’arène sur cet exercice</button>' : ''}
-        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> : tout tester · code conservé dans ce navigateur</span>
+        <button class="primary" id="run" ${S.ready ? '' : 'disabled'}>▶▶ Tous les tests</button>
       </div>
     </div>
 
-    <div class="panel zone z-aide">
-      <div class="zone-tete">🔍 Indice et solutions</div>
-      <div class="zone-corps" id="aide">${aideAvant(e)}</div>
-    </div>
-
-    <div class="panel zone z-sortie">
-      <div class="onglets">
-        <button data-onglet="res" class="on">Résultats des tests</button>
-        <button data-onglet="console">Console</button>
-      </div>
-      <div class="zone-corps" id="ongRes"><div id="res"><p class="vide">Cliquez sur « ▶▶ Tout tester » : le résultat de chaque jeu d'essai s'affiche ici.</p></div></div>
-      <div class="zone-corps ong-console" id="ongConsole" hidden>
+    <div class="panel zone z-console">
       <div class="console-head">
         <strong>Console</strong>
         <select id="cIn">
           ${e.tests.map((t, i) =>
-            `<option value="${i}">Jeu d'essai ${i + 1} — ${esc(t.stdin.replace(/\n/g, ' ⏎ ').slice(0, 34))}</option>`).join('')}
+            `<option value="${i}">Jeu d'essai ${String(i + 1).padStart(2, '0')} — ${esc(t.stdin.replace(/\n/g, ' ⏎ ').slice(0, 30))}</option>`).join('')}
           <option value="libre">Entrée personnalisée…</option>
         </select>
         <button id="exec" ${S.ready ? '' : 'disabled'}>Exécuter</button>
-        <span class="hint">Sortie brute de votre programme.</span>
       </div>
       <textarea id="customIn" style="display:none" spellcheck="false"
         placeholder="Une valeur par ligne, comme les jeux d'essai"></textarea>
-      <div class="console-body" id="cOut"><span class="cmt">Exécutez votre code pour voir ce qu'il affiche.</span></div>
-      </div>
+      <div class="console-body" id="cOut"><span class="cmt">Lancez un jeu d'essai, ou tous : l'entrée, la sortie de votre programme et la sortie attendue s'affichent ici.</span></div>
     </div>`;
-  document.querySelectorAll('.onglets button').forEach(b => b.onclick = () => onglet(b.dataset.onglet));
   document.getElementById('ouvrirListe').onclick = () => volet(true);
   document.getElementById('exoPrec').onclick = () => rang > 0 && openExo(liste[rang - 1].id);
   document.getElementById('exoSuiv').onclick = () => rang < liste.length - 1 && openExo(liste[rang + 1].id);
@@ -1362,17 +1354,16 @@ function finaliserExo(e) {
   };
   document.getElementById('exec').onclick = () => {
     const stdin = sel.value === 'libre' ? custom.value : e.tests[+sel.value].stdin;
-    consoleRun(getCode(), stdin, sel.value === 'libre' ? null : e.tests[+sel.value].attendu);
+    if (sel.value === 'libre') consoleRun(getCode(), stdin, null);
+    else consoleRun(getCode(), stdin, e.tests[+sel.value].attendu, +sel.value);
   };
   document.getElementById('run').onclick = runTests;
-  const bl = document.getElementById('sessLancer');
-  if (bl) bl.onclick = () => Session.active ? Session.relancer() : Session.lancer();
   document.querySelectorAll('#jeux button[data-jeu]').forEach(b =>
     b.onclick = () => {
       const i = +b.dataset.jeu;
       sel.value = String(i);
       custom.style.display = 'none';
-      consoleRun(getCode(), e.tests[i].stdin, e.tests[i].attendu);
+      consoleRun(getCode(), e.tests[i].stdin, e.tests[i].attendu, i);
     });
   if (S.cm) {
     document.getElementById('reset').onclick = () => {
@@ -1384,8 +1375,7 @@ function finaliserExo(e) {
 }
 
 /* ───────────────── console ───────────────── */
-function consoleRun(code, stdin, attendu) {
-  onglet('console');
+function consoleRun(code, stdin, attendu, jeu) {
   const out = document.getElementById('cOut');
   const btn = document.getElementById('exec');
   if (!code.trim()) {
@@ -1395,8 +1385,10 @@ function consoleRun(code, stdin, attendu) {
   out.innerHTML = '<span class="cmt">Exécution…</span>';
   execute(code, [{ stdin }], (r, err) => {
     btn.disabled = false;
-    if (err) { out.innerHTML = `<span class="err">${esc(err)}</span>`; return; }
+    if (err) { out.innerHTML = `<span class="err">${esc(err)}</span>`; if (jeu !== undefined) marquerJeu(jeu, 'fail'); return; }
     printConsole(r[0], stdin, attendu);
+    if (jeu !== undefined)
+      marquerJeu(jeu, !r[0].error && r[0].stdout === attendu.replace(/\n+$/, '') ? 'pass' : 'fail');
   });
 }
 
@@ -1412,7 +1404,7 @@ function printConsole(res, stdin, attendu) {
     const ok = res.stdout === attendu.replace(/\n+$/, '');
     html += ok
       ? `<span class="lbl">✓ conforme au jeu d’essai</span>`
-      : `<span class="err">✗ attendu : ${esc(attendu) || '(vide)'}</span>`;
+      : `<span class="err">✗ sortie attendue :</span>\n${esc(attendu) || '<span class="cmt">(vide)</span>'}`;
   }
   out.innerHTML = html;
 }
@@ -1420,18 +1412,22 @@ function printConsole(res, stdin, attendu) {
 /* ───────────────── exécution ───────────────── */
 function runTests() {
   const e = S.cur, code = getCode();
-  const box = document.getElementById('res');
   const btn = document.getElementById('run');
   if (!code.trim()) return;
   btn.disabled = true; btn.textContent = '⏳ Exécution…';
-  onglet('res');
-  box.innerHTML = '<div class="verdict err">Exécution en cours…</div>';
+  e.tests.forEach((_, i) => marquerJeu(i, 'encours'));
+  verdictJeux('Exécution…');
 
   // stopOnFail : les jeux sont joués dans l'ordre et l'on s'arrête au premier échec
   execute(code, e.tests, (out, err) => {
-    btn.disabled = false; btn.textContent = '▶▶ Tout tester';
+    btn.disabled = false; btn.textContent = '▶▶ Tous les tests';
     if (out) { /* résultats partiels possibles : arrêt au premier échec */ }
-    if (err) { box.innerHTML = `<div class="verdict err">${esc(err)}</div>`; return; }
+    if (err) {
+      e.tests.forEach((_, i) => marquerJeu(i, ''));
+      verdictJeux('Erreur', 'ko');
+      document.getElementById('cOut').innerHTML = `<span class="err">${esc(err)}</span>`;
+      return;
+    }
 
     const rows = out.map((r, i) => {
       const t = e.tests[i];
@@ -1447,7 +1443,13 @@ function runTests() {
     const k = idx === -1 ? 0 : idx;
     const sel = document.getElementById('cIn');
     if (sel) { sel.value = String(k); document.getElementById('customIn').style.display = 'none'; }
-    if (out[k]) printConsole(out[k], e.tests[k].stdin, e.tests[k].attendu);
+    if (out[k]) {
+      printConsole(out[k], e.tests[k].stdin, e.tests[k].attendu);
+      const num = String(k + 1).padStart(2, '0');
+      const tete = all ? `<span class="lbl">✓ Les ${e.tests.length} jeux d'essai passent. Détail du jeu 01 :</span>\n`
+        : `<span class="err">Jeu d'essai ${num} : échec.${restants > 0 ? ` ${restants} jeu${restants > 1 ? 'x' : ''} suivant${restants > 1 ? 's' : ''} non joué${restants > 1 ? 's' : ''}.` : ''}</span>\n`;
+      document.getElementById('cOut').insertAdjacentHTML('afterbegin', tete);
+    }
 
     if (all) {
       progress[e.id] = { ok: true, code };
@@ -1458,26 +1460,10 @@ function runTests() {
       progress[e.id] = { ok: false, code }; saveProgress();
     }
 
-    box.innerHTML = `
-      <div class="verdict ${all ? 'ok' : 'ko'}">
-        ${all ? `✅ Réussi — les ${e.tests.length} jeux d'essai passent.`
-              : `❌ Arrêt au jeu d'essai n° ${rows.length} — ${nOk} validé${nOk > 1 ? 's' : ''} avant lui.`}
-      </div>
-      <table class="tests">
-        <tr><th></th><th>Entrée</th><th>Attendu</th><th>Obtenu</th></tr>
-        ${rows.map(({ ok, t, r }) => `
-          <tr class="${ok ? '' : 'fail'}">
-            <td><span class="badge ${ok ? 'ok' : 'ko'}">${ok ? '✓' : '✗'}</span></td>
-            <td><pre class="io">${showEntree(t.stdin, nomsEntree(e))}</pre></td>
-            <td><pre class="io">${showIO(t.attendu)}</pre></td>
-            <td><pre class="io">${r.error
-                  ? `<span style="color:var(--ko)">${esc(r.error)}</span>`
-                  : showIO(r.stdout)}</pre></td>
-          </tr>`).join('')}
-        ${restants > 0 ? `<tr><td colspan="4" style="color:var(--muted);font-size:14px">
-            ${restants} jeu${restants > 1 ? 'x' : ''} d'essai non joué${restants > 1 ? 's' : ''} :
-            corrigez celui-ci d'abord.</td></tr>` : ''}
-      </table>`;
+    e.tests.forEach((_, i) => marquerJeu(i, i < rows.length ? (rows[i].ok ? 'pass' : 'fail') : ''));
+    verdictJeux(all ? `✅ ${e.tests.length} / ${e.tests.length} réussis`
+                    : `❌ arrêt au jeu ${String(rows.length).padStart(2, '0')} · ${nOk} / ${e.tests.length}`,
+                all ? 'ok' : 'ko');
     const aide = document.getElementById('aide');
     if (aide && !enSession()) aide.innerHTML = solutionBlock(e, all);
   }, true);
@@ -1528,7 +1514,7 @@ function indiceBlock(e) {
 function aideAvant(e) {
   if (enSession()) return '<p class="vide">Pendant l’arène, l’indice et les solutions sont masqués. Ils reviennent à la fin.</p>';
   return (indiceBlock(e) || '<p class="vide">Pas d’indice pour cet exercice.</p>')
-    + '<p class="vide">Les solutions s’affichent ici après « ▶▶ Tout tester ».</p>';
+    + '<p class="vide">Les solutions s’affichent ici après « ▶▶ Tous les tests ».</p>';
 }
 
 function solutionBlock(e, unlocked) {
@@ -1578,6 +1564,7 @@ const BOOT = boot();
 const DUREE_NIVEAU = { prog1: 5, prog2: 10, prog3: 15, prog4: 20 };   // minutes, si l'exercice n'en porte pas
 Session.init({
   page: 'python',
+  relanceDansBarre: true,   // « Nouvelle manche » dans la barre de l'arène (3 novembre 2026)
   courant: () => S.cur ? { niveau: S.slug, exo: S.cur.id, titre: S.cur.titre, points: S.cur.points || 0,
                            duree: S.cur.duree || DUREE_NIVEAU[S.slug] || 10 } : null,
   ouvrir: async (niveau, exo, depart) => {

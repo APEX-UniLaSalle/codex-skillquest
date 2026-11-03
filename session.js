@@ -156,6 +156,8 @@ window.Session = (() => {
   dialog.sessDlg .deux{display:flex;gap:10px}
   dialog.sessDlg .deux>div{flex:1}
   dialog.sessDlg .aide{margin:6px 0 0;font-size:14px;color:var(--muted)}
+  dialog.sessDlg .bascule{margin:0 0 12px;font-size:14.5px;color:var(--muted)}
+  dialog.sessDlg .bascule a{color:var(--link-txt)}
   dialog.sessDlg .aide-arene{margin-left:auto;font-size:14px;color:var(--link-txt);white-space:nowrap}
   dialog.sessDlg .pied{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
   dialog.sessDlg .etat{font-size:14px;color:var(--ko);margin-left:auto}
@@ -193,6 +195,7 @@ window.Session = (() => {
       <button id="sessPlus1" style="display:none" title="Prolonger le chrono d'une minute">+1 min</button>
       <button id="sessPlus2" style="display:none" title="Prolonger le chrono de deux minutes">+2 min</button>
       <button id="sessPodium" style="display:none" title="Le classement en grand, pour le vidéoprojecteur">🏆 Podium</button>
+      <button id="sessRelance" style="display:none" title="Manche suivante, sur l'exercice ouvert">⚔️ Nouvelle manche</button>
       <button id="sessQuit">Quitter l'arène</button>
     </span>
   </div>`;
@@ -200,6 +203,7 @@ window.Session = (() => {
   const DLG = `<dialog class="sessDlg" id="sessDlg">
     <h3 id="sessDlgTitre">Mode arène</h3>
     <div class="corps" id="sessPanJ">
+      <p class="bascule" id="sessVersL"></p>
       <label for="sessInCode">Code de l'arène</label>
       <input class="code" id="sessInCode" maxlength="6" autocomplete="off" spellcheck="false" placeholder="ABC234">
       <div class="deux">
@@ -213,6 +217,7 @@ window.Session = (() => {
       <p class="aide">Le pseudo s'affiche au classement ; l'adresse n'est vue que du lanceur, qui s'en sert pour remettre vos résultats à l'application SkillQuest. Elle est demandée en évaluation. L'arène s'efface au bout de 24 heures.</p>
     </div>
     <div class="corps" id="sessPanL" style="display:none">
+      <p class="bascule" id="sessVersJ"><a href="#" id="sessVersJLien">← Rejoindre une arène avec un code</a></p>
       <div class="sess-exo" id="sessExo"></div>
       <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
@@ -374,7 +379,7 @@ window.Session = (() => {
       return;
     }
     $('#sessGrandCode').textContent = vue.code;
-    $('#sessGrandLien').textContent = `${location.host}${location.pathname} → ⚔️ Rejoindre une arène`;
+    $('#sessGrandLien').textContent = `${location.host}${location.pathname} → ⚔️ Arène`;
     const n = vue.participants.length;
     $('#sessGrandParts').innerHTML = (n ? `<em>${n} dans l’arène</em>` : '<em>Personne n’a encore rejoint.</em>')
       + vue.participants.map(p => `<span>${esc(p)}</span>`).join('');
@@ -388,6 +393,7 @@ window.Session = (() => {
   function rendre() {
     const bar = $('#sessBar');
     $('#sessBtn').style.display = S ? 'none' : '';
+    $('#sessRelance').style.display = S && H.relanceDansBarre && peutRelancer() && H.courant() ? '' : 'none';
     if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); $('#sessAttente').classList.remove('on'); return; }
     bar.classList.add('on');
     const n = vue.participants.length, ns = vue.soumis.length;
@@ -736,6 +742,12 @@ window.Session = (() => {
 
   function montrerOnglet(o) {
     onglet = o;
+    // une seule fenêtre « Arène » : rejoindre avec un code, ou créer sur l'exercice ouvert (3 novembre 2026)
+    $('#sessDlgTitre').textContent = o === 'L' ? 'Créer une arène sur cet exercice' : o === 'R' ? 'Nouvelle manche sur cet exercice' : 'Rejoindre une arène';
+    $('#sessVersL').innerHTML = H.courant()
+      ? 'Ou <a href="#" id="sessVersLLien">créer une arène sur l’exercice ouvert →</a>'
+      : 'Pour créer une arène, ouvrez d’abord un exercice, puis revenez ici.';
+    $('#sessVersJ').style.display = o === 'L' ? '' : 'none';
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'J' ? 'none' : '';
     $('#sessEtat').textContent = '';
     // relance : seuls l'exercice et la durée changent, le reste appartient à l'arène
@@ -758,9 +770,11 @@ window.Session = (() => {
     }
   }
 
-  /* Deux entrées, jamais de choix à faire dans la fenêtre : « Rejoindre » depuis
-     l'en-tête, « Lancer en groupe » depuis l'exercice ouvert. Un bouton de
-     lancement hors exercice serait un cul-de-sac. */
+  /* Une entrée, « ⚔️ Arène » dans l'en-tête, depuis le 3 novembre 2026 : la
+     fenêtre s'ouvre sur « Rejoindre » et propose de créer l'arène sur
+     l'exercice ouvert. Sans exercice ouvert, elle dit d'en ouvrir un : un
+     lancement hors exercice serait un cul-de-sac. R et SQL gardent aussi leur
+     bouton « Lancer une arène » sous la question. */
   /* À six caractères, on regarde si l'arène est en évaluation : le participant
      choisit alors de la passer en évaluation ou non. */
   let modeArene = null;
@@ -795,7 +809,6 @@ window.Session = (() => {
     if (mode === 'L' && !H.courant()) return;
     if (codePrerempli) { $('#sessInCode').value = codePrerempli; verifierModeArene(); }
     montrerOnglet(mode);
-    $('#sessDlgTitre').textContent = mode === 'L' ? 'Lancer une arène sur cet exercice' : mode === 'R' ? 'Nouvelle manche sur cet exercice' : 'Rejoindre une arène';
     const d = $('#sessDlg'); if (!d.open) d.showModal();
     (codePrerempli ? $('#sessInPrenom') : mode === 'J' ? $('#sessInCode') : $('#sessInDuree')).focus();
   }
@@ -966,7 +979,7 @@ window.Session = (() => {
     caler(); window.addEventListener('resize', caler);
     document.body.insertAdjacentHTML('beforeend', DLG);
     const btn = document.createElement('button');
-    btn.id = 'sessBtn'; btn.textContent = '⚔️ Rejoindre une arène'; btn.title = 'Rejoindre un exercice chronométré en groupe, avec le code affiché';
+    btn.id = 'sessBtn'; btn.textContent = '⚔️ Arène'; btn.title = 'Rejoindre une arène avec son code, ou en créer une sur l’exercice ouvert';
     btn.onclick = () => ouvrirDialogue(null, 'J');
     const zone = document.getElementById('status') || entete;
     zone.insertBefore(btn, zone.firstChild);
@@ -975,6 +988,11 @@ window.Session = (() => {
     $('#sessInCode').addEventListener('input', verifierModeArene);
     $('#sessDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); valider(); } });
     $('#sessGo').onclick = demarrer; $('#sessLien').onclick = lien;
+    $('#sessRelance').onclick = () => relancer();
+    $('#sessDlg').addEventListener('click', ev => {
+      if (ev.target.id === 'sessVersLLien') { ev.preventDefault(); montrerOnglet('L'); $('#sessInDuree').focus(); }
+      if (ev.target.id === 'sessVersJLien') { ev.preventDefault(); montrerOnglet('J'); $('#sessInCode').focus(); }
+    });
     document.body.insertAdjacentHTML('beforeend', GRAND);
     $('#sessGrand').onclick = () => montrerGrand(true);
     $('#sessPlein').onclick = pleinEcran; $('#sessAttPlein').onclick = pleinEcran;
