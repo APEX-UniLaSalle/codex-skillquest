@@ -80,6 +80,18 @@ a{color:var(--orange)}
 .demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
 .demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
 
+/* Écran d'un exercice : schéma des quatre zones (3 novembre 2026) */
+.ecran{border:1px solid var(--bord);border-radius:10px;background:var(--fond2);padding:10px;margin:12px 0}
+.ecran .barre-s{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ecran .barre-s span{font-size:13.5px;border:1px solid var(--bord);border-radius:5px;padding:2px 9px;background:var(--carte)}
+.ecran .grille{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px}
+.ecran .z{background:var(--carte);border:1px solid var(--bord);border-radius:7px;padding:10px 12px;min-height:110px}
+.ecran .z b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--orange);margin-bottom:4px}
+.ecran .z p{margin:0;font-size:15px;color:var(--doux)}
+.ecran .z.sombre{background:var(--sombre)}
+.ecran .z.sombre p{color:#EBDBB2}
+.ecran .z.sombre b{color:#E78A4E}
+@media (max-width:760px){.ecran .grille{grid-template-columns:1fr}}
 /* Cheat Sheet : présentation et aperçu (3 novembre 2026) */
 .cheat{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start;margin:10px 0}
 .cheat p{margin:0 0 10px}
@@ -110,7 +122,7 @@ a{color:var(--orange)}
   <a href="debuter.html" class="retour">Débuter : input() et print()</a>
   <a href="index.html" class="retour">Le Codex</a>
   <h1>Atelier : prise en main de Python</h1>
-  <p>Huit notions pour écrire ses premiers programmes, puis les exercices du Codex</p>
+  <p>Huit notions pour écrire ses premiers programmes, l’écran d’un exercice, puis les exercices du Codex</p>
   <a class="fiche" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener">📄 Cheat Sheet Python</a>
 </header>
 
@@ -236,7 +248,28 @@ print(age + 1)</pre>
   </div>
   <div id="ex7"></div>
 
-  <h2>9. Passer aux exercices du Codex</h2>
+  <h2>9. L'écran d'un exercice du Codex</h2>
+  <p>Un exercice du Codex tient sur un écran, en quatre zones. Chaque zone défile pour elle-même.</p>
+  <div class="ecran" role="img" aria-label="Schéma de l'écran d'un exercice : énoncé en haut à gauche, éditeur en haut à droite, jeux d'essai en bas à gauche, console en bas à droite">
+    <div class="barre-s"><span>☰ Exercices</span><span>‹ Précédent</span><span>Suivant ›</span></div>
+    <div class="grille">
+      <div class="z"><b>1. Énoncé</b><p>Le problème, les contraintes, puis l'indice. Les solutions s'y ajoutent après « Tous les tests ».</p></div>
+      <div class="z sombre"><b>2. Éditeur</b><p>Votre programme. « Effacer » revient à l'amorce. Le code est gardé dans le navigateur.</p></div>
+      <div class="z"><b>3. Jeux d'essai</b><p>Chaque jeu : son entrée, sa sortie attendue, « ▶ Tester ». En bas, « ▶▶ Tous les tests ».</p></div>
+      <div class="z sombre"><b>4. Console</b><p>L'entrée lue, ce que votre programme affiche et, en cas d'échec, la sortie attendue.</p></div>
+    </div>
+  </div>
+  <ul>
+    <li><b>☰ Exercices</b> ouvre la liste du niveau, avec ses filtres. <b>Précédent</b> et <b>Suivant</b> parcourent cette liste.</li>
+    <li><b>▶ Tester</b>, sur la ligne d'un jeu d'essai, exécute votre programme sur ce seul jeu. La console montre le détail.</li>
+    <li><b>▶▶ Tous les tests</b> joue les jeux dans l'ordre et s'arrête au premier échec. Le numéro de chaque jeu passe au vert s'il réussit, au rouge s'il échoue. La console détaille le jeu en échec.</li>
+    <li><kbd>Ctrl</kbd>+<kbd>Entrée</kbd>, dans l'éditeur, lance tous les tests.</li>
+    <li>La console accepte aussi une entrée personnalisée, pour essayer d'autres valeurs que celles des jeux d'essai.</li>
+    <li>Un exercice est réussi quand tous ses jeux d'essai passent. Il est alors coché dans la liste.</li>
+  </ul>
+  <p>La <a href="coderpad.html">préparation à l'examen</a> reprend le même écran. Les jeux d'essai y sont des appels de fonction, et la console montre la valeur renvoyée.</p>
+
+  <h2>10. Passer aux exercices du Codex</h2>
   <p>Les exercices du Codex suivent le même principe : un énoncé, une amorce, des jeux d'essai. Les exercices réussis sont conservés dans votre navigateur.</p>
   <div class="suite">
       <div class="carte"><div class="num">Exercices du Codex</div><h3>Niveaux I à IV</h3>
@@ -250,7 +283,7 @@ print(age + 1)</pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 3240ada</span>
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 55c62de</span>
 </footer>
 
 <script>

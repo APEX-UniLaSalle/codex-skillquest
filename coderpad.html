@@ -57,6 +57,53 @@ details{margin-top:10px}
 summary{cursor:pointer;color:var(--bleu);font-size:16px}
 details pre{margin-top:8px}
 .etat{color:var(--doux);font-size:14.5px}
+/* ── Exercices en quatre zones (3 novembre 2026), comme la page Python :
+   énoncé | éditeur en haut, cas de test | console en bas. Chaque zone défile
+   pour elle-même ; sous 900 px, elles s'empilent. */
+.espace{padding:12px 16px 24px;scroll-margin-top:0}
+.espace>h2{max-width:none;margin:0 0 10px}
+.barre{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.barre button{font-size:15px;padding:6px 12px}
+.barre button.on{border-color:var(--orange);color:var(--orange);font-weight:600;background:var(--carte)}
+.barre button.reussi::after{content:" ✓";color:var(--vert)}
+.barre .etat{margin-left:auto;font-size:14px}
+.zones{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-rows:minmax(0,3fr) minmax(0,2fr);
+   gap:12px;height:calc(100vh - 110px);min-height:540px}
+.zone{background:var(--carte);border:1px solid var(--bord);border-radius:8px;min-height:0;
+   display:flex;flex-direction:column;overflow:hidden}
+.zone-tete{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--bord);
+   background:var(--fond2);font-size:15px;font-weight:600;flex:none;flex-wrap:wrap}
+.zone-tete .etat{margin-left:auto;font-weight:600}
+.zone-corps{flex:1;min-height:0;overflow:auto;padding:12px 16px}
+.z-enonce h3{margin:0 0 6px;font-size:20px;color:var(--orange)}
+.z-enonce .cons{font-size:17px;margin:0 0 12px}
+.z-enonce .sig{font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--fond2);
+   border-radius:6px;padding:8px 11px;margin:0 0 12px;white-space:pre-wrap}
+.z-editeur textarea{flex:1;min-height:0;border:0;border-radius:0;resize:none;margin:0}
+.z-editeur .zone-tete button{margin-left:auto;font-size:14px;padding:4px 11px}
+table.cas{width:100%;border-collapse:collapse;font-size:15px}
+table.cas th{text-align:left;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
+   padding:4px 8px;border-bottom:1px solid var(--bord)}
+table.cas td{padding:6px 8px;border-bottom:1px solid var(--bord);vertical-align:middle;
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14px;word-break:break-word}
+table.cas td:last-child{text-align:right;font-family:inherit}
+table.cas .num{display:inline-block;min-width:34px;text-align:center;padding:2px 6px;border-radius:4px;
+   border:1px solid var(--bord);font-weight:700;font-size:13px;color:var(--doux)}
+table.cas tr.pass .num{background:var(--vert);border-color:var(--vert);color:#fff}
+table.cas tr.fail{background:#F6E0D8}
+table.cas tr.fail .num{background:var(--rouge);border-color:var(--rouge);color:#fff}
+table.cas button{font-size:14px;padding:4px 10px;white-space:nowrap}
+.z-tests .pied{flex:none;padding:10px 14px;border-top:1px solid var(--bord)}
+.z-tests .pied button{width:100%;font-size:16px;padding:9px 15px}
+.console{flex:1;min-height:0;overflow:auto;margin:0;background:var(--sombre);color:var(--sombreTexte);
+   padding:12px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.console .cmt{color:#A89984}
+@media(max-width:900px){
+  .zones{grid-template-columns:minmax(0,1fr);grid-template-rows:none;height:auto;min-height:0}
+  .zone,.zone-corps{overflow:visible}
+  .z-editeur textarea{min-height:260px}
+  .console{max-height:320px}
+}
 footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
    text-align:center}
 a{color:var(--orange)}
@@ -78,6 +125,7 @@ a{color:var(--orange)}
     <strong>Sur CoderPad</strong>, les données arrivent en paramètres et le résultat
     se rend avec <code>return</code>.</p>
     <p>L'algorithme est identique ; l'entrée et la sortie diffèrent.</p>
+    <p><a href="#espace">Aller directement aux six exercices ↓</a></p>
   </div>
 
   <h2>Le même exercice, des deux côtés</h2>
@@ -110,14 +158,34 @@ print(total)</pre>
     son affichage n'entre pas dans la correction.</p>
   </div>
 
-  <h2>Exercices</h2>
-  <p class="etat" id="etat">Chargement de Python…</p>
-  <div id="exercices"></div>
 </main>
+
+<section class="espace" id="espace">
+  <h2>Exercices</h2>
+  <div class="barre" id="barre"><span class="etat" id="etat">Chargement de Python…</span></div>
+  <div class="zones">
+    <div class="zone z-enonce">
+      <div class="zone-corps" id="enonce"></div>
+    </div>
+    <div class="zone z-editeur">
+      <div class="zone-tete">Votre fonction <button id="reinit" title="Revenir au code de départ">Réinitialiser</button></div>
+      <textarea id="code" spellcheck="false"></textarea>
+    </div>
+    <div class="zone z-tests">
+      <div class="zone-tete">⁝≡ Cas de test <span class="etat" id="verdict"></span></div>
+      <div class="zone-corps" id="cas"></div>
+      <div class="pied"><button class="principal" id="tous" disabled>▶▶ Tous les tests</button></div>
+    </div>
+    <div class="zone z-console">
+      <div class="zone-tete">Console</div>
+      <pre class="console" id="console"><span class="cmt">Lancez un cas, ou tous : l'appel, ce que la fonction affiche, la valeur qu'elle renvoie et la valeur attendue s'affichent ici.</span></pre>
+    </div>
+  </div>
+</section>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 3240ada</span>
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 55c62de</span>
 </footer>
 
 <script>
@@ -192,75 +260,124 @@ function litteral(v){
   return String(v);
 }
 
-function dessiner(){
-  document.getElementById('exercices').innerHTML = EXERCICES.map((e, i) => `
-    <div class="ex">
-      <h3>${i + 1}. ${e.titre}</h3>
-      <p class="cons">${e.consigne}</p>
-      <details><summary>Voir la version Codex, avec input() et print()</summary>
-        <pre>${e.codex.replace(/</g, '&lt;')}</pre></details>
-      <textarea id="code${i}" spellcheck="false">${e.depart}</textarea>
-      <div class="actions">
-        <button class="principal" data-i="${i}" disabled>Tester</button>
-        <button data-reset="${i}">Réinitialiser</button>
-        <span class="etat" id="verdict${i}"></span>
-      </div>
-      <div class="sortie" id="sortie${i}"></div>
-      <details><summary>Voir une solution</summary>
-        <pre>${e.corrige.replace(/</g, '&lt;')}</pre></details>
-    </div>`).join('');
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+let courant = 0;
+const codes = EXERCICES.map(e => e.depart);     // le code de chaque exercice, gardé en mémoire
+const reussis = EXERCICES.map(() => false);
+const appel = (e, c) => `${e.fonction}(${c[0].map(litteral).join(', ')})`;
 
-  document.querySelectorAll('button[data-i]').forEach(b =>
-    b.onclick = () => tester(+b.dataset.i));
-  document.querySelectorAll('button[data-reset]').forEach(b =>
-    b.onclick = () => {
-      const i = +b.dataset.reset;
-      document.getElementById('code' + i).value = EXERCICES[i].depart;
-      document.getElementById('sortie' + i).classList.remove('visible');
-      document.getElementById('verdict' + i).textContent = '';
-    });
+function dessinerBarre(){
+  const barre = document.getElementById('barre'), etat = document.getElementById('etat');
+  barre.innerHTML = EXERCICES.map((e, i) =>
+    `<button data-ex="${i}" class="${i === courant ? 'on' : ''} ${reussis[i] ? 'reussi' : ''}" title="${esc(e.titre)}">${String(i + 1).padStart(2, '0')}</button>`).join('');
+  barre.appendChild(etat);
+  barre.querySelectorAll('button[data-ex]').forEach(b => b.onclick = () => ouvrir(+b.dataset.ex));
 }
 
-async function tester(i){
+function ouvrir(i){
+  codes[courant] = document.getElementById('code').value;
+  courant = i;
   const e = EXERCICES[i];
-  const code = document.getElementById('code' + i).value;
-  const sortie = document.getElementById('sortie' + i);
-  const verdict = document.getElementById('verdict' + i);
-  sortie.classList.add('visible');
-  sortie.textContent = 'Exécution…';
+  dessinerBarre();
+  document.getElementById('enonce').innerHTML = `
+    <h3>${String(i + 1).padStart(2, '0')} — ${esc(e.titre)}</h3>
+    <p class="cons">${e.consigne}</p>
+    <div class="sig">def ${e.fonction}(${e.params.join(', ')}):</div>
+    <details><summary>Voir la version Codex, avec input() et print()</summary>
+      <pre>${esc(e.codex)}</pre></details>
+    <details><summary>Voir une solution</summary>
+      <pre>${esc(e.corrige)}</pre></details>`;
+  document.getElementById('code').value = codes[i];
+  document.getElementById('cas').innerHTML = `<table class="cas">
+      <tr><th style="width:46px"></th><th>Appel</th><th>Valeur attendue</th><th style="width:96px"></th></tr>
+      ${e.cas.map((c, k) => `<tr id="cas${k}">
+        <td><span class="num">${String(k + 1).padStart(2, '0')}</span></td>
+        <td>${esc(appel(e, c))}</td>
+        <td>${esc(litteral(c[1]))}</td>
+        <td><button data-cas="${k}" ${pyodide ? '' : 'disabled'}>▶ Tester</button></td>
+      </tr>`).join('')}
+    </table>`;
+  document.querySelectorAll('button[data-cas]').forEach(b => b.onclick = () => tester([+b.dataset.cas]));
+  document.getElementById('verdict').textContent = '';
+  document.getElementById('console').innerHTML = '<span class="cmt">Lancez un cas, ou tous : l\'appel, ce que la fonction affiche, la valeur qu\'elle renvoie et la valeur attendue s\'affichent ici.</span>';
+}
 
-  const appels = e.cas.map(c => `${e.fonction}(${c[0].map(litteral).join(', ')})`);
-  const attendus = e.cas.map(c => litteral(c[1]));
+/* Joue les cas demandés. Ce que la fonction affiche avec print() est recueilli
+   à part : il ne compte pas dans la correction, comme sur CoderPad. */
+async function tester(indices){
+  const e = EXERCICES[courant];
+  const code = document.getElementById('code').value;
+  codes[courant] = code;
+  const out = document.getElementById('console'), verdict = document.getElementById('verdict');
+  indices.forEach(k => document.getElementById('cas' + k).className = '');
+  out.innerHTML = '<span class="cmt">Exécution…</span>';
+  const appels = indices.map(k => appel(e, e.cas[k]));
+  const attendus = indices.map(k => litteral(e.cas[k][1]));
   const programme = `
+import sys, io
 ${code}
 
 __resultats = []
 for __appel, __attendu in zip(${JSON.stringify(appels)}, [${attendus.join(', ')}]):
+    __tampon, __ancien = io.StringIO(), sys.stdout
+    sys.stdout = __tampon
     try:
         __obtenu = eval(__appel)
-        __resultats.append((__appel, repr(__obtenu), repr(__attendu), __obtenu == __attendu))
+        __r = (__appel, repr(__obtenu), repr(__attendu), __obtenu == __attendu, '')
     except Exception as __err:
-        __resultats.append((__appel, type(__err).__name__ + ' : ' + str(__err), repr(__attendu), False))
+        __r = (__appel, '', repr(__attendu), False, type(__err).__name__ + ' : ' + str(__err))
+    finally:
+        sys.stdout = __ancien
+    __resultats.append(__r + (__tampon.getvalue(),))
 __resultats
 `;
   try {
     const res = await pyodide.runPythonAsync(programme);
     const lignes = res.toJs({ create_proxies: false });
-    let reussis = 0;
-    sortie.innerHTML = lignes.map(([appel, obtenu, attendu, ok]) => {
-      if (ok) reussis++;
-      return ok
-        ? `<span class="ok">RÉUSSI</span>  ${appel} = ${obtenu}`
-        : `<span class="ko">ÉCHOUÉ</span>  ${appel} = ${obtenu}  — attendu ${attendu}`;
-    }).join('\n');
-    verdict.textContent = `${reussis} / ${lignes.length} cas réussis`;
-    verdict.style.color = reussis === lignes.length ? 'var(--vert)' : 'var(--rouge)';
+    let ok = 0;
+    out.innerHTML = lignes.map(([ap, obtenu, attendu, bon, erreur, affiche], j) => {
+      const k = indices[j];
+      if (bon) ok++;
+      document.getElementById('cas' + k).className = bon ? 'pass' : 'fail';
+      return `<span class="cmt">Cas ${String(k + 1).padStart(2, '0')} — ${esc(ap)}</span>\n`
+        + (affiche ? `affiché : ${esc(affiche.replace(/\n$/, ''))}\n` : '')
+        + (erreur ? `<span class="ko">${esc(erreur)}</span>\n`
+                  : `valeur renvoyée : ${esc(obtenu)}`
+                    + (obtenu === 'None' ? `  <span class="cmt">— la fonction n'a pas exécuté return</span>` : '') + '\n')
+        + (bon ? `<span class="ok">✓ conforme</span>` : `<span class="ko">✗ valeur attendue : ${esc(attendu)}</span>`);
+    }).join('\n\n');
+    if (indices.length === e.cas.length) {
+      verdict.textContent = ok === e.cas.length ? `✅ ${ok} / ${e.cas.length} réussis` : `❌ ${ok} / ${e.cas.length} réussis`;
+      verdict.style.color = ok === e.cas.length ? 'var(--vert)' : 'var(--rouge)';
+      if (ok === e.cas.length && !reussis[courant]) { reussis[courant] = true; dessinerBarre(); }
+    }
   } catch (err) {
-    sortie.innerHTML = `<span class="ko">${String(err).split('\n').slice(-6).join('\n')}</span>`;
+    indices.forEach(k => document.getElementById('cas' + k).className = 'fail');
+    out.innerHTML = `<span class="ko">${esc(String(err).split('\n').slice(-6).join('\n'))}</span>`;
     verdict.textContent = 'erreur dans le code';
     verdict.style.color = 'var(--rouge)';
   }
 }
+
+function brancher(){
+  document.getElementById('tous').onclick = () => tester(EXERCICES[courant].cas.map((_, k) => k));
+  document.getElementById('reinit').onclick = () => {
+    document.getElementById('code').value = EXERCICES[courant].depart;
+    codes[courant] = EXERCICES[courant].depart;
+  };
+  const ta = document.getElementById('code');
+  ta.addEventListener('keydown', ev => {
+    if (ev.key === 'Tab') {                 // la tabulation insère quatre espaces
+      ev.preventDefault();
+      const d = ta.selectionStart;
+      ta.setRangeText('    ', d, ta.selectionEnd, 'end');
+    } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && pyodide) {
+      ev.preventDefault();
+      document.getElementById('tous').click();
+    }
+  });
+}
+function dessiner(){ brancher(); document.getElementById('code').value = codes[0]; ouvrir(0); }
 
 (async () => {
   dessiner();
@@ -290,9 +407,8 @@ __resultats
       echec(String(err).split('\n')[0]);
       return;
     }
-    document.getElementById('etat').textContent =
-      'Python est prêt : écrivez votre fonction, puis cliquez sur Tester.';
-    document.querySelectorAll('button[data-i]').forEach(b => b.disabled = false);
+    document.getElementById('etat').textContent = 'Python est prêt.';
+    document.querySelectorAll('#tous, button[data-cas]').forEach(b => b.disabled = false);
   };
   script.onerror = () => echec('');
   document.head.appendChild(script);
