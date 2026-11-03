@@ -111,8 +111,11 @@ a{color:var(--orange)}
   <div class="trio">
     <div>
       <h3>Entrée du jeu d'essai</h3>
-<pre>6
-4</pre>
+      <table class="lignes">
+        <tr><th>Variable</th><th>Ligne d'entrée</th></tr>
+        <tr><td class="vn">longueur</td><td>6</td></tr>
+        <tr><td class="vn">largeur</td><td>4</td></tr>
+      </table>
     </div>
     <div>
       <h3>Votre programme</h3>
@@ -138,21 +141,36 @@ print(longueur * largeur)</pre>
   <h2>2. L'amorce et le tableau des jeux d'essai</h2>
   <p>À l'ouverture d'un exercice, l'éditeur contient déjà les lignes de lecture : c'est l'amorce.
   Les noms des variables sont choisis pour l'exercice.</p>
-  <p>Dans le tableau des jeux d'essai, chaque ligne d'entrée porte le nom de la variable qui la reçoit :</p>
+  <p>Sur cette page comme dans le Codex, l'entrée d'un jeu d'essai se présente en deux colonnes : à droite,
+  les lignes d'entrée, dans l'ordre ; à gauche, le nom de la variable qui reçoit chaque ligne.</p>
   <table class="lignes">
     <tr><th>Variable</th><th>Ligne d'entrée</th></tr>
     <tr><td class="vn">longueur</td><td>6</td></tr>
     <tr><td class="vn">largeur</td><td>4</td></tr>
   </table>
-  <p>La mention <span class="vn">à lire</span> désigne une ligne que l'amorce ne lit pas.
-  Votre programme la lit lui-même, en général dans une boucle.</p>
+  <p>L'amorce ne lit pas toujours toute l'entrée. Les lignes qu'elle laisse sont marquées
+  <span class="vn">à lire</span> : c'est à votre programme de les lire. La mention figure sur la première
+  de ces lignes ; toutes celles qui suivent sont aussi à lire.</p>
+  <p>Exemple : l'amorce est <code>n = int(input())</code>. Elle lit seulement la ligne 1, le nombre de points.</p>
+  <table class="lignes">
+    <tr><th>Variable</th><th>Ligne d'entrée</th></tr>
+    <tr><td class="vn">n</td><td>3</td></tr>
+    <tr><td class="vn">à lire</td><td>2 0</td></tr>
+    <tr><td class="vn"></td><td>4 1</td></tr>
+    <tr><td class="vn"></td><td>1 3</td></tr>
+  </table>
+  <p>Les trois lignes suivantes se lisent dans une boucle qui tourne <code>n</code> fois :
+  <code>for i in range(n):</code>, avec un <code>input()</code> à chaque tour.</p>
 
   <h2>3. Plusieurs valeurs sur une même ligne</h2>
   <p><code>split()</code> découpe la ligne aux espaces et rend une liste de textes.</p>
   <div class="duo">
     <div>
       <h3>Entrée</h3>
-<pre>6 4</pre>
+      <table class="lignes">
+        <tr><th>Variable</th><th>Ligne d'entrée</th></tr>
+        <tr><td class="vn">morceaux</td><td>6 4</td></tr>
+      </table>
     </div>
     <div>
       <h3>Programme</h3>
@@ -168,10 +186,13 @@ print(longueur * largeur)   <span class="c"># 24</span></pre>
   <div class="duo">
     <div>
       <h3>Entrée</h3>
-<pre>3
-12
-7
-5</pre>
+      <table class="lignes">
+        <tr><th>Variable</th><th>Ligne d'entrée</th></tr>
+        <tr><td class="vn">n</td><td>3</td></tr>
+        <tr><td class="vn">à lire</td><td>12</td></tr>
+        <tr><td class="vn"></td><td>7</td></tr>
+        <tr><td class="vn"></td><td>5</td></tr>
+      </table>
     </div>
     <div>
       <h3>Programme</h3>
@@ -193,8 +214,10 @@ print(total)               <span class="c"># 24</span></pre>
     <li><code>print(a, b)</code> sépare les deux valeurs par une espace.</li>
     <li><code>24</code> et <code>24.0</code> sont deux sorties différentes. La division <code>/</code> rend un décimal ;
       <code>//</code> ou <code>int()</code> rendent un entier.</li>
-    <li>Le texte placé dans <code>input("…")</code> n'est pas affiché ici. Inutile d'en écrire.</li>
-    <li>Les lignes vides en fin de sortie ne comptent pas.</li>
+    <li>Le message écrit dans <code>input()</code> n'apparaît pas dans la sortie. <code>input("Votre âge : ")</code>
+      et <code>input()</code> lisent la même ligne et donnent le même résultat. Écrivez simplement <code>input()</code>.</li>
+    <li>Une ligne vide à la fin de la sortie, laissée par exemple par un <code>print()</code> sans argument, ne fait
+      pas échouer le test. Une ligne vide au milieu de la sortie compte.</li>
   </ul>
 
   <h2>6. Messages d'erreur fréquents</h2>
@@ -231,7 +254,7 @@ print(total)               <span class="c"># 24</span></pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · f455803</span>
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 0f332f5</span>
 </footer>
 
 <script>
