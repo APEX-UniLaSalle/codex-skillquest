@@ -282,6 +282,52 @@
   .console-body .err{color:#EA6962}
   .console-body .lbl{color:#A9B665}
 
+/* ── Exercice en quatre zones (3 novembre 2026) ─────────────────────────
+   Tout ce qui sert à résoudre l'exercice tient dans la hauteur de l'écran :
+   énoncé | éditeur, en haut ; indice et solutions | résultats et console, en
+   bas. Chaque zone défile pour elle-même. La liste des exercices devient un
+   volet, ouvert par « ☰ Exercices ». Sous 900 px, les zones s'empilent. */
+  body.quatre main{grid-template-columns:minmax(0,1fr);padding-top:10px}
+  body.quatre aside.panel{position:fixed;top:0;left:0;bottom:0;width:min(360px,90vw);max-height:none;z-index:60;
+    transform:translateX(-105%);transition:transform .2s ease;box-shadow:4px 0 18px rgba(0,0,0,.18)}
+  body.quatre.liste-ouverte aside.panel{transform:none}
+  #voileListe{display:none;position:fixed;inset:0;z-index:55;background:rgba(60,56,54,.35)}
+  body.quatre.liste-ouverte #voileListe{display:block}
+  body.quatre section.work{grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    grid-template-rows:auto minmax(0,3fr) minmax(0,2fr);gap:12px;height:var(--h-zones,calc(100vh - 120px));min-height:560px}
+  .barre-exo{grid-column:1 / -1;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .barre-exo button{padding:5px 12px;font-size:14.5px}
+  .barre-exo .pos{color:var(--muted);font-size:14px}
+  .zone{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .zone-tete{display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--line);
+    background:var(--code);font-size:14.5px;font-weight:600;flex:none;flex-wrap:wrap}
+  .zone-corps{flex:1;min-height:0;overflow:auto}
+  .zone-corps[hidden]{display:none !important}
+  .z-editeur .editor-head .hint{display:none}
+  .z-enonce{overflow:auto;display:block}
+  .z-aide .zone-corps{padding:0 14px 12px}
+  .z-aide .vide,.z-sortie .vide{color:var(--muted);font-size:14.5px;margin:12px 0}
+  .z-editeur .editor-wrap{flex:1;min-height:0;overflow:hidden}
+  .z-editeur .editor-wrap .CodeMirror,.z-editeur .editor-wrap .CodeMirror-scroll{height:100%;min-height:0}
+  .z-editeur textarea#code{resize:none;min-height:0;overflow:auto}
+  .z-editeur .actions{flex:none}
+  .onglets{display:flex;gap:0;flex:none;border-bottom:1px solid var(--line);background:var(--code)}
+  .onglets button{border:0;border-radius:0;background:none;padding:8px 16px;font-size:14.5px;
+    border-bottom:3px solid transparent;color:var(--muted)}
+  .onglets button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+  .z-sortie #res{padding:0 14px 12px}
+  .z-sortie .ong-console{display:flex;flex-direction:column}
+  .z-sortie .console-body{flex:1;max-height:none;border-radius:0}
+  .z-sortie .verdict{margin:12px 0 10px}
+  @media(max-width:900px){
+    body.quatre section.work{grid-template-columns:minmax(0,1fr);grid-template-rows:none;height:auto;min-height:0}
+    .zone,.z-enonce{overflow:visible}
+    .zone-corps{overflow:visible}
+    .z-editeur .editor-wrap{min-height:300px}
+    .z-editeur .editor-wrap .CodeMirror,.z-editeur .editor-wrap .CodeMirror-scroll{height:auto;min-height:300px}
+    .z-sortie .console-body{max-height:320px}
+  }
+
 /* accès à la préparation de l'examen, depuis l'accueil */
 .examen{display:flex;align-items:center;gap:18px;margin:26px 0 32px;padding:18px 22px;
   background:var(--carte,#F9F5D7);border:1px solid var(--bord,#D5C4A1);
@@ -374,6 +420,7 @@
       <p class="bilan"></p>
     </div>
   </aside>
+  <div id="voileListe"></div>
 
   <section class="work" id="work">
     <div class="panel empty">Sélectionnez un exercice pour commencer.</div>
@@ -429,7 +476,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · b37c906</span>
+        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 42d7f16</span>
       </div>
     </div>
   </div>
@@ -628,6 +675,7 @@ function statsNiveau(slug) {
 }
 
 function afficherAccueil() {
+  quitterQuatre();
   document.getElementById('travail').style.display = 'none';
   const acc = document.getElementById('accueil');
   acc.style.display = 'block';
@@ -876,7 +924,28 @@ async function ouvrirNiveau(slug) {
   document.getElementById('travail').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+/* Quatre zones : seulement quand un exercice est ouvert. */
+function quitterQuatre() { document.body.classList.remove('quatre', 'liste-ouverte'); }
+function volet(ouvert) { document.body.classList.toggle('liste-ouverte', ouvert); }
+function calerZones() {
+  const w = document.getElementById('work');
+  if (!document.body.classList.contains('quatre') || !w) return;
+  const haut = w.getBoundingClientRect().top + window.scrollY;
+  document.documentElement.style.setProperty('--h-zones', Math.max(560, window.innerHeight - haut - 14) + 'px');
+  if (S.cm) S.cm.refresh();
+}
+window.addEventListener('resize', calerZones);
+document.getElementById('voileListe').onclick = () => volet(false);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') volet(false); });
+function onglet(nom) {
+  document.querySelectorAll('.onglets button').forEach(b => b.classList.toggle('on', b.dataset.onglet === nom));
+  const r = document.getElementById('ongRes'), c = document.getElementById('ongConsole');
+  if (r) r.hidden = nom !== 'res';
+  if (c) c.hidden = nom !== 'console';
+}
+
 async function loadNiveau(slug) {
+  quitterQuatre();
   S.slug = slug;
   await charger(slug);
   S.cur = null;
@@ -985,6 +1054,7 @@ function clicSousLeTexte(cm) {
    tests, ni progression : le code est seulement gardé sur ce poste. */
 const CLE_BAC = 'codex_bac_python';
 function ouvrirBac() {
+  quitterQuatre();
   S.cur = null;
   document.body.classList.add('bac');
   document.getElementById('accueil').style.display = 'none';
@@ -1057,8 +1127,17 @@ function openExo(id) {
                    alim_sante:'Alimentation & Santé', autres:'Autres' };
   const saved = progress[e.id] && progress[e.id].code;
 
+  document.body.classList.add('quatre');
+  volet(false);
+  const liste = filtered(), rang = liste.findIndex(x => x.id === e.id);
   document.getElementById('work').innerHTML = `
-    <div class="panel card">
+    <div class="barre-exo arene-cache">
+      <button id="ouvrirListe" title="Afficher la liste des exercices">☰ Exercices</button>
+      <button id="exoPrec" ${rang > 0 ? '' : 'disabled'} title="Exercice précédent de la liste">‹ Précédent</button>
+      <button id="exoSuiv" ${rang >= 0 && rang < liste.length - 1 ? '' : 'disabled'} title="Exercice suivant de la liste">Suivant ›</button>
+      <span class="pos">${rang >= 0 ? `${rang + 1} / ${liste.length}` : ''} · ${esc((S.niveaux.find(n => n.slug === S.slug) || {}).libelle || '')}</span>
+    </div>
+    <div class="panel card zone z-enonce">
       <h2>${String(e.id).padStart(3,'0')} — ${esc(e.titre)}</h2>
       <div class="meta">
         <span class="chip">${THEMES[e.theme] || e.theme}</span>
@@ -1083,7 +1162,7 @@ function openExo(id) {
       </table>
     </div>
 
-    <div class="panel">
+    <div class="panel zone z-editeur">
       <div class="editor-head"><strong>Votre solution</strong>
         <span class="hint">Lisez avec <code>input()</code>, écrivez avec <code>print()</code>
           &nbsp;·&nbsp; <kbd>Ctrl</kbd>+<kbd>Entrée</kbd> pour tester</span>
@@ -1100,11 +1179,22 @@ function openExo(id) {
         <button id="reset">Effacer</button>
         ${!window.Session ? '' : !Session.active ? '<button id="sessLancer" title="Mode arène : chrono commun et classement pour un groupe, sur cet exercice">⚔️ Lancer une arène</button>'
           : Session.peutRelancer() ? '<button id="sessLancer" title="Manche suivante de l’arène, sur cet exercice">⚔️ Relancer l’arène sur cet exercice</button>' : ''}
-        <span class="hint">Votre code est conservé dans ce navigateur.</span>
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> : tout tester · code conservé dans ce navigateur</span>
       </div>
     </div>
 
-    <div class="panel">
+    <div class="panel zone z-aide">
+      <div class="zone-tete">🔍 Indice et solutions</div>
+      <div class="zone-corps" id="aide">${aideAvant(e)}</div>
+    </div>
+
+    <div class="panel zone z-sortie">
+      <div class="onglets">
+        <button data-onglet="res" class="on">Résultats des tests</button>
+        <button data-onglet="console">Console</button>
+      </div>
+      <div class="zone-corps" id="ongRes"><div id="res"><p class="vide">Cliquez sur « ▶▶ Tout tester » : le résultat de chaque jeu d'essai s'affiche ici.</p></div></div>
+      <div class="zone-corps ong-console" id="ongConsole" hidden>
       <div class="console-head">
         <strong>Console</strong>
         <select id="cIn">
@@ -1118,12 +1208,13 @@ function openExo(id) {
       <textarea id="customIn" style="display:none" spellcheck="false"
         placeholder="Une valeur par ligne, comme les jeux d'essai"></textarea>
       <div class="console-body" id="cOut"><span class="cmt">Exécutez votre code pour voir ce qu'il affiche.</span></div>
-    </div>
-
-    ${e.indice && e.indice.length ? `<div class="panel" style="padding:0 18px 4px" id="indiceSeul">
-        ${indiceBlock(e)}</div>` : ''}
-
-    <div class="res panel" id="res" style="display:none"></div>`;
+      </div>
+    </div>`;
+  document.querySelectorAll('.onglets button').forEach(b => b.onclick = () => onglet(b.dataset.onglet));
+  document.getElementById('ouvrirListe').onclick = () => volet(true);
+  document.getElementById('exoPrec').onclick = () => rang > 0 && openExo(liste[rang - 1].id);
+  document.getElementById('exoSuiv').onclick = () => rang < liste.length - 1 && openExo(liste[rang + 1].id);
+  setTimeout(calerZones, 0);
 
   /* La colonne de gauche défile pour elle-même : sans cela, choisir un exercice
      depuis le bas de la liste laissait la fenêtre où elle était, c'est-à-dire
@@ -1282,7 +1373,6 @@ function finaliserExo(e) {
       sel.value = String(i);
       custom.style.display = 'none';
       consoleRun(getCode(), e.tests[i].stdin, e.tests[i].attendu);
-      document.getElementById('cOut').scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
   if (S.cm) {
     document.getElementById('reset').onclick = () => {
@@ -1295,6 +1385,7 @@ function finaliserExo(e) {
 
 /* ───────────────── console ───────────────── */
 function consoleRun(code, stdin, attendu) {
+  onglet('console');
   const out = document.getElementById('cOut');
   const btn = document.getElementById('exec');
   if (!code.trim()) {
@@ -1333,9 +1424,7 @@ function runTests() {
   const btn = document.getElementById('run');
   if (!code.trim()) return;
   btn.disabled = true; btn.textContent = '⏳ Exécution…';
-  const seul = document.getElementById('indiceSeul');
-  if (seul) seul.style.display = 'none';   // l'indice migre dans le bloc de résultats
-  box.style.display = 'block';
+  onglet('res');
   box.innerHTML = '<div class="verdict err">Exécution en cours…</div>';
 
   // stopOnFail : les jeux sont joués dans l'ordre et l'on s'arrête au premier échec
@@ -1388,8 +1477,9 @@ function runTests() {
         ${restants > 0 ? `<tr><td colspan="4" style="color:var(--muted);font-size:14px">
             ${restants} jeu${restants > 1 ? 'x' : ''} d'essai non joué${restants > 1 ? 's' : ''} :
             corrigez celui-ci d'abord.</td></tr>` : ''}
-      </table>
-      ${solutionBlock(e, all)}`;
+      </table>`;
+    const aide = document.getElementById('aide');
+    if (aide && !enSession()) aide.innerHTML = solutionBlock(e, all);
   }, true);
 }
 
@@ -1432,6 +1522,13 @@ function indiceBlock(e) {
           </div>`).join('')}
       </div>
     </details>`;
+}
+
+/* Zone « Indice et solutions » avant le premier test. */
+function aideAvant(e) {
+  if (enSession()) return '<p class="vide">Pendant l’arène, l’indice et les solutions sont masqués. Ils reviennent à la fin.</p>';
+  return (indiceBlock(e) || '<p class="vide">Pas d’indice pour cet exercice.</p>')
+    + '<p class="vide">Les solutions s’affichent ici après « ▶▶ Tout tester ».</p>';
 }
 
 function solutionBlock(e, unlocked) {
@@ -1516,6 +1613,12 @@ Session.init({
     }, false);
   }),
 });
+/* La hauteur des quatre zones suit l'en-tête et la barre de l'arène, qui
+   changent de hauteur sans que la fenêtre change de taille. */
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => calerZones());
+  ['header', '#sessBar'].forEach(s => { const el = document.querySelector(s); if (el) ro.observe(el); });
+}
 </script>
 </body>
 </html>
