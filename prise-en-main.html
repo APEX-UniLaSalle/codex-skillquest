@@ -80,6 +80,13 @@ a{color:var(--orange)}
 .demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
 .demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
 
+/* Cheat Sheet : présentation et aperçu (3 novembre 2026) */
+.cheat{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start;margin:10px 0}
+.cheat p{margin:0 0 10px}
+.cheat .apercu{display:block;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:#fff}
+.cheat .apercu img{display:block;width:100%;height:auto}
+.cheat .apercu:hover{border-color:var(--orange)}
+@media (max-width:760px){.cheat{grid-template-columns:1fr}}
 /* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
 .suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
 .suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
@@ -113,6 +120,21 @@ a{color:var(--orange)}
     <p>Le Codex compare ce que votre programme affiche à la sortie attendue, caractère par caractère. Les règles de lecture et d'affichage sont expliquées dans
     <a href="debuter.html">Débuter : input() et print()</a>.</p>
     <p class="etat" id="etat">Chargement de Python…</p>
+  </div>
+
+  <h2>La Cheat Sheet Python</h2>
+  <div class="cheat">
+    <div>
+      <p>La Cheat Sheet Python tient sur une page. Elle rassemble la syntaxe dont les exercices ont besoin :
+      variables et types, saisie et affichage, opérateurs, conversions, conditions, boucles, chaînes,
+      listes, dictionnaires, fonctions, module <code>math</code>, table ASCII.</p>
+      <p>Gardez-la ouverte pendant l'atelier : chaque notion qui suit y figure.</p>
+      <p>À l'examen, la même Cheat Sheet est fournie sur demande.</p>
+      <a class="fiche" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener">📄 Ouvrir la Cheat Sheet Python</a>
+    </div>
+    <a class="apercu" href="ressources/cheat-sheet-python.pdf" target="_blank" rel="noopener"
+       title="Ouvrir la Cheat Sheet Python"><img src="ressources/cheat-sheet-python-apercu.png"
+       alt="Aperçu de la Cheat Sheet Python" loading="lazy"></a>
   </div>
 
   <h2>1. Afficher avec print()</h2>
@@ -228,7 +250,7 @@ print(age + 1)</pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · 4c5d26e</span>
+  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · b37c906</span>
 </footer>
 
 <script>
