@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="theme.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Le Codex — TD 2 — Graphiques et import de données</title>
+<title>Le Codex — Atelier R I · 2 — Graphiques et import de données</title>
 <!-- Page fabriquée par r/construire_parcours_r.py : la modifier là, pas ici. -->
 <style>
 *{box-sizing:border-box}
@@ -131,17 +131,17 @@ table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
 </head>
 <body>
 <header>
-  <a href="r-td1.html" class="retour">← TD 1</a>
+  <a href="r-td1.html" class="retour">← Atelier R I · 1</a>
   <a href="r.html" class="retour">← Exercices R</a>
   <a href="index.html" class="retour">Le Codex</a>
-  <h1>TD 2 — Graphiques et import de données</h1>
+  <h1>Atelier R I · 2 — Graphiques et import de données</h1>
   <p>R I · Représentations graphiques et importation de fichiers CSV</p>
 </header>
 
 <main>
 
   <div class="intro">
-    <p>Ce TD reprend le TD n°2 de R I. Les graphiques s'affichent sous l'éditeur. Les fichiers à importer sont déjà déposés dans le dossier de travail de R.</p>
+    <p>Cet atelier reprend le TD n°2 de R I. Les graphiques s'affichent sous l'éditeur. Les fichiers à importer sont déjà déposés dans le dossier de travail de R.</p>
     <p>Pour un graphique, la vérification contrôle que la bonne fonction produit un tracé. Le titre, les axes et les couleurs restent à juger à l'œil.</p>
     <p class="etat" id="etat">Chargement de R…</p>
   </div>
@@ -170,7 +170,7 @@ table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
     <tr><td><code>read.csv2()</code></td><td>point-virgule <code>;</code></td><td>virgule <code>,</code></td></tr>
   </table>
   <p><code>header = TRUE</code> lit la première ligne comme noms de colonnes. <code>row.names = 1</code> prend la première colonne comme noms de lignes. Vérifiez toujours un tableau importé avec <code>str()</code> et <code>summary()</code>.</p>
-  <p>Les deux fichiers de ce TD viennent des jeux de données du Codex : <code>convives.csv</code> (alimentation et santé) et <code>parcelles.csv</code> (agronomie).</p>
+  <p>Les deux fichiers de cet atelier viennent des jeux de données du Codex : <code>convives.csv</code> (alimentation et santé) et <code>parcelles.csv</code> (agronomie).</p>
 
   <h2>Exercice 6 — Importation de données qualitatives</h2>
   <div id="ex-6"></div>
@@ -192,7 +192,7 @@ table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
 
 <footer>
   Le Codex · UniLaSalle — R s'exécute dans votre navigateur, par WebR. Rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · e0cd199</span>
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · f86b31d</span>
 </footer>
 <script>
 window.TD = {
@@ -210,7 +210,7 @@ window.TD = {
   {
    "id": "4.1",
    "titre": "Histogramme des notes de programmation",
-   "consigne": "<p>La matrice <code>NOTE_ETUDE</code> du TD 1 est en mémoire : la colonne <code>\"NOTE1\"</code> contient les notes de programmation.\n   Tracez leur histogramme avec <code>hist()</code>, des classes de 0 à 20 par pas de 2, un titre et le nom des deux axes.</p>",
+   "consigne": "<p>La matrice <code>NOTE_ETUDE</code> de l'atelier 1 est en mémoire : la colonne <code>\"NOTE1\"</code> contient les notes de programmation.\n   Tracez leur histogramme avec <code>hist()</code>, des classes de 0 à 20 par pas de 2, un titre et le nom des deux axes.</p>",
    "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
    "depart": "hist(NOTE_ETUDE[, \"NOTE1\"])\n",
    "corrige": "hist(NOTE_ETUDE[, \"NOTE1\"],\n     breaks = seq(0, 20, 2),\n     col = \"red\",\n     main = \"Notes en programmation\",\n     xlab = \"Notes\",\n     ylab = \"Effectifs\")",

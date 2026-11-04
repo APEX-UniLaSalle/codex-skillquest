@@ -333,6 +333,18 @@
     .z-console .console-body{max-height:320px}
   }
 
+/* « Première fois ? » : Débuter et l'atelier, comme sur la page R (4 novembre 2026) */
+  .demarrage{margin:4px 0 22px;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--bleu);
+    border-radius:3px;padding:16px 20px}
+  .demarre-tete{display:block;text-decoration:none;color:var(--ink)}
+  .demarre-tete .num{font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--bleu)}
+  .demarre-tete h3{margin:4px 0 4px;font-size:18.5px;color:var(--accent)}
+  .demarre-tete:hover h3{text-decoration:underline}
+  .demarre-tete p{margin:0;font-size:15px;color:var(--muted)}
+  .demarre-td{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .demarre-td a{padding:7px 13px;border:1px solid var(--line);border-radius:6px;background:var(--bg);
+    text-decoration:none;color:var(--ink);font-size:15px}
+  .demarre-td a:hover{border-color:var(--bleu);color:var(--bleu)}
 /* accès à la préparation de l'examen, depuis l'accueil */
 .examen{display:flex;align-items:center;gap:18px;margin:26px 0 32px;padding:18px 22px;
   background:var(--carte,#F9F5D7);border:1px solid var(--bord,#D5C4A1);
@@ -344,10 +356,6 @@
 .examen h3{margin:4px 0 6px;font-size:18.5px}
 .examen p{margin:0;font-size:15px;line-height:1.7;color:var(--doux,#7C6F64)}
 .examen-fleche{margin-left:auto;font-size:27.5px;color:var(--orange,#AF3A03);flex:none}
-/* accès à la page Débuter, en tête des niveaux (3 novembre 2026) : même carte
-   que la préparation à l'examen, couleur bleue */
-.examen.debuter{margin:4px 0 22px;border-left-color:var(--bleu,#45707A)}
-.examen.debuter .num,.examen.debuter .examen-fleche{color:var(--bleu,#45707A)}
 /* lien vers la fiche de syntaxe, en-tête et accueil */
 .fiche{display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-size:14.5px;
   font-weight:600;padding:6px 13px;border-radius:6px;border:1px solid var(--accent);
@@ -481,7 +489,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · e0cd199</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · f86b31d</span>
       </div>
     </div>
   </div>
@@ -729,15 +737,17 @@ function afficherAccueil() {
       </div>
     </div>
 
-    <a class="examen debuter" href="debuter.html">
-      <div class="examen-txt">
-        <div class="num">Première fois ?</div>
+    <div class="demarrage">
+      <a class="demarre-tete" href="debuter.html">
+        <span class="num">Première fois ?</span>
         <h3>Débuter : input() et print()</h3>
         <p>Comment un exercice lit ses données avec <code>input()</code> et rend son
            résultat avec <code>print()</code>. À lire avant le premier exercice.</p>
+      </a>
+      <div class="demarre-td">
+        <a href="prise-en-main.html"><b>Atelier</b> — Prise en main de Python</a>
       </div>
-      <div class="examen-fleche">→</div>
-    </a>
+    </div>
 
     <div class="niveaux">
       ${S.niveaux.map(n => {
