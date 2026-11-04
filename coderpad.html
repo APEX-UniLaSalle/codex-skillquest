@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="theme.js"></script>
+<script src="saisie-python.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Codex — Préparation à l'examen CoderPad</title>
 <style>
@@ -169,7 +170,7 @@ print(total)</pre>
     </div>
     <div class="zone z-editeur">
       <div class="zone-tete">Votre fonction <button id="reinit" title="Revenir au code de départ">Réinitialiser</button></div>
-      <textarea id="code" spellcheck="false"></textarea>
+      <textarea id="code" class="code-py" spellcheck="false"></textarea>
     </div>
     <div class="zone z-tests">
       <div class="zone-tete">⁝≡ Cas de test <span class="etat" id="verdict"></span></div>
@@ -185,7 +186,7 @@ print(total)</pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · b4f6302</span>
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · d3e588e</span>
 </footer>
 
 <script>
@@ -367,11 +368,8 @@ function brancher(){
   };
   const ta = document.getElementById('code');
   ta.addEventListener('keydown', ev => {
-    if (ev.key === 'Tab') {                 // la tabulation insère quatre espaces
-      ev.preventDefault();
-      const d = ta.selectionStart;
-      ta.setRangeText('    ', d, ta.selectionEnd, 'end');
-    } else if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && pyodide) {
+    // Tab, Entrée et retour arrière : voir saisie-python.js
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey) && pyodide) {
       ev.preventDefault();
       document.getElementById('tous').click();
     }

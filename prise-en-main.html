@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="theme.js"></script>
+<script src="saisie-python.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Codex — Atelier : prise en main de Python</title>
 <!-- Écrit le 3 novembre 2026 : transposition sur le Codex de la page de cours
@@ -283,7 +284,7 @@ print(age + 1)</pre>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · b4f6302</span>
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · d3e588e</span>
 </footer>
 
 <script>
@@ -441,7 +442,7 @@ function dessiner(){
       <h3>Exercice ${i + 1} — ${e.titre}</h3>
       <p class="cons">${e.consigne}</p>
       <p class="jeux">Jeux d'essai : ${e.cas.map(c => (c[0] ? esc(c[0].replace(/\n/g, ' ⏎ ')) : 'aucune entrée') + ' → ' + esc(c[1].replace(/\n/g, ' ⏎ '))).join(' · ')}</p>
-      <textarea id="code${i}" spellcheck="false" placeholder="# votre programme">${esc(e.depart)}</textarea>
+      <textarea id="code${i}" class="code-py" spellcheck="false" placeholder="# votre programme">${esc(e.depart)}</textarea>
       <div class="actions">
         <button class="principal" data-i="${i}" disabled>Tester</button>
         <button data-reset="${i}">Réinitialiser</button>

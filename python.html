@@ -298,6 +298,8 @@
   .barre-exo{grid-column:1 / -1;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
   .barre-exo button{padding:5px 12px;font-size:14.5px}
   .barre-exo .pos{color:var(--muted);font-size:14px}
+  .barre-exo .transfert{margin:0 0 0 auto;padding:0;border:0;gap:8px;flex-wrap:nowrap}
+  .barre-exo .transfert .bilan{flex-basis:auto;max-width:420px}
   .zone{min-height:0;display:flex;flex-direction:column;overflow:hidden}
   .zone-tete{display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--line);
     background:var(--code);font-size:14.5px;font-weight:600;flex:none;flex-wrap:wrap}
@@ -479,7 +481,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 3 novembre 2026 · b4f6302</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · d3e588e</span>
       </div>
     </div>
   </div>
@@ -1143,6 +1145,11 @@ function openExo(id) {
       <button id="exoPrec" ${rang > 0 ? '' : 'disabled'} title="Exercice précédent de la liste">‹ Précédent</button>
       <button id="exoSuiv" ${rang >= 0 && rang < liste.length - 1 ? '' : 'disabled'} title="Exercice suivant de la liste">Suivant ›</button>
       <span class="pos">${rang >= 0 ? `${rang + 1} / ${liste.length}` : ''} · ${esc((S.niveaux.find(n => n.slug === S.slug) || {}).libelle || '')}</span>
+      <span class="transfert">
+        <span class="bilan"></span>
+        <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder ma progression</button>
+        <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+      </span>
     </div>
     <div class="panel card zone z-enonce">
       <h2>${String(e.id).padStart(3,'0')} — ${esc(e.titre)}</h2>
@@ -1206,6 +1213,7 @@ function openExo(id) {
   document.getElementById('ouvrirListe').onclick = () => volet(true);
   document.getElementById('exoPrec').onclick = () => rang > 0 && openExo(liste[rang - 1].id);
   document.getElementById('exoSuiv').onclick = () => rang < liste.length - 1 && openExo(liste[rang + 1].id);
+  brancherTransfert();   // sauvegarde et chargement, dans la barre de l'exercice (4 novembre 2026)
   setTimeout(calerZones, 0);
 
   /* La colonne de gauche défile pour elle-même : sans cela, choisir un exercice
