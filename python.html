@@ -51,7 +51,7 @@
   body.arene-verrou main{grid-template-columns:minmax(0,1fr)}   /* la liste est masquée pendant l'arène */
   body.bac main{grid-template-columns:minmax(0,1fr)}   /* bac à sable : pas de liste */
   body.bac aside.panel{display:none}
-  .bac-carte{display:flex;align-items:center;gap:18px;margin:18px 0 0;padding:18px 22px;background:var(--panel);
+  .bac-carte{display:flex;align-items:center;gap:18px;margin:0 0 26px;padding:18px 22px;background:var(--panel);
      border:1px solid var(--line);border-radius:6px;cursor:pointer;text-align:left;font:inherit;color:var(--ink);width:100%}
   .bac-carte:hover{border-color:var(--accent)}
   .bac-carte .num{font-size:13.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ok);font-weight:600}
@@ -481,7 +481,7 @@
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · e0cd199</span>
       </div>
     </div>
   </div>
@@ -752,12 +752,6 @@ function afficherAccueil() {
       }).join('')}
     </div>
 
-    <button class="bac-carte" id="versBac" type="button">
-      <div><div class="num">Sans exercices</div><h3>🧪 Bac à sable</h3>
-        <p>Éditeur libre.</p></div>
-      <span class="fleche">→</span>
-    </button>
-
     <a class="examen" href="coderpad.html">
       <div class="examen-txt">
         <div class="num">Avant l'examen</div>
@@ -768,6 +762,12 @@ function afficherAccueil() {
       </div>
       <div class="examen-fleche">→</div>
     </a>
+
+    <button class="bac-carte" id="versBac" type="button">
+      <div><div class="num">Sans exercices</div><h3>🧪 Bac à sable</h3>
+        <p>Éditeur libre.</p></div>
+      <span class="fleche">→</span>
+    </button>
 
     <div class="colonnes">
       <div class="bloc">

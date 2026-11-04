@@ -553,13 +553,17 @@ pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px s
 .z-console .console-r{margin:0;border-radius:0;min-height:100%}
 .z-console canvas.trace{margin:10px auto}
 /* Parcours de démarrage, sur l'accueil (4 novembre 2026) */
-.demarrage{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:16px 0 0}
-.demarre{display:block;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--bleu);
-  border-radius:3px;padding:14px 18px;text-decoration:none;color:var(--ink)}
-.demarre:hover{border-color:var(--bleu)}
-.demarre .num{font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--bleu)}
-.demarre h3{margin:4px 0 4px;font-size:18px;color:var(--accent)}
-.demarre p{margin:0;font-size:15px;color:var(--muted)}
+.demarrage{margin:16px 0 0;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--bleu);
+  border-radius:3px;padding:16px 20px}
+.demarre-tete{display:block;text-decoration:none;color:var(--ink)}
+.demarre-tete .num{font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--bleu)}
+.demarre-tete h3{margin:4px 0 4px;font-size:18.5px;color:var(--accent)}
+.demarre-tete:hover h3{text-decoration:underline}
+.demarre-tete p{margin:0;font-size:15px;color:var(--muted)}
+.demarre-td{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.demarre-td a{padding:7px 13px;border:1px solid var(--line);border-radius:6px;background:var(--bg);
+  text-decoration:none;color:var(--ink);font-size:15px}
+.demarre-td a:hover{border-color:var(--bleu);color:var(--bleu)}
 .bac-import{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
 .bac-import .fichiers{font-size:14px;color:var(--muted);flex-basis:100%;margin:0}
 .bac-import .fichiers code{background:var(--code);padding:1px 5px;border-radius:3px}
@@ -741,12 +745,15 @@ pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px s
     </div>
   </div>
   <div class="demarrage">
-    <a class="demarre" href="r-debuter.html"><span class="num">Pour commencer</span><h3>Débuter en R</h3>
-      <p>Comment le Codex R exécute votre code et vérifie votre réponse.</p></a>
-    <a class="demarre" href="r-td1.html"><span class="num">TD 1</span><h3>Objets, vecteurs, matrices</h3>
-      <p>Objets et fonctions, types, moyenne et écart-type, matrices, apply().</p></a>
-    <a class="demarre" href="r-td2.html"><span class="num">TD 2</span><h3>Graphiques et import de données</h3>
-      <p>Histogramme, boîte à moustaches, diagramme en barres, fichiers CSV.</p></a>
+    <a class="demarre-tete" href="r-debuter.html">
+      <span class="num">Première fois ?</span>
+      <h3>Débuter en R</h3>
+      <p>Comment le Codex R exécute votre code et vérifie votre réponse. À lire avant la première question.</p>
+    </a>
+    <div class="demarre-td">
+      <a href="r-td1.html"><b>TD 1</b> — Objets, vecteurs, matrices</a>
+      <a href="r-td2.html"><b>TD 2</b> — Graphiques et import de données</a>
+    </div>
   </div>
   <div class="themes" id="chapitres"></div>
   <button class="bac-carte" id="versBac" type="button">
@@ -819,7 +826,7 @@ pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px s
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · e0cd199</span>
       </div>
     </div>
   </div>
