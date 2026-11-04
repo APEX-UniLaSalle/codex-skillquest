@@ -488,6 +488,60 @@ footer .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr
 footer strong{color:var(--ink);font-weight:600}
 footer a{color:var(--link-txt);text-decoration:none;border-bottom:1px solid var(--link)}
 footer a:hover{text-decoration:underline}
+/* ── Question en quatre zones (4 novembre 2026), comme le Codex Python ─────
+   énoncé | éditeur en haut ; jeux d’essai | console en bas. Chaque
+   zone défile pour elle-même. La liste devient un volet, ouvert par
+   « ☰ Questions ». Sous 900 px, les zones s'empilent. */
+body.quatre .page{grid-template-columns:minmax(0,1fr);padding-top:10px}
+body.quatre aside.liste{position:fixed;top:0;left:0;bottom:0;width:min(360px,90vw);max-height:none;z-index:60;
+  transform:translateX(-105%);transition:transform .2s ease;box-shadow:4px 0 18px rgba(0,0,0,.18)}
+body.quatre.liste-ouverte aside.liste{transform:none}
+#voileListe{display:none;position:fixed;inset:0;z-index:55;background:rgba(60,56,54,.35)}
+body.quatre.liste-ouverte #voileListe{display:block}
+.barre-exo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.barre-exo button{padding:5px 12px;font-size:14.5px}
+.barre-exo .pos{color:var(--muted);font-size:14px}
+.barre-exo .transfert{margin:0 0 0 auto;padding:0;border:0;gap:8px;flex-wrap:nowrap}
+.barre-exo .transfert .bilan{flex-basis:auto;max-width:420px}
+body.quatre .zones{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-rows:minmax(0,3fr) minmax(0,2fr);gap:12px;height:var(--h-zones,calc(100vh - 120px));min-height:560px}
+.zone{min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0}
+.zone-tete{display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--line);
+  background:var(--code);font-size:14.5px;font-weight:600;flex:none;flex-wrap:wrap}
+.zone-tete .hint{margin-left:auto;font-weight:400;color:var(--muted);font-size:14px}
+.zone-tete .mini{padding:3px 10px;font-size:13.5px}
+.zone-corps{flex:1;min-height:0;overflow:auto;padding:10px 14px}
+.zone-corps.sombre{background:var(--term);padding:0}
+body.quatre .z-enonce{overflow:auto;display:block}
+.z-editeur .editeur-sql{flex:1;min-height:0;overflow:hidden}
+.z-editeur .editeur-sql .CodeMirror{height:100%;min-height:0;border:0;border-radius:0}
+.z-tests .pied{flex:none;margin:0;padding:10px 14px;border-top:1px solid var(--line)}
+.z-tests .pied button{flex:1}
+.z-tests .verdict{margin:10px 0 0}
+pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+  font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;white-space:pre}
+.z-console .console-r{margin:0;border-radius:0;min-height:100%}
+.z-console canvas.trace{margin:10px auto}
+.bac-import{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.bac-import .fichiers{font-size:14px;color:var(--muted);flex-basis:100%;margin:0}
+.bac-import .fichiers code{background:var(--code);padding:1px 5px;border-radius:3px}
+@media(max-width:900px){
+  body.quatre .zones{grid-template-columns:minmax(0,1fr);grid-template-rows:none;height:auto;min-height:0}
+  .zone,.zone-corps,body.quatre .z-enonce{overflow:visible}
+  .z-editeur .editeur-sql{min-height:300px}
+  .z-editeur .editeur-sql .CodeMirror{height:auto;min-height:300px}
+}
+.z-tests .zone-corps #sortie .verdict{margin:10px 0}
+.z-tests .duo{grid-template-columns:1fr}
+.z-console{background:var(--panel)}
+.z-console .console-head{flex:none}
+.z-console .console-body{flex:1;min-height:0;max-height:none;overflow:auto;border-radius:0}
+.z-editeur .syntaxe{flex:none;padding:4px 14px;font-size:13.5px}
+.z-editeur .syntaxe:empty{display:none}
+.z-enonce details.section{margin:16px 0 0}
+.z-enonce .cadre-select{font-size:14px;color:var(--muted)}
+.bac-seul{display:none} body.bac .bac-seul{display:inline}
+.barre-exo #versIntro{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -544,82 +598,100 @@ footer a:hover{text-decoration:underline}
   </div>
 </aside>
 
+<div id="voileListe"></div>
 <main id="travail" hidden>
-  <!-- Carte de la question : titre, repères, énoncé — même gabarit que le Codex Python -->
-  <div class="fil bac-cache"><button type="button" id="versIntro">↩ Présentation du thème</button></div>
-  <div class="panel card">
-    <h2 id="titreQ"></h2>
-    <div class="meta" id="metaQ"></div>
-    <div class="statement" id="enonce"></div>
-    <div class="ligne-signaler bac-cache">
-      <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
-    </div>
+  <div class="barre-exo arene-cache bac-cache">
+    <button id="ouvrirListe" title="Afficher la liste des questions">☰ Questions</button>
+    <button id="exoPrec" title="Question précédente de la liste">‹ Précédente</button>
+    <button id="exoSuiv" title="Question suivante de la liste">Suivante ›</button>
+    <span class="pos" id="posQ"></span>
+    <button type="button" id="versIntro">↩ Présentation du thème</button>
+    <span class="transfert">
+      <span class="bilan"></span>
+      <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder ma progression</button>
+      <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+    </span>
   </div>
+  <div class="zones">
+    <div class="panel card zone z-enonce">
+      <h2 id="titreQ"></h2>
+      <div class="meta" id="metaQ"></div>
+      <div class="statement" id="enonce"></div>
+      <div class="ligne-signaler bac-cache">
+        <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+      </div>
+      <details class="section" id="sec-schema" open>
+        <summary>Schéma de la base<button class="bascule" type="button" id="basculeSchema"></button></summary>
+        <div class="plan" id="plan">
+          <svg id="liens"></svg>
+          <div class="schema" id="schema"></div>
+        </div>
+        <p class="legende">
+          <span><span class="marque pk">PK</span>clé primaire</span>
+          <span><span class="marque fk">FK</span>clé étrangère</span>
+          <span>survolez une table pour isoler ses liens</span>
+        </p>
+      </details>
 
-  <details class="section" id="sec-schema" open>
-    <summary>Schéma de la base<button class="bascule" type="button" id="basculeSchema"></button></summary>
-    <div class="plan" id="plan">
-      <svg id="liens"></svg>
-      <div class="schema" id="schema"></div>
+      <p class="cadre-select">Le Codex n'exécute que des requêtes de <strong>sélection</strong>.
+         <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> et les ordres de
+         structure sont refusés : la base doit rester la même pour tout le monde, d'une
+         question à l'autre.</p>
+
+      <details class="indice arene-cache bac-cache">
+        <summary>&#128269; Besoin d'un indice&#8239;?</summary>
+        <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
+           sur laquelle vous butez — chacune renvoie à sa page de cours.</p>
+        <div class="etiquettes" id="etiquettes"></div>
+        <div id="notions"></div>
+      </details>
+
+      <details class="solution arene-cache bac-cache" id="bloc-solution">
+        <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — testez d'abord votre requête</span></summary>
+        <pre id="solution"></pre>
+        <div class="actions" style="margin-top:10px">
+          <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
+        </div>
+        <p class="rappel">D'autres écritures peuvent donner le même résultat : ce qui compte est
+           qu'elles passent les quatre jeux d'essai.</p>
+      </details>
+
+      <div class="etape bac-cache" id="etape" hidden></div>
     </div>
-    <p class="legende">
-      <span><span class="marque pk">PK</span>clé primaire</span>
-      <span><span class="marque fk">FK</span>clé étrangère</span>
-      <span>survolez une table pour isoler ses liens</span>
-    </p>
-  </details>
 
-  <details class="section bac-cache" id="sec-jeux">
-    <summary>Jeux d'essai<span class="compte" id="compte-jeux"></span></summary>
-    <div id="jeux"></div>
-  </details>
-
-  <h2>Votre requête<a class="fiche-mini" href="ressources/cheat-sheet-sql.png" target="_blank" rel="noopener">📄 Cheat Sheet SQL</a></h2>
-  <p class="cadre-select">Le Codex n'exécute que des requêtes de <strong>sélection</strong>.
-     <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code> et les ordres de
-     structure sont refusés : la base doit rester la même pour tout le monde, d'une
-     question à l'autre.</p>
+    <div class="panel zone z-editeur">
+      <div class="zone-tete">Votre requête
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> : <span class="bac-cache">tous les tests</span><span class="bac-seul">exécuter</span></span>
+        <button id="reset" class="mini">Effacer</button></div>
+      <div class="editeur-sql">
   <textarea id="code" spellcheck="false">SELECT *
 FROM CONCERT;</textarea>
-  <div class="actions">
-    <button class="principal bac-cache" id="run" disabled>&#9654;&#9654; Tout tester</button>
-    <button class="principal" id="bacRun" hidden>&#9654; Exécuter</button>
-    <button id="reset">Effacer</button>
-    <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
-    <span class="syntaxe" id="syntaxe"></span>
-  </div>
-
-  <div class="console">
-    <div class="console-head">
-      <strong>Console</strong>
-      <select id="cIn"></select>
-      <button id="exec" disabled>Exécuter</button>
-      <span class="hint">Résultat brut, sans comparaison. Cliquez un nom de table dans le schéma pour voir son contenu.</span>
+      </div>
+      <span class="syntaxe" id="syntaxe"></span>
     </div>
-    <div class="console-body" id="cOut"><span class="cmt">Exécutez votre requête pour voir ce qu'elle renvoie.</span></div>
-  </div>
 
-  <details class="indice arene-cache bac-cache">
-    <summary>&#128269; Besoin d'un indice&#8239;?</summary>
-    <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
-       sur laquelle vous butez — chacune renvoie à sa page de cours.</p>
-    <div class="etiquettes" id="etiquettes"></div>
-    <div id="notions"></div>
-  </details>
-
-  <details class="solution arene-cache bac-cache" id="bloc-solution">
-    <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — testez d'abord votre requête</span></summary>
-    <pre id="solution"></pre>
-    <div class="actions" style="margin-top:10px">
-      <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
+    <div class="panel zone z-tests">
+      <div class="zone-tete"><span class="bac-cache">⁝≡ Jeux d'essai <span class="compte" id="compte-jeux"></span></span><span class="bac-seul">📋 Résultat</span></div>
+      <div class="zone-corps">
+        <div id="sortie"></div>
+        <div id="jeux" class="bac-cache"></div>
+        <div id="bacResultat" hidden></div>
+      </div>
+      <div class="actions pied">
+        <button class="principal bac-cache" id="run" disabled>&#9654;&#9654; Tous les tests</button>
+        <button class="principal" id="bacRun" hidden>&#9654; Exécuter</button>
+      </div>
     </div>
-    <p class="rappel">D'autres écritures peuvent donner le même résultat : ce qui compte est
-       qu'elles passent les quatre jeux d'essai.</p>
-  </details>
 
-  <div id="sortie"></div>
-  <div id="bacResultat" hidden></div>
-  <div class="etape bac-cache" id="etape" hidden></div>
+    <div class="panel zone z-console">
+      <div class="console-head">
+        <strong>Console</strong>
+        <select id="cIn"></select>
+        <button id="exec" disabled>Exécuter</button>
+      </div>
+      <div class="console-body" id="cOut"><span class="cmt">Exécutez votre requête pour voir ce qu'elle renvoie. Cliquez un nom de table dans le schéma pour voir son contenu.</span></div>
+    </div>
+  </div>
 </main>
 
 <section class="intro" id="intro" hidden></section>
@@ -723,7 +795,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · bffe53f</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
       </div>
     </div>
   </div>
@@ -1789,6 +1861,7 @@ function monterApercu(slug) {
 function ouvrirIntro(slug) {
   const b = BASES[slug];
   if (!b) return;
+  quitterQuatre();
   document.getElementById('fBase').value = slug;
   dessinerListe();
 
@@ -1914,6 +1987,7 @@ function ouvrirIntro(slug) {
 /* Retour à la liste des thèmes, depuis la présentation comme depuis une question. */
 function afficherAccueil() {
   Q = null;
+  quitterQuatre();
   fermerApercu();
   document.getElementById('intro').hidden = true;
   document.getElementById('travail').hidden = true;
@@ -1993,9 +2067,35 @@ function minutes(duree) {
   return t ? `${t} min` : '';
 }
 
+/* Quatre zones : seulement quand une question ou le bac à sable est ouvert. */
+function quitterQuatre() { document.body.classList.remove('quatre', 'liste-ouverte'); }
+function volet(ouvert) { document.body.classList.toggle('liste-ouverte', ouvert); }
+function calerZones() {
+  const w = document.querySelector('#travail .zones');
+  if (!document.body.classList.contains('quatre') || !w) return;
+  const haut = w.getBoundingClientRect().top + window.scrollY;
+  document.documentElement.style.setProperty('--h-zones', Math.max(560, window.innerHeight - haut - 14) + 'px');
+  if (editeur) editeur.refresh();
+  if (typeof dessinerLiens === 'function') dessinerLiens();
+}
+window.addEventListener('resize', calerZones);
+document.getElementById('voileListe').onclick = () => volet(false);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') volet(false); });
+document.getElementById('ouvrirListe').onclick = () => volet(true);
+function majBarre() {
+  const l = retenues(), rang = Q ? l.findIndex(q => q.id === Q.id) : -1;
+  const pr = document.getElementById('exoPrec'), su = document.getElementById('exoSuiv');
+  pr.disabled = !(rang > 0); su.disabled = !(rang >= 0 && rang < l.length - 1);
+  pr.onclick = () => rang > 0 && ouvrirQuestion(l[rang - 1].id);
+  su.onclick = () => rang < l.length - 1 && ouvrirQuestion(l[rang + 1].id);
+  document.getElementById('posQ').textContent = rang >= 0 ? `${rang + 1} / ${l.length}` : '';
+}
+
 function ouvrirQuestion(id) {
   Q = BANQUE.find(q => q.id === id);
   if (!Q) return;
+  document.body.classList.add('quatre');
+  volet(false);
   if (enBac) { enBac = false; document.body.classList.remove('bac'); document.getElementById('run').hidden = false; document.getElementById('bacRun').hidden = true; document.getElementById('bacResultat').hidden = true; }
   const base = BASES[Q.base];
   if (!base) { document.getElementById('compte').textContent = 'Base introuvable : ' + Q.base; return; }
@@ -2033,8 +2133,9 @@ function ouvrirQuestion(id) {
   requestAnimationFrame(() => editeur.refresh());
   afficherEtapeSuivante();
   dessinerListe();
-  majBoutonArene();
-  document.getElementById('travail').scrollIntoView({ block: 'start' });
+  majBarre();
+  window.scrollTo({ top: 0 });
+  setTimeout(calerZones, 0);
 }
 
 /* ── bac à sable ────────────────────────────────────────────────
@@ -2052,7 +2153,8 @@ function ouvrirBac(slug) {
   SCHEMA = base.schema; DATA = base.donnees;
   JEUX = [{ titre: base.nom, desc: 'base complète' }]; REFERENCE = 'SELECT 1'; TAGS = []; NOTIONS = [];
   fermerApercu();
-  document.body.classList.add('bac');
+  document.body.classList.add('bac', 'quatre');
+  volet(false);
   document.getElementById('accueil').hidden = true;
   document.getElementById('intro').hidden = true;
   document.getElementById('travail').hidden = false;
@@ -2079,10 +2181,12 @@ function ouvrirBac(slug) {
   verifierSyntaxe();
   requestAnimationFrame(() => editeur.refresh());
   try { localStorage.setItem(CLE_BAC + '_base', slug); } catch (_) {}
-  document.getElementById('travail').scrollIntoView({ block: 'start' });
+  window.scrollTo({ top: 0 });
+  setTimeout(calerZones, 0);
 }
 function fermerBac() {
   enBac = false;
+  quitterQuatre();
   document.body.classList.remove('bac');
   document.getElementById('run').hidden = false;
   document.getElementById('bacRun').hidden = true;
@@ -2108,16 +2212,9 @@ function bacExecuter() {
 document.getElementById('bacRun').onclick = bacExecuter;
 document.getElementById('versBac').onclick = () => ouvrirBac();
 
-/* Mode arène : le bouton de l'exercice lance une arène, ou relance la manche
-   suivante quand le lanceur en a une ouverte. Voir session.js. */
-function majBoutonArene() {
-  const b = document.getElementById('sessLancer');
-  if (!window.Session) { b.hidden = true; return; }
-  const relance = Session.active && Session.peutRelancer();
-  b.hidden = !(relance || !Session.active);
-  b.textContent = relance ? '⚔️ Relancer l’arène sur cette question' : '⚔️ Lancer une arène';
-  b.onclick = () => Session.active ? Session.relancer() : Session.lancer();
-}
+/* Mode arène : « ⚔️ Arène » dans l'en-tête crée ou rejoint une arène ; la
+   manche suivante se lance depuis la barre de l'arène (4 novembre 2026). */
+function majBoutonArene() {}
 
 /* Les enquêtes se lisent dans l'ordre : chaque question renvoie à la suivante.
    Les bases thématiques ordinaires n'ont pas de fil narratif, on ne leur en
@@ -2158,6 +2255,12 @@ document.getElementById('schema').addEventListener('click', ev => {
 });
 document.getElementById('reset').onclick = () => { editeur.setValue(DEPART); editeur.focus(); };
 
+/* La hauteur des quatre zones suit l'en-tête et la barre de l'arène. */
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => calerZones());
+  ['header', '#sessBar'].forEach(s => { const el = document.querySelector(s); if (el) ro.observe(el); });
+}
+
 /* Cache hors ligne : le même service worker que les autres pages. Sans lui, un
    étudiant arrivé directement ici n'avait rien en cache. */
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
@@ -2168,6 +2271,7 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:')
 const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? r() : setTimeout(t, 200); t(); });
 const minutesNombre = d => { const m = /^(\d+):(\d+):/.exec(d || ''); return m ? +m[1] * 60 + +m[2] : 0; };
 Session.init({
+  relanceDansBarre: true,   // « Nouvelle manche » dans la barre de l'arène (4 novembre 2026)
   page: 'sql',
   courant: () => Q ? { niveau: Q.niveau, exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 10 } : null,
   ouvrir: async (niveau, exo, depart) => {

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — TD 1 — Objets, vecteurs, matrices</title>
+<!-- Page fabriquée par r/construire_parcours_r.py : la modifier là, pas ici. -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:22px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:14.5px;margin-right:16px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
+.fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+.fiche:hover{border-color:var(--orange);color:var(--orange)}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+h2{font-size:18.5px;margin:34px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+ul.regles{margin:8px 0;padding-left:22px}
+ul.regles li{margin:5px 0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.trio{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;margin:12px 0;align-items:stretch}
+.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux)}
+@media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
+pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
+   border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+pre .c{color:#9C8F9A}
+table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
+table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.lignes td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord);
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14.5px}
+.vn{color:var(--doux);font-style:italic}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+   background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
+.erreurs{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+.erreurs th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:6px 10px 6px 0;border-bottom:1px solid var(--bord)}
+.erreurs td{padding:8px 10px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
+.ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
+   padding:16px 18px;margin:14px 0}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{margin:0 0 10px;font-size:17px}
+.ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
+textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
+   border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
+button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;display:none}
+.sortie.visible{display:block}
+.ok{color:#9CC5A4}.ko{color:#E89A86}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
+details pre{margin-top:8px}
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
+   text-align:center}
+a{color:var(--orange)}
+
+.demo{margin:10px 0 4px}
+.demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
+.demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
+
+/* Écran d'un exercice : schéma des quatre zones (3 novembre 2026) */
+.ecran{border:1px solid var(--bord);border-radius:10px;background:var(--fond2);padding:10px;margin:12px 0}
+.ecran .barre-s{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ecran .barre-s span{font-size:13.5px;border:1px solid var(--bord);border-radius:5px;padding:2px 9px;background:var(--carte)}
+.ecran .grille{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px}
+.ecran .z{background:var(--carte);border:1px solid var(--bord);border-radius:7px;padding:10px 12px;min-height:110px}
+.ecran .z b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--orange);margin-bottom:4px}
+.ecran .z p{margin:0;font-size:15px;color:var(--doux)}
+.ecran .z.sombre{background:var(--sombre)}
+.ecran .z.sombre p{color:#EBDBB2}
+.ecran .z.sombre b{color:#E78A4E}
+@media (max-width:760px){.ecran .grille{grid-template-columns:1fr}}
+/* Cheat Sheet : présentation et aperçu (3 novembre 2026) */
+.cheat{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start;margin:10px 0}
+.cheat p{margin:0 0 10px}
+.cheat .apercu{display:block;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:#fff}
+.cheat .apercu img{display:block;width:100%;height:auto}
+.cheat .apercu:hover{border-color:var(--orange)}
+@media (max-width:760px){.cheat{grid-template-columns:1fr}}
+/* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
+   border-left:5px solid var(--bleu);border-radius:10px;padding:14px 18px;text-decoration:none;color:var(--texte)}
+.suite a.carte:hover{background:var(--fond2)}
+.suite .carte .num{font-size:13px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--bleu)}
+.suite .carte h3{margin:4px 0 6px;font-size:18px}
+.suite .carte p{margin:0;font-size:15.5px;color:var(--doux)}
+.suite .carte.examen{border-left-color:var(--orange)}
+.suite .carte.examen .num{color:var(--orange)}
+.suite .niveaux{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suite .niveaux a{padding:6px 12px;border:1px solid var(--bord);border-radius:6px;text-decoration:none;
+   font-size:15px;background:var(--fond)}
+.suite .niveaux a:hover{border-color:var(--orange)}
+
+/* propre au parcours R */
+textarea.code-r{min-height:130px}
+ul.verifs{list-style:none;margin:10px 0 0;padding:0;font-size:15px}
+ul.verifs li{padding:3px 0 3px 26px;position:relative;color:var(--doux)}
+ul.verifs li::before{content:"○";position:absolute;left:4px}
+ul.verifs li.ok{color:var(--vert)} ul.verifs li.ok::before{content:"✓"}
+ul.verifs li.ko{color:var(--rouge)} ul.verifs li.ko::before{content:"✗"}
+canvas.trace{display:none;margin:10px auto 0;max-width:100%;height:auto;background:#fff;
+   border:1px solid var(--bord);border-radius:6px}
+canvas.trace.actif{display:block}
+table.t{border-collapse:collapse;font-size:15.5px;margin:10px 0}
+table.t th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
+   padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header>
+  <a href="r-debuter.html" class="retour">← Débuter en R</a>
+  <a href="r.html" class="retour">← Exercices R</a>
+  <a href="index.html" class="retour">Le Codex</a>
+  <h1>TD 1 — Objets, vecteurs, matrices</h1>
+  <p>R I · Pratique de R : objets, fonctions, types, vecteurs, statistiques simples</p>
+</header>
+
+<main>
+
+  <div class="intro">
+    <p>Ce TD reprend le TD n°1 de R I. Les exercices s'écrivent et se vérifient ici, dans le navigateur.</p>
+    <p>Chaque exercice : écrivez votre code, <b>Exécuter</b> pour voir ce que R affiche, puis <b>Vérifier</b>. La liste sous l'éditeur dit ce qui est vérifié.</p>
+    <p class="etat" id="etat">Chargement de R…</p>
+  </div>
+
+  <h2>Rappels</h2>
+  <ul class="regles">
+    <li>R travaille avec des <b>objets</b> passés à des <b>fonctions</b> : <code>x &lt;- 10</code>, puis <code>sqrt(x)</code>.</li>
+    <li><code>&lt;-</code> range une valeur dans un objet. Réaffecter un objet écrase sa valeur. Les noms distinguent majuscules et minuscules.</li>
+    <li>Types de base : <code>numeric</code> (12, 3.5), <code>character</code> ("Bonjour"), <code>logical</code> (TRUE, FALSE), <code>factor</code> (catégories). <code>class(x)</code> donne le type, <code>str(x)</code> la structure.</li>
+    <li><code>c()</code> crée un vecteur de valeurs du même type : <code>v &lt;- c(2, 6, 7, 9, 8)</code>. <code>v[1]</code> est le premier élément, <code>v[-2]</code> tous sauf le deuxième, <code>v[c(2, 5)]</code> les éléments 2 et 5.</li>
+  </ul>
+
+  <h2>Exercice 1 — Objets et fonctions</h2>
+  <div id="ex-1.1"></div>
+  <div id="ex-1.2"></div>
+
+  <h2>Exercice 2 — Calculs statistiques sur un vecteur</h2>
+  <div id="ex-2.1"></div>
+  <div id="ex-2.2"></div>
+
+  <h2>Exercice 3 — Vecteurs, matrices et tableaux</h2>
+  <div id="ex-3.1"></div>
+  <div id="ex-3.2"></div>
+  <div id="ex-3.3"></div>
+  <div id="ex-3.4"></div>
+
+  <h2>Points clés</h2>
+  <ul class="regles">
+    <li>Tout, en R, est un objet. Les fonctions attendent des objets du bon type.</li>
+    <li><code>mean()</code> et <code>sd()</code> calculent moyenne et écart-type. <code>summary()</code> ne donne pas l'écart-type.</li>
+    <li>Une matrice regroupe plusieurs vecteurs numériques. <code>apply()</code> applique une fonction à chaque ligne ou à chaque colonne.</li>
+  </ul>
+  <div class="suite">
+    <a class="carte" href="r-td2.html"><div class="num">TD 2</div><h3>Graphiques et import de données</h3>
+      <p>Histogramme, boîte à moustaches, diagramme en barres, import de fichiers CSV.</p></a>
+    <a class="carte examen" href="r.html"><div class="num">Exercices du Codex</div><h3>Les chapitres de R I et R II</h3>
+      <p>186 questions, du chapitre B (syntaxe) aux ateliers de statistique, sur trois jeux de données.</p></a>
+  </div>
+
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — R s'exécute dans votre navigateur, par WebR. Rien n'est envoyé.
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
+</footer>
+<script>
+window.TD = {
+ "preparation": [],
+ "exercices": [
+  {
+   "id": "1.1",
+   "titre": "Objets et fonctions",
+   "consigne": "<p>Créez un objet <code>x</code> qui vaut 10, puis un objet <code>y</code> qui vaut deux fois <code>x</code>.\n   Créez <code>z</code>, la somme de <code>x</code> et <code>y</code>, <b>avec la fonction</b> <code>sum()</code>.\n   Rangez enfin la classe de <code>z</code> dans un objet <code>classe</code>.</p>",
+   "prelude": "",
+   "depart": "x <- 10\n",
+   "corrige": "x <- 10\ny <- 2 * x\nz <- sum(x, y)\nclasse <- class(z)\nclasse",
+   "verifs": [
+    {
+     "test": "identical(x, 10)",
+     "msg": "x vaut 10"
+    },
+    {
+     "test": "isTRUE(all.equal(y, 20))",
+     "msg": "y vaut 2 × x"
+    },
+    {
+     "test": "isTRUE(all.equal(z, 30))",
+     "msg": "z vaut x + y"
+    },
+    {
+     "test": "identical(classe, \"numeric\")",
+     "msg": "classe contient la classe de z, \"numeric\""
+    }
+   ],
+   "appels": [
+    "sum"
+   ]
+  },
+  {
+   "id": "1.2",
+   "titre": "Un vecteur de tailles",
+   "consigne": "<p>Créez un vecteur <code>v</code> contenant au moins trois tailles en centimètres : les vôtres ou celles de votre groupe.\n   Rangez sa moyenne dans <code>moyenne</code> et son écart-type dans <code>ecart</code>.</p>",
+   "prelude": "",
+   "depart": "v <- c()\n",
+   "corrige": "v <- c(170, 175, 168)\nmoyenne <- mean(v)\necart <- sd(v)",
+   "verifs": [
+    {
+     "test": "is.numeric(v) && length(v) >= 3",
+     "msg": "v contient au moins trois nombres"
+    },
+    {
+     "test": "all(v > 50 & v < 250)",
+     "msg": "les valeurs sont des tailles en centimètres"
+    },
+    {
+     "test": "isTRUE(all.equal(moyenne, mean(v)))",
+     "msg": "moyenne est la moyenne de v"
+    },
+    {
+     "test": "isTRUE(all.equal(ecart, sd(v)))",
+     "msg": "ecart est l’écart-type de v"
+    }
+   ]
+  },
+  {
+   "id": "2.1",
+   "titre": "Moyenne et écart-type, sans les fonctions",
+   "consigne": "<p>Le vecteur <code>NOTE1</code> contient dix notes.\n   Calculez sa moyenne dans <code>MOYENNE_NOTE1</code> et son écart-type dans <code>SD_NOTE1</code>, <b>sans</b> <code>mean()</code> ni <code>sd()</code>.\n   Utilisez <code>sum()</code>, <code>length()</code> et <code>sqrt()</code>.</p>\n   <p>Moyenne : x̄ = (1/n) Σ xᵢ. Écart-type d'un échantillon : s = √( Σ (xᵢ − x̄)² / (n − 1) ).</p>",
+   "prelude": "",
+   "depart": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\n",
+   "corrige": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nMOYENNE_NOTE1 <- sum(NOTE1) / length(NOTE1)\nSD_NOTE1 <- sqrt(sum((NOTE1 - MOYENNE_NOTE1)^2) / (length(NOTE1) - 1))",
+   "verifs": [
+    {
+     "test": "isTRUE(all.equal(MOYENNE_NOTE1, mean(NOTE1)))",
+     "msg": "MOYENNE_NOTE1 est la moyenne de NOTE1"
+    },
+    {
+     "test": "isTRUE(all.equal(SD_NOTE1, sd(NOTE1)))",
+     "msg": "SD_NOTE1 est l’écart-type de NOTE1"
+    }
+   ],
+   "interdits": [
+    "mean",
+    "sd"
+   ]
+  },
+  {
+   "id": "2.2",
+   "titre": "Les mêmes calculs, avec les fonctions",
+   "consigne": "<p><code>MOYENNE_NOTE1</code> et <code>SD_NOTE1</code>, calculés à l'exercice précédent, sont en mémoire.\n   Calculez à nouveau la moyenne dans <code>MOYENNE_FCTN</code> et l'écart-type dans <code>SD_FCTN</code>, avec <code>mean()</code> et <code>sd()</code>.\n   Rangez dans <code>identiques</code> la comparaison des deux écarts-types.</p>\n   <p>Deux calculs de nombres décimaux peuvent différer au dernier chiffre : comparez avec <code>isTRUE(all.equal(a, b))</code> plutôt qu'avec <code>==</code>.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nMOYENNE_NOTE1 <- sum(NOTE1) / length(NOTE1)\nSD_NOTE1 <- sqrt(sum((NOTE1 - MOYENNE_NOTE1)^2) / (length(NOTE1) - 1))",
+   "depart": "",
+   "corrige": "MOYENNE_FCTN <- mean(NOTE1)\nSD_FCTN <- sd(NOTE1)\nidentiques <- isTRUE(all.equal(SD_NOTE1, SD_FCTN))\nidentiques",
+   "verifs": [
+    {
+     "test": "isTRUE(all.equal(MOYENNE_FCTN, mean(NOTE1)))",
+     "msg": "MOYENNE_FCTN est calculée avec mean()"
+    },
+    {
+     "test": "isTRUE(all.equal(SD_FCTN, sd(NOTE1)))",
+     "msg": "SD_FCTN est calculé avec sd()"
+    },
+    {
+     "test": "isTRUE(identiques)",
+     "msg": "identiques vaut TRUE"
+    }
+   ],
+   "appels": [
+    "mean",
+    "sd"
+   ]
+  },
+  {
+   "id": "3.1",
+   "titre": "Un second vecteur de notes",
+   "consigne": "<p>Créez le vecteur <code>NOTE2</code> des notes 15, 2, 15, 20, 12, 13.5, 11, 12.75, 17 et 9, dans cet ordre.\n   Rangez sa moyenne dans <code>moyenne2</code> et son écart-type dans <code>ecart2</code>.</p>",
+   "prelude": "",
+   "depart": "",
+   "corrige": "NOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nmoyenne2 <- mean(NOTE2)\necart2 <- sd(NOTE2)",
+   "verifs": [
+    {
+     "test": "isTRUE(all.equal(NOTE2, c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)))",
+     "msg": "NOTE2 contient les dix notes, dans l’ordre"
+    },
+    {
+     "test": "isTRUE(all.equal(moyenne2, 12.725))",
+     "msg": "moyenne2 est la moyenne de NOTE2"
+    },
+    {
+     "test": "isTRUE(all.equal(ecart2, sd(NOTE2)))",
+     "msg": "ecart2 est l’écart-type de NOTE2"
+    }
+   ]
+  },
+  {
+   "id": "3.2",
+   "titre": "Une matrice de notes",
+   "consigne": "<p><code>NOTE1</code> et <code>NOTE2</code> sont en mémoire.\n   Créez la matrice <code>NOTE_ETUDE</code> : <code>NOTE1</code> en première colonne, <code>NOTE2</code> en seconde.\n   Nommez ses colonnes <code>\"NOTE1\"</code> et <code>\"NOTE2\"</code>, puis affichez sa classe et sa structure avec <code>class()</code> et <code>str()</code>.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)",
+   "depart": "NOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\n",
+   "corrige": "NOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")\nclass(NOTE_ETUDE)\nstr(NOTE_ETUDE)",
+   "verifs": [
+    {
+     "test": "is.matrix(NOTE_ETUDE) && identical(dim(NOTE_ETUDE), c(10L, 2L))",
+     "msg": "NOTE_ETUDE est une matrice de 10 lignes et 2 colonnes"
+    },
+    {
+     "test": "identical(colnames(NOTE_ETUDE), c(\"NOTE1\", \"NOTE2\"))",
+     "msg": "les colonnes s’appellent NOTE1 et NOTE2"
+    },
+    {
+     "test": "isTRUE(all.equal(unname(NOTE_ETUDE[, 2]), NOTE2))",
+     "msg": "la seconde colonne contient NOTE2"
+    }
+   ],
+   "appels": [
+    "class",
+    "str"
+   ]
+  },
+  {
+   "id": "3.3",
+   "titre": "Statistiques par ligne et par colonne",
+   "consigne": "<p>La matrice <code>NOTE_ETUDE</code> est en mémoire.\n   Avec <code>apply()</code>, calculez la moyenne de chaque étudiant, c'est-à-dire de chaque ligne, dans <code>moy_lignes</code>,\n   et l'écart-type de chaque matière, c'est-à-dire de chaque colonne, dans <code>sd_colonnes</code>.</p>\n   <p>Le deuxième argument de <code>apply()</code> vaut 1 pour les lignes et 2 pour les colonnes : <code>apply(NOTE_ETUDE, 1, mean)</code>.\n   S'il est nommé, il s'écrit <code>MARGIN</code>, en majuscules.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
+   "depart": "",
+   "corrige": "moy_lignes <- apply(NOTE_ETUDE, 1, mean)\nsd_colonnes <- apply(NOTE_ETUDE, 2, sd)",
+   "verifs": [
+    {
+     "test": "isTRUE(all.equal(unname(moy_lignes), unname(rowMeans(NOTE_ETUDE))))",
+     "msg": "moy_lignes contient la moyenne de chaque ligne"
+    },
+    {
+     "test": "isTRUE(all.equal(unname(sd_colonnes), c(sd(NOTE1), sd(NOTE2))))",
+     "msg": "sd_colonnes contient l’écart-type de chaque colonne"
+    }
+   ],
+   "appels": [
+    "apply"
+   ]
+  },
+  {
+   "id": "3.4",
+   "titre": "Un résumé rapide",
+   "consigne": "<p>Affichez le résumé de <code>NOTE1</code>, puis celui de <code>NOTE_ETUDE</code>, avec <code>summary()</code>.\n   Lisez la sortie : quelles valeurs donne-t-elle, et laquelle manque par rapport aux exercices précédents ?</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
+   "depart": "",
+   "corrige": "summary(NOTE1)\nsummary(NOTE_ETUDE)\n# summary() ne donne pas l’écart-type",
+   "verifs": [],
+   "appels": [
+    "summary"
+   ]
+  }
+ ]
+};
+</script>
+<script type="module" src="r-exercices.js"></script>
+</body>
+</html>

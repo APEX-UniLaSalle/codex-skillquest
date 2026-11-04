@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — Débuter en R</title>
+<!-- Page fabriquée par r/construire_parcours_r.py : la modifier là, pas ici. -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:22px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:14.5px;margin-right:16px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
+.fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+.fiche:hover{border-color:var(--orange);color:var(--orange)}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+h2{font-size:18.5px;margin:34px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+ul.regles{margin:8px 0;padding-left:22px}
+ul.regles li{margin:5px 0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.trio{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;margin:12px 0;align-items:stretch}
+.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux)}
+@media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
+pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
+   border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+pre .c{color:#9C8F9A}
+table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
+table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.lignes td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord);
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14.5px}
+.vn{color:var(--doux);font-style:italic}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+   background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
+.erreurs{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+.erreurs th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:6px 10px 6px 0;border-bottom:1px solid var(--bord)}
+.erreurs td{padding:8px 10px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
+.ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
+   padding:16px 18px;margin:14px 0}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{margin:0 0 10px;font-size:17px}
+.ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
+textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
+   border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
+button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;display:none}
+.sortie.visible{display:block}
+.ok{color:#9CC5A4}.ko{color:#E89A86}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
+details pre{margin-top:8px}
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
+   text-align:center}
+a{color:var(--orange)}
+
+.demo{margin:10px 0 4px}
+.demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
+.demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
+
+/* Écran d'un exercice : schéma des quatre zones (3 novembre 2026) */
+.ecran{border:1px solid var(--bord);border-radius:10px;background:var(--fond2);padding:10px;margin:12px 0}
+.ecran .barre-s{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ecran .barre-s span{font-size:13.5px;border:1px solid var(--bord);border-radius:5px;padding:2px 9px;background:var(--carte)}
+.ecran .grille{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px}
+.ecran .z{background:var(--carte);border:1px solid var(--bord);border-radius:7px;padding:10px 12px;min-height:110px}
+.ecran .z b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--orange);margin-bottom:4px}
+.ecran .z p{margin:0;font-size:15px;color:var(--doux)}
+.ecran .z.sombre{background:var(--sombre)}
+.ecran .z.sombre p{color:#EBDBB2}
+.ecran .z.sombre b{color:#E78A4E}
+@media (max-width:760px){.ecran .grille{grid-template-columns:1fr}}
+/* Cheat Sheet : présentation et aperçu (3 novembre 2026) */
+.cheat{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start;margin:10px 0}
+.cheat p{margin:0 0 10px}
+.cheat .apercu{display:block;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:#fff}
+.cheat .apercu img{display:block;width:100%;height:auto}
+.cheat .apercu:hover{border-color:var(--orange)}
+@media (max-width:760px){.cheat{grid-template-columns:1fr}}
+/* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
+   border-left:5px solid var(--bleu);border-radius:10px;padding:14px 18px;text-decoration:none;color:var(--texte)}
+.suite a.carte:hover{background:var(--fond2)}
+.suite .carte .num{font-size:13px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--bleu)}
+.suite .carte h3{margin:4px 0 6px;font-size:18px}
+.suite .carte p{margin:0;font-size:15.5px;color:var(--doux)}
+.suite .carte.examen{border-left-color:var(--orange)}
+.suite .carte.examen .num{color:var(--orange)}
+.suite .niveaux{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suite .niveaux a{padding:6px 12px;border:1px solid var(--bord);border-radius:6px;text-decoration:none;
+   font-size:15px;background:var(--fond)}
+.suite .niveaux a:hover{border-color:var(--orange)}
+
+/* propre au parcours R */
+textarea.code-r{min-height:130px}
+ul.verifs{list-style:none;margin:10px 0 0;padding:0;font-size:15px}
+ul.verifs li{padding:3px 0 3px 26px;position:relative;color:var(--doux)}
+ul.verifs li::before{content:"○";position:absolute;left:4px}
+ul.verifs li.ok{color:var(--vert)} ul.verifs li.ok::before{content:"✓"}
+ul.verifs li.ko{color:var(--rouge)} ul.verifs li.ko::before{content:"✗"}
+canvas.trace{display:none;margin:10px auto 0;max-width:100%;height:auto;background:#fff;
+   border:1px solid var(--bord);border-radius:6px}
+canvas.trace.actif{display:block}
+table.t{border-collapse:collapse;font-size:15.5px;margin:10px 0}
+table.t th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
+   padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header>
+  <a href="r.html" class="retour">← Exercices R</a>
+  <a href="index.html" class="retour">Le Codex</a>
+  <h1>Débuter en R</h1>
+  <p>Comment le Codex R exécute votre code et vérifie votre réponse</p>
+</header>
+
+<main>
+
+  <div class="intro">
+    <p>Le Codex R exécute R dans votre navigateur. Il n'y a rien à installer : la page remplace RStudio pour s'entraîner.</p>
+    <p>Chaque question demande d'écrire quelques lignes de R. Vous les exécutez pour voir le résultat, puis vous demandez la vérification : le Codex compare votre résultat à la réponse attendue.</p>
+  </div>
+
+  <h2>1. L'écran d'une question</h2>
+  <p>Une question tient sur un écran, en quatre zones. Chaque zone défile pour elle-même.</p>
+  <div class="ecran" role="img" aria-label="Schéma de l'écran d'une question R : énoncé en haut à gauche, éditeur en haut à droite, données et vérification en bas à gauche, console en bas à droite">
+    <div class="barre-s"><span>☰ Questions</span><span>‹ Précédente</span><span>Suivante ›</span></div>
+    <div class="grille">
+      <div class="z"><b>1. Énoncé</b><p>La question, puis l'indice et la solution, repliés. La solution s'ouvre après une première exécution.</p></div>
+      <div class="z sombre"><b>2. Éditeur</b><p>Votre code R. « Effacer » revient au point de départ.</p></div>
+      <div class="z"><b>3. Données et vérification</b><p>Le tableau en mémoire et ses colonnes. « Exécuter » et « Vérifier ma réponse ».</p></div>
+      <div class="z sombre"><b>4. Console</b><p>Ce que R affiche, les messages d'erreur, et le graphique produit.</p></div>
+    </div>
+  </div>
+  <ul class="regles">
+    <li><b>☰ Questions</b> ouvre la liste, avec ses filtres : chapitre, jeu de données, notion. <b>Précédente</b> et <b>Suivante</b> parcourent cette liste.</li>
+    <li><kbd>Ctrl</kbd>+<kbd>Entrée</kbd>, dans l'éditeur, exécute le code.</li>
+    <li>Votre progression est gardée dans ce navigateur. « Sauvegarder ma progression » l'emporte dans un fichier.</li>
+  </ul>
+
+  <h2>2. Exécuter, puis vérifier</h2>
+  <ul class="regles">
+    <li><b>Exécuter</b> lance votre code et affiche dans la console ce que R écrit, comme dans RStudio.</li>
+    <li><b>Vérifier ma réponse</b> compare votre résultat à celui de la solution. Selon la question, le Codex compare :</li>
+  </ul>
+  <table class="t">
+    <tr><th>Ce qui est comparé</th><th>Ce qu'il faut écrire</th></tr>
+    <tr><td>La valeur calculée</td><td>La dernière ligne de votre code donne la réponse : <code>surface * dose</code>, ou le nom de l'objet qui la contient.</td></tr>
+    <tr><td>Ce que le code affiche</td><td>Pour <code>str()</code>, <code>summary()</code> ou <code>print()</code> : l'affichage doit être le même que celui de la solution.</td></tr>
+    <tr><td>Un graphique</td><td>La bonne fonction (<code>hist()</code>, <code>boxplot()</code>…) doit produire un tracé. Le tracé attendu s'affiche à côté du vôtre : comparez titre, axes et forme.</td></tr>
+  </table>
+  <p>Deux valeurs numériques sont égales à la précision près : <code>0.1 + 0.2</code> et <code>0.3</code> sont jugés identiques.</p>
+
+  <h2>3. Les données</h2>
+  <p>Les questions portent sur trois tableaux de données, déjà en mémoire. Il n'y a rien à charger : utilisez directement leur nom.</p>
+  <table class="t">
+    <tr><th>Jeu de données</th><th>Tableau</th><th>Contenu</th></tr>
+    <tr><td>Agronomie</td><td><code>parcelles</code></td><td>24 parcelles : cultures, azote apporté, rendements</td></tr>
+    <tr><td>Géologie</td><td><code>sondages</code></td><td>30 sondages : formations, porosité, granulométrie</td></tr>
+    <tr><td>Alimentation et santé</td><td><code>convives</code></td><td>40 convives : groupes, IMC, apports, troubles déclarés</td></tr>
+  </table>
+  <p>La zone « Données et vérification » montre la structure du tableau, comme <code>str()</code> : ses colonnes, leur type, leurs premières valeurs.</p>
+  <p>Les questions du chapitre I, « Importer des données », lisent un fichier CSV déjà déposé dans le dossier de travail : <code>read.csv("parcelles.csv")</code>.</p>
+
+  <h2>4. Les règles de R qui reviennent le plus</h2>
+  <ul class="regles">
+    <li><code>&lt;-</code> range une valeur dans un objet : <code>surface &lt;- 7.1</code>.</li>
+    <li>Le séparateur décimal est le point : <code>7.1</code>. <code>c(7,1)</code> est un vecteur de deux valeurs.</li>
+    <li>R distingue majuscules et minuscules : <code>Note</code> et <code>note</code> sont deux objets différents.</li>
+    <li>Une colonne d'un tableau se lit avec <code>$</code> : <code>parcelles$Rendement_qx</code>.</li>
+    <li>Un texte s'écrit entre guillemets : <code>"Blé"</code>. Sans guillemets, R cherche un objet de ce nom.</li>
+  </ul>
+
+  <h2>5. Le bac à sable</h2>
+  <p>Le bac à sable, sur l'accueil du Codex R, est un éditeur libre : pas d'énoncé, pas de vérification. On y choisit l'un des trois tableaux, ou on importe son propre fichier CSV avec « Importer un jeu de données ». Le fichier se lit ensuite par son nom : <code>donnees &lt;- read.csv2("mes_donnees.csv")</code>. Il reste disponible jusqu'au rechargement de la page.</p>
+
+  <h2>6. Par où commencer</h2>
+  <p>Les deux TD de R I reprennent les bases, avec des exercices vérifiés. Viennent ensuite les chapitres du Codex.</p>
+  <div class="suite">
+    <a class="carte" href="r-td1.html"><div class="num">TD 1</div><h3>Objets, vecteurs, matrices</h3>
+      <p>Objets et fonctions, types, vecteurs, moyenne et écart-type, matrices, apply() et summary().</p></a>
+    <a class="carte" href="r-td2.html"><div class="num">TD 2</div><h3>Graphiques et import de données</h3>
+      <p>Histogramme, boîte à moustaches, diagramme en barres, import de fichiers CSV.</p></a>
+    <a class="carte examen" href="r.html"><div class="num">Exercices du Codex</div><h3>Les chapitres de R I et R II</h3>
+      <p>186 questions, du chapitre B (syntaxe) aux ateliers de statistique, sur trois jeux de données.</p></a>
+  </div>
+
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — R s'exécute dans votre navigateur, par WebR. Rien n'est envoyé.
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
+</footer>
+</body>
+</html>

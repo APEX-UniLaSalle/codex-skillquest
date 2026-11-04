@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<script src="theme.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Codex — TD 2 — Graphiques et import de données</title>
+<!-- Page fabriquée par r/construire_parcours_r.py : la modifier là, pas ici. -->
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);
+     font:18px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+header{background:var(--fond2);border-bottom:1px solid var(--bord);padding:18px 26px}
+header h1{margin:0;font-size:22px}
+header .retour{display:inline-block;margin-bottom:6px;color:var(--orange);
+   text-decoration:none;font-size:14.5px;margin-right:16px}
+header .retour:hover{text-decoration:underline}
+header p{margin:4px 0 0;color:var(--doux);font-size:16px}
+.fiche{display:inline-flex;align-items:center;gap:6px;margin-top:10px;text-decoration:none;
+   font-size:14px;padding:5px 11px;border-radius:6px;border:1px solid var(--bord);color:var(--texte)}
+.fiche:hover{border-color:var(--orange);color:var(--orange)}
+main{max-width:1000px;margin:0 auto;padding:24px 26px 80px}
+h2{font-size:18.5px;margin:34px 0 10px;color:var(--orange);
+   border-bottom:1px solid var(--bord);padding-bottom:6px}
+.intro{background:var(--carte);border:1px solid var(--bord);border-left:4px solid var(--bleu);
+   border-radius:8px;padding:14px 18px;margin:18px 0}
+.intro p{margin:8px 0}
+ul.regles{margin:8px 0;padding-left:22px}
+ul.regles li{margin:5px 0}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.trio{display:grid;grid-template-columns:1fr 1.6fr 1fr;gap:12px;margin:12px 0;align-items:stretch}
+.duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux)}
+@media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
+pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
+   border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   overflow-x:auto;white-space:pre}
+pre .c{color:#9C8F9A}
+table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
+table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.lignes td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord);
+   font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:14.5px}
+.vn{color:var(--doux);font-style:italic}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
+   background:var(--carte);border:1px solid var(--bord);border-radius:4px;padding:0 4px}
+.erreurs{width:100%;border-collapse:collapse;font-size:16px;margin:10px 0}
+.erreurs th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
+   color:var(--doux);padding:6px 10px 6px 0;border-bottom:1px solid var(--bord)}
+.erreurs td{padding:8px 10px 8px 0;border-bottom:1px solid var(--bord);vertical-align:top}
+.ex{background:var(--carte);border:1px solid var(--bord);border-radius:10px;
+   padding:16px 18px;margin:14px 0}
+.ex h3{margin:0 0 4px;font-size:18px}
+.ex .cons{margin:0 0 10px;font-size:17px}
+.ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
+textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
+   border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
+   font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
+.actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
+   background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
+button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
+   padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
+   white-space:pre-wrap;display:none}
+.sortie.visible{display:block}
+.ok{color:#9CC5A4}.ko{color:#E89A86}
+details{margin-top:10px}
+summary{cursor:pointer;color:var(--bleu);font-size:16px}
+details pre{margin-top:8px}
+.etat{color:var(--doux);font-size:14.5px}
+footer{border-top:1px solid var(--bord);padding:18px 26px;color:var(--doux);font-size:14.5px;
+   text-align:center}
+a{color:var(--orange)}
+
+.demo{margin:10px 0 4px}
+.demo .lbl{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);margin:0 0 6px}
+.demo .ent{color:var(--doux);font-size:14.5px;margin:8px 0 0}
+
+/* Écran d'un exercice : schéma des quatre zones (3 novembre 2026) */
+.ecran{border:1px solid var(--bord);border-radius:10px;background:var(--fond2);padding:10px;margin:12px 0}
+.ecran .barre-s{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ecran .barre-s span{font-size:13.5px;border:1px solid var(--bord);border-radius:5px;padding:2px 9px;background:var(--carte)}
+.ecran .grille{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:8px}
+.ecran .z{background:var(--carte);border:1px solid var(--bord);border-radius:7px;padding:10px 12px;min-height:110px}
+.ecran .z b{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--orange);margin-bottom:4px}
+.ecran .z p{margin:0;font-size:15px;color:var(--doux)}
+.ecran .z.sombre{background:var(--sombre)}
+.ecran .z.sombre p{color:#EBDBB2}
+.ecran .z.sombre b{color:#E78A4E}
+@media (max-width:760px){.ecran .grille{grid-template-columns:1fr}}
+/* Cheat Sheet : présentation et aperçu (3 novembre 2026) */
+.cheat{display:grid;grid-template-columns:1fr 1.1fr;gap:18px;align-items:start;margin:10px 0}
+.cheat p{margin:0 0 10px}
+.cheat .apercu{display:block;border:1px solid var(--bord);border-radius:8px;overflow:hidden;background:#fff}
+.cheat .apercu img{display:block;width:100%;height:auto}
+.cheat .apercu:hover{border-color:var(--orange)}
+@media (max-width:760px){.cheat{grid-template-columns:1fr}}
+/* « Et ensuite » : la suite du parcours, en cartes (3 novembre 2026) */
+.suite{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:14px 0}
+.suite a.carte,.suite div.carte{display:block;background:var(--carte);border:1px solid var(--bord);
+   border-left:5px solid var(--bleu);border-radius:10px;padding:14px 18px;text-decoration:none;color:var(--texte)}
+.suite a.carte:hover{background:var(--fond2)}
+.suite .carte .num{font-size:13px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;color:var(--bleu)}
+.suite .carte h3{margin:4px 0 6px;font-size:18px}
+.suite .carte p{margin:0;font-size:15.5px;color:var(--doux)}
+.suite .carte.examen{border-left-color:var(--orange)}
+.suite .carte.examen .num{color:var(--orange)}
+.suite .niveaux{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.suite .niveaux a{padding:6px 12px;border:1px solid var(--bord);border-radius:6px;text-decoration:none;
+   font-size:15px;background:var(--fond)}
+.suite .niveaux a:hover{border-color:var(--orange)}
+
+/* propre au parcours R */
+textarea.code-r{min-height:130px}
+ul.verifs{list-style:none;margin:10px 0 0;padding:0;font-size:15px}
+ul.verifs li{padding:3px 0 3px 26px;position:relative;color:var(--doux)}
+ul.verifs li::before{content:"○";position:absolute;left:4px}
+ul.verifs li.ok{color:var(--vert)} ul.verifs li.ok::before{content:"✓"}
+ul.verifs li.ko{color:var(--rouge)} ul.verifs li.ko::before{content:"✗"}
+canvas.trace{display:none;margin:10px auto 0;max-width:100%;height:auto;background:#fff;
+   border:1px solid var(--bord);border-radius:6px}
+canvas.trace.actif{display:block}
+table.t{border-collapse:collapse;font-size:15.5px;margin:10px 0}
+table.t th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--doux);
+   padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+table.t td{padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<header>
+  <a href="r-td1.html" class="retour">← TD 1</a>
+  <a href="r.html" class="retour">← Exercices R</a>
+  <a href="index.html" class="retour">Le Codex</a>
+  <h1>TD 2 — Graphiques et import de données</h1>
+  <p>R I · Représentations graphiques et importation de fichiers CSV</p>
+</header>
+
+<main>
+
+  <div class="intro">
+    <p>Ce TD reprend le TD n°2 de R I. Les graphiques s'affichent sous l'éditeur. Les fichiers à importer sont déjà déposés dans le dossier de travail de R.</p>
+    <p>Pour un graphique, la vérification contrôle que la bonne fonction produit un tracé. Le titre, les axes et les couleurs restent à juger à l'œil.</p>
+    <p class="etat" id="etat">Chargement de R…</p>
+  </div>
+
+  <h2>Rappel : le graphique dépend du type de données</h2>
+  <table class="t">
+    <tr><th>Type de variable</th><th>Exemples</th><th>Graphiques adaptés</th></tr>
+    <tr><td>Quantitative</td><td>taille, note, âge</td><td>histogramme <code>hist()</code>, boîte à moustaches <code>boxplot()</code></td></tr>
+    <tr><td>Qualitative</td><td>couleur des yeux, mention</td><td>diagramme en barres <code>barplot()</code></td></tr>
+  </table>
+  <p>Arguments communs : <code>main</code> pour le titre, <code>xlab</code> et <code>ylab</code> pour les axes, <code>col</code> pour la couleur. <code>breaks</code> fixe les classes d'un histogramme.</p>
+
+  <h2>Exercice 4 — Histogrammes</h2>
+  <div id="ex-4.1"></div>
+  <div id="ex-4.2"></div>
+
+  <h2>Exercice 5 — Boîte à moustaches et diagrammes en barres</h2>
+  <div id="ex-5"></div>
+  <div id="ex-5.1"></div>
+  <div id="ex-5.2"></div>
+
+  <h2>Importer des données CSV</h2>
+  <table class="t">
+    <tr><th>Fonction</th><th>Séparateur de colonnes</th><th>Séparateur décimal</th></tr>
+    <tr><td><code>read.csv()</code></td><td>virgule <code>,</code></td><td>point <code>.</code></td></tr>
+    <tr><td><code>read.csv2()</code></td><td>point-virgule <code>;</code></td><td>virgule <code>,</code></td></tr>
+  </table>
+  <p><code>header = TRUE</code> lit la première ligne comme noms de colonnes. <code>row.names = 1</code> prend la première colonne comme noms de lignes. Vérifiez toujours un tableau importé avec <code>str()</code> et <code>summary()</code>.</p>
+  <p>Les deux fichiers de ce TD viennent des jeux de données du Codex : <code>convives.csv</code> (alimentation et santé) et <code>parcelles.csv</code> (agronomie).</p>
+
+  <h2>Exercice 6 — Importation de données qualitatives</h2>
+  <div id="ex-6"></div>
+
+  <h2>Exercice 7 — Importation de données quantitatives</h2>
+  <div id="ex-7"></div>
+
+  <h2>Points clés</h2>
+  <ul class="regles">
+    <li>Le choix du graphique dépend du type de variable : <code>hist()</code> et <code>boxplot()</code> pour une variable quantitative, <code>barplot()</code> pour une variable qualitative.</li>
+    <li><code>read.csv()</code> et <code>read.csv2()</code> importent un fichier CSV. Vérifiez le tableau importé avec <code>str()</code> et <code>summary()</code>.</li>
+  </ul>
+  <div class="suite">
+    <a class="carte examen" href="r.html"><div class="num">Exercices du Codex</div><h3>Les chapitres de R I et R II</h3>
+      <p>186 questions, du chapitre B (syntaxe) aux ateliers de statistique, sur trois jeux de données.</p></a>
+  </div>
+
+</main>
+
+<footer>
+  Le Codex · UniLaSalle — R s'exécute dans votre navigateur, par WebR. Rien n'est envoyé.
+  <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
+</footer>
+<script>
+window.TD = {
+ "preparation": [
+  [
+   "sante",
+   "convives"
+  ],
+  [
+   "agro",
+   "parcelles"
+  ]
+ ],
+ "exercices": [
+  {
+   "id": "4.1",
+   "titre": "Histogramme des notes de programmation",
+   "consigne": "<p>La matrice <code>NOTE_ETUDE</code> du TD 1 est en mémoire : la colonne <code>\"NOTE1\"</code> contient les notes de programmation.\n   Tracez leur histogramme avec <code>hist()</code>, des classes de 0 à 20 par pas de 2, un titre et le nom des deux axes.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
+   "depart": "hist(NOTE_ETUDE[, \"NOTE1\"])\n",
+   "corrige": "hist(NOTE_ETUDE[, \"NOTE1\"],\n     breaks = seq(0, 20, 2),\n     col = \"red\",\n     main = \"Notes en programmation\",\n     xlab = \"Notes\",\n     ylab = \"Effectifs\")",
+   "verifs": [],
+   "appels": [
+    "hist",
+    "seq"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "4.2",
+   "titre": "Histogramme des notes de marketing",
+   "consigne": "<p>La colonne <code>\"NOTE2\"</code> de <code>NOTE_ETUDE</code> contient les notes de marketing.\n   Tracez leur histogramme, avec un titre et le nom des deux axes : arguments <code>main</code>, <code>xlab</code> et <code>ylab</code>.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
+   "depart": "",
+   "corrige": "hist(NOTE_ETUDE[, \"NOTE2\"],\n     main = \"Notes en marketing\",\n     xlab = \"Notes\",\n     ylab = \"Effectifs\")",
+   "verifs": [],
+   "appels": [
+    "hist"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "5",
+   "titre": "Boîte à moustaches",
+   "consigne": "<p>Tracez la boîte à moustaches des deux colonnes de <code>NOTE_ETUDE</code> avec <code>boxplot()</code>, avec un titre et le nom de l'axe des notes.</p>\n   <p>La boîte va du premier quartile Q1 au troisième Q3, avec la médiane au milieu. Les moustaches s'arrêtent à 1,5 fois l'écart interquartile ; au-delà, les points sont des valeurs atypiques.</p>",
+   "prelude": "NOTE1 <- c(17, 8, 9, 18, 15, 14.5, 13, 12, 17.5, 10)\nNOTE2 <- c(15, 2, 15, 20, 12, 13.5, 11, 12.75, 17, 9)\nNOTE_ETUDE <- matrix(c(NOTE1, NOTE2), ncol = 2)\ncolnames(NOTE_ETUDE) <- c(\"NOTE1\", \"NOTE2\")",
+   "depart": "",
+   "corrige": "boxplot(NOTE_ETUDE,\n        main = \"Notes par matière\",\n        ylab = \"Notes\")",
+   "verifs": [],
+   "appels": [
+    "boxplot"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "5.1",
+   "titre": "Diagramme en barres",
+   "consigne": "<p>Le vecteur <code>mention</code> donne la mention de huit étudiants. Rangez ses effectifs dans <code>eff</code> avec <code>table()</code>,\n   puis tracez-les avec <code>barplot()</code>, avec un titre et le nom des axes. Le diagramme en barres convient à une variable qualitative.</p>",
+   "prelude": "mention <- c(\"AB\", \"B\", \"AB\", \"P\", \"P\", \"B\", \"P\", \"TB\")",
+   "depart": "",
+   "corrige": "eff <- table(mention)\nbarplot(eff,\n        main = \"Effectifs par mention\",\n        xlab = \"Mention\",\n        ylab = \"Effectifs\",\n        col = rainbow(4))",
+   "verifs": [
+    {
+     "test": "identical(eff, table(mention))",
+     "msg": "eff contient les effectifs de chaque mention"
+    }
+   ],
+   "appels": [
+    "barplot"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "5.2",
+   "titre": "Diagramme en barres empilées",
+   "consigne": "<p>Le tableau <code>df</code> croise la mention et la couleur des yeux de huit étudiants.\n   Rangez le tableau croisé dans <code>eff2</code> avec <code>table(df)</code>, puis les proportions de chaque mention par couleur des yeux dans <code>propcol</code>,\n   avec <code>proportions(eff2, margin = 2)</code>. Tracez <code>propcol</code> en barres empilées, avec une légende : <code>legend.text = TRUE</code>.</p>",
+   "prelude": "mention <- c(\"AB\", \"B\", \"AB\", \"P\", \"P\", \"B\", \"P\", \"TB\")\ncouleursYeux <- c(\"b\", \"v\", \"m\", \"b\", \"b\", \"n\", \"m\", \"b\")\ndf <- data.frame(mention, couleursYeux)",
+   "depart": "",
+   "corrige": "eff2 <- table(df)\npropcol <- proportions(eff2, margin = 2)\nbarplot(propcol,\n        main = \"Mentions selon la couleur des yeux\",\n        ylab = \"Proportions\",\n        col = rainbow(4),\n        legend.text = TRUE)",
+   "verifs": [
+    {
+     "test": "identical(eff2, table(df))",
+     "msg": "eff2 est le tableau croisé"
+    },
+    {
+     "test": "isTRUE(all.equal(propcol, proportions(table(df), margin = 2)))",
+     "msg": "propcol contient les proportions par colonne"
+    }
+   ],
+   "appels": [
+    "barplot"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "6",
+   "titre": "Importer un fichier CSV : des données qualitatives",
+   "consigne": "<p>Le fichier <code>convives.csv</code> est déposé dans le dossier de travail. Ses colonnes sont séparées par un point-virgule, la première contient le nom des convives.</p>\n   <p>Importez-le dans <code>convives</code> avec <code>read.csv2(\"convives.csv\", header = TRUE, row.names = 1)</code> et vérifiez sa structure avec <code>str()</code>.\n   Rangez dans <code>eff_groupe</code> l'effectif de chaque groupe (colonne <code>Groupe</code>), puis représentez-les graphiquement.</p>",
+   "prelude": "",
+   "depart": "convives <- read.csv2(\"convives.csv\", header = TRUE, row.names = 1)\n",
+   "corrige": "convives <- read.csv2(\"convives.csv\", header = TRUE, row.names = 1)\nstr(convives)\neff_groupe <- table(convives$Groupe)\nbarplot(eff_groupe,\n        main = \"Convives par groupe\",\n        ylab = \"Effectifs\")",
+   "verifs": [
+    {
+     "test": "is.data.frame(convives) && nrow(convives) == 40",
+     "msg": "convives est un tableau de 40 lignes"
+    },
+    {
+     "test": "rownames(convives)[1] == \"Alice\"",
+     "msg": "les noms des convives servent de noms de lignes"
+    },
+    {
+     "test": "identical(as.vector(eff_groupe), as.vector(table(convives$Groupe)))",
+     "msg": "eff_groupe contient l’effectif de chaque groupe"
+    }
+   ],
+   "appels": [
+    "read.csv2",
+    "str",
+    "barplot"
+   ],
+   "graphique": true
+  },
+  {
+   "id": "7",
+   "titre": "Importer un fichier CSV : des données quantitatives",
+   "consigne": "<p>Le fichier <code>parcelles.csv</code> est déposé dans le dossier de travail, au même format. La colonne <code>Rendement_qx</code> donne le rendement de chaque parcelle,\n   la colonne <code>Bio</code> dit si la parcelle est conduite en agriculture biologique.</p>\n   <p>Importez-le dans <code>parcelles</code>, vérifiez sa structure avec <code>str()</code> et affichez son résumé avec <code>summary()</code>.\n   Rangez la moyenne des rendements dans <code>moyenne</code> et leurs quartiles dans <code>quartiles</code>, avec <code>quantile()</code>.\n   Comparez enfin les rendements des parcelles bio et non bio avec un graphique adapté.</p>",
+   "prelude": "",
+   "depart": "",
+   "corrige": "parcelles <- read.csv2(\"parcelles.csv\", header = TRUE, row.names = 1)\nstr(parcelles)\nsummary(parcelles)\nmoyenne <- mean(parcelles$Rendement_qx)\nquartiles <- quantile(parcelles$Rendement_qx)\nboxplot(Rendement_qx ~ Bio, data = parcelles,\n        main = \"Rendements selon la conduite\",\n        xlab = \"Agriculture biologique\",\n        ylab = \"Rendement (q/ha)\",\n        col = c(\"red\", \"blue\"))",
+   "verifs": [
+    {
+     "test": "is.data.frame(parcelles) && nrow(parcelles) == 24",
+     "msg": "parcelles est un tableau de 24 lignes"
+    },
+    {
+     "test": "isTRUE(all.equal(moyenne, mean(parcelles$Rendement_qx)))",
+     "msg": "moyenne est la moyenne des rendements"
+    },
+    {
+     "test": "isTRUE(all.equal(unname(quartiles), unname(quantile(parcelles$Rendement_qx))))",
+     "msg": "quartiles contient les quartiles des rendements"
+    }
+   ],
+   "appels": [
+    "read.csv2",
+    "str",
+    "summary",
+    "boxplot"
+   ],
+   "graphique": true
+  }
+ ]
+};
+</script>
+<script type="module" src="r-exercices.js"></script>
+</body>
+</html>

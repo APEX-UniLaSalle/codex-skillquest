@@ -517,6 +517,58 @@ canvas.trace.actif{display:block}
 .controle td.ko{background:var(--ko-soft);color:var(--ko)}
 .controle td.ok{color:var(--ok)}
 .controle .etat{font-size:14.5px;color:var(--muted)}
+
+/* ── Question en quatre zones (4 novembre 2026), comme le Codex Python ─────
+   énoncé | éditeur en haut ; données et vérification | console en bas. Chaque
+   zone défile pour elle-même. La liste devient un volet, ouvert par
+   « ☰ Questions ». Sous 900 px, les zones s'empilent. */
+body.quatre .page{grid-template-columns:minmax(0,1fr);padding-top:10px}
+body.quatre aside.liste{position:fixed;top:0;left:0;bottom:0;width:min(360px,90vw);max-height:none;z-index:60;
+  transform:translateX(-105%);transition:transform .2s ease;box-shadow:4px 0 18px rgba(0,0,0,.18)}
+body.quatre.liste-ouverte aside.liste{transform:none}
+#voileListe{display:none;position:fixed;inset:0;z-index:55;background:rgba(60,56,54,.35)}
+body.quatre.liste-ouverte #voileListe{display:block}
+.barre-exo{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:12px}
+.barre-exo button{padding:5px 12px;font-size:14.5px}
+.barre-exo .pos{color:var(--muted);font-size:14px}
+.barre-exo .transfert{margin:0 0 0 auto;padding:0;border:0;gap:8px;flex-wrap:nowrap}
+.barre-exo .transfert .bilan{flex-basis:auto;max-width:420px}
+body.quatre .zones{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  grid-template-rows:minmax(0,3fr) minmax(0,2fr);gap:12px;height:var(--h-zones,calc(100vh - 120px));min-height:560px}
+.zone{min-height:0;display:flex;flex-direction:column;overflow:hidden;margin:0}
+.zone-tete{display:flex;align-items:center;gap:9px;padding:8px 14px;border-bottom:1px solid var(--line);
+  background:var(--code);font-size:14.5px;font-weight:600;flex:none;flex-wrap:wrap}
+.zone-tete .hint{margin-left:auto;font-weight:400;color:var(--muted);font-size:14px}
+.zone-tete .mini{padding:3px 10px;font-size:13.5px}
+.zone-corps{flex:1;min-height:0;overflow:auto;padding:10px 14px}
+.zone-corps.sombre{background:var(--term);padding:0}
+body.quatre .z-enonce{overflow:auto;display:block}
+.z-editeur .editeur-r{flex:1;min-height:0;overflow:hidden}
+.z-editeur .editeur-r .CodeMirror{height:100%;min-height:0;border:0;border-radius:0}
+.z-verif .pied{flex:none;margin:0;padding:10px 14px;border-top:1px solid var(--line)}
+.z-verif .pied button{flex:1}
+.z-verif .verdict{margin:10px 0 0}
+pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;
+  font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;overflow-x:auto;white-space:pre}
+.z-console .console-r{margin:0;border-radius:0;min-height:100%}
+.z-console canvas.trace{margin:10px auto}
+/* Parcours de démarrage, sur l'accueil (4 novembre 2026) */
+.demarrage{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin:16px 0 0}
+.demarre{display:block;background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--bleu);
+  border-radius:3px;padding:14px 18px;text-decoration:none;color:var(--ink)}
+.demarre:hover{border-color:var(--bleu)}
+.demarre .num{font-size:13px;text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--bleu)}
+.demarre h3{margin:4px 0 4px;font-size:18px;color:var(--accent)}
+.demarre p{margin:0;font-size:15px;color:var(--muted)}
+.bac-import{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+.bac-import .fichiers{font-size:14px;color:var(--muted);flex-basis:100%;margin:0}
+.bac-import .fichiers code{background:var(--code);padding:1px 5px;border-radius:3px}
+@media(max-width:900px){
+  body.quatre .zones{grid-template-columns:minmax(0,1fr);grid-template-rows:none;height:auto;min-height:0}
+  .zone,.zone-corps,body.quatre .z-enonce{overflow:visible}
+  .z-editeur .editeur-r{min-height:300px}
+  .z-editeur .editeur-r .CodeMirror{height:auto;min-height:300px}
+}
 </style>
 <link rel="stylesheet" href="theme.css">
 </head>
@@ -571,48 +623,76 @@ canvas.trace.actif{display:block}
   </div>
 </aside>
 
+<div id="voileListe"></div>
 <main id="travail" hidden>
-  <div class="panel card">
-    <h2 id="titreQ"></h2>
-    <div class="meta" id="metaQ"></div>
-    <div class="statement" id="enonce"></div>
-    <div class="ligne-signaler bac-cache">
-      <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+  <div class="barre-exo arene-cache bac-cache">
+    <button id="ouvrirListe" title="Afficher la liste des questions">☰ Questions</button>
+    <button id="exoPrec" title="Question précédente de la liste">‹ Précédente</button>
+    <button id="exoSuiv" title="Question suivante de la liste">Suivante ›</button>
+    <span class="pos" id="posQ"></span>
+    <span class="transfert">
+      <span class="bilan"></span>
+      <button class="bt-exporter" title="Enregistrer votre progression dans un fichier">⤓ Sauvegarder ma progression</button>
+      <button class="bt-importer" title="Reprendre une progression enregistrée">⤒ Charger</button>
+    </span>
+  </div>
+  <div class="zones">
+    <div class="panel card zone z-enonce">
+      <h2 id="titreQ"></h2>
+      <div class="meta" id="metaQ"></div>
+      <div class="statement" id="enonce"></div>
+      <div class="ligne-signaler bac-cache">
+        <button class="signaler" type="button" id="signalerExo">&#9873; Signaler un problème d'énoncé</button>
+      </div>
+      <details class="indice arene-cache bac-cache">
+        <summary>&#128269; Besoin d'un indice&#8239;?</summary>
+        <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
+           sur laquelle vous butez — chacune renvoie à son chapitre de cours.</p>
+        <div class="etiquettes" id="etiquettes"></div>
+        <div id="notions"></div>
+      </details>
+      <details class="solution arene-cache bac-cache" id="bloc-solution">
+        <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — exécutez d'abord votre code</span></summary>
+        <pre id="solution"></pre>
+        <div class="actions" style="margin-top:10px">
+          <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
+        </div>
+        <p class="rappel">D'autres écritures donnent souvent le même résultat : ce qui compte
+           est que la réponse soit la bonne, pas qu'elle soit écrite comme la nôtre.</p>
+      </details>
+    </div>
+
+    <div class="panel zone z-editeur">
+      <div class="zone-tete">Votre code R
+        <span class="hint"><kbd>Ctrl</kbd>+<kbd>Entrée</kbd> : exécuter</span>
+        <button id="reset" class="mini">Effacer</button></div>
+      <div class="editeur-r"><textarea id="code" spellcheck="false"></textarea></div>
+    </div>
+
+    <div class="panel zone z-verif">
+      <div class="zone-tete">📋 Données et vérification</div>
+      <div class="zone-corps">
+        <p class="chapitre-jeu aide-verif bac-cache">« Exécuter » affiche le résultat dans la console. « Vérifier ma réponse » le compare à la réponse attendue.</p>
+        <div id="bacDonnees"></div>
+        <p class="chapitre-jeu" id="donnees" hidden></p>
+        <pre class="apercu" id="apercu" hidden></pre>
+        <div id="verdict"></div>
+        <div class="attendu" id="attendu" hidden></div>
+      </div>
+      <div class="actions pied">
+        <button class="principal" id="run" disabled>&#9654; Exécuter</button>
+        <button id="verif" class="principal bac-cache" disabled>✔ Vérifier ma réponse</button>
+      </div>
+    </div>
+
+    <div class="panel zone z-console">
+      <div class="zone-tete">Console</div>
+      <div class="zone-corps sombre">
+        <div class="console-r" id="sortie"><span class="cmt">Exécutez votre code pour voir ce qu'il renvoie.</span></div>
+        <canvas class="trace" id="trace" width="640" height="440"></canvas>
+      </div>
     </div>
   </div>
-
-  <h2>Votre code R</h2>
-  <p class="chapitre-jeu" id="donnees" hidden></p>
-  <textarea id="code" spellcheck="false"></textarea>
-  <div class="actions">
-    <button class="principal" id="run" disabled>&#9654; Exécuter</button>
-    <button id="verif" class="bac-cache" disabled>Vérifier ma réponse</button>
-    <button id="reset">Effacer</button>
-    <button id="sessLancer" hidden title="Mode arène : chrono commun et classement pour un groupe, sur cette question">⚔️ Lancer une arène</button>
-  </div>
-
-  <div class="console-r" id="sortie"><span class="cmt">Exécutez votre code pour voir ce qu'il renvoie.</span></div>
-  <canvas class="trace" id="trace" width="640" height="440"></canvas>
-  <div id="verdict"></div>
-  <div class="attendu" id="attendu" hidden></div>
-
-  <details class="indice arene-cache bac-cache">
-    <summary>&#128269; Besoin d'un indice&#8239;?</summary>
-    <p class="amorce">Voici les notions à mobiliser. Ouvrez seulement celle
-       sur laquelle vous butez — chacune renvoie à son chapitre de cours.</p>
-    <div class="etiquettes" id="etiquettes"></div>
-    <div id="notions"></div>
-  </details>
-
-  <details class="solution arene-cache bac-cache" id="bloc-solution">
-    <summary>&#128215; Voir la solution<span class="verrou" id="verrou"> — exécutez d'abord votre code</span></summary>
-    <pre id="solution"></pre>
-    <div class="actions" style="margin-top:10px">
-      <button class="mini" id="copier-solution">Copier dans l'éditeur</button>
-    </div>
-    <p class="rappel">D'autres écritures donnent souvent le même résultat : ce qui compte
-       est que la réponse soit la bonne, pas qu'elle soit écrite comme la nôtre.</p>
-  </details>
 </main>
 
 <div class="accueil" id="accueil">
@@ -659,6 +739,14 @@ canvas.trace.actif{display:block}
         fichier pour la retrouver ailleurs.</span>
       <p class="bilan"></p>
     </div>
+  </div>
+  <div class="demarrage">
+    <a class="demarre" href="r-debuter.html"><span class="num">Pour commencer</span><h3>Débuter en R</h3>
+      <p>Comment le Codex R exécute votre code et vérifie votre réponse.</p></a>
+    <a class="demarre" href="r-td1.html"><span class="num">TD 1</span><h3>Objets, vecteurs, matrices</h3>
+      <p>Objets et fonctions, types, moyenne et écart-type, matrices, apply().</p></a>
+    <a class="demarre" href="r-td2.html"><span class="num">TD 2</span><h3>Graphiques et import de données</h3>
+      <p>Histogramme, boîte à moustaches, diagramme en barres, fichiers CSV.</p></a>
   </div>
   <div class="themes" id="chapitres"></div>
   <button class="bac-carte" id="versBac" type="button">
@@ -731,7 +819,7 @@ canvas.trace.actif{display:block}
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · bffe53f</span>
+        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1a23b47</span>
       </div>
     </div>
   </div>
@@ -796,6 +884,7 @@ function clicSousLeTexte(cm) {
 const editeur = CodeMirror.fromTextArea($('#code'), {
   mode: 'text/x-rsrc', lineNumbers: true, lineWrapping: true,
   viewportMargin: Infinity, indentUnit: 2,
+  extraKeys: { 'Ctrl-Enter': () => executer(), 'Cmd-Enter': () => executer() },
 });
 clicSousLeTexte(editeur);
 
@@ -909,8 +998,9 @@ const CLE_BAC = 'codex_bac_r';
 function ouvrirBac(jeu) {
   jeu = jeu !== undefined ? jeu : (localStorage.getItem(CLE_BAC + '_jeu') || '');
   const modele = jeu ? BANQUE.find(q => q.jeu === jeu && q.prelude) : null;
-  Q = { id: 'bac', bac: true, titre: 'Bac à sable R', prelude: modele ? modele.prelude : '', comparer: 'valeur', reference: '' };
-  document.body.classList.add('bac');
+  Q = { id: 'bac', bac: true, jeu, titre: 'Bac à sable R', prelude: modele ? modele.prelude : '', comparer: 'valeur', reference: '' };
+  document.body.classList.add('bac', 'quatre');
+  volet(false);
   $('#accueil').hidden = true;
   $('#travail').hidden = false;
   $('#titreQ').textContent = '🧪 Bac à sable';
@@ -921,6 +1011,15 @@ function ouvrirBac(jeu) {
         `<option value="${k}"${k === jeu ? ' selected' : ''}>${esc(j.nom)} — ${esc(j.tableau)}</option>`).join('')}</select>
       <button type="button" id="bacRetour">← Accueil</button>
     </div>`;
+  $('#bacDonnees').innerHTML = `
+    <div class="bac-import">
+      <button type="button" id="bacImporter" title="Déposer un fichier CSV ou texte dans le dossier de travail de R">⤒ Importer un jeu de données</button>
+      <input type="file" id="bacFichier" accept=".csv,.txt,.tsv,text/csv,text/plain" hidden>
+      <p class="fichiers" id="bacFichiers"></p>
+    </div>`;
+  $('#bacImporter').onclick = () => $('#bacFichier').click();
+  $('#bacFichier').onchange = ev => ev.target.files[0] && importerFichier(ev.target.files[0]);
+  listerFichiers();
   $('#bacJeu').onchange = ev => ouvrirBac(ev.target.value);
   $('#bacRetour').onclick = () => $('#retour').click();
   const d = $('#donnees'), j = JEUX[jeu] || {};
@@ -933,15 +1032,83 @@ function ouvrirBac(jeu) {
   $('#trace').classList.remove('actif');
   $('#verdict').innerHTML = '';
   $('#attendu').hidden = true;
-  $('#sessLancer').hidden = true;
+  montrerApercu();
+  setTimeout(calerZones, 0);
   requestAnimationFrame(() => editeur.refresh());
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* Import d'un jeu de données dans le bac à sable : le fichier est écrit dans le
+   dossier de travail de R, où read.csv() ou read.csv2() le lisent par son nom.
+   Il reste sur cette page jusqu'au rechargement ; rien n'est envoyé. */
+const IMPORTES = [];
+async function importerFichier(f) {
+  const zone = $('#bacFichiers');
+  if (!pret) { zone.textContent = 'R n’est pas encore prêt : réessayez dans un instant.'; return; }
+  const nom = f.name.replace(/[^\p{L}\p{N}._-]+/gu, '_');
+  try {
+    await webR.FS.writeFile('/home/web_user/' + nom, new Uint8Array(await f.arrayBuffer()));
+    if (!IMPORTES.includes(nom)) IMPORTES.push(nom);
+    listerFichiers(nom);
+  } catch (e) { zone.textContent = 'Import impossible : ' + nettoyer(e); }
+}
+function listerFichiers(dernier) {
+  const zone = $('#bacFichiers');
+  if (!zone) return;
+  if (!IMPORTES.length) { zone.innerHTML = 'Un fichier importé se lit ensuite par son nom, par exemple <code>read.csv2("mes_donnees.csv")</code>. Il reste disponible jusqu’au rechargement de la page.'; return; }
+  const n = dernier || IMPORTES[IMPORTES.length - 1];
+  zone.innerHTML = 'Fichiers dans le dossier de travail : ' + IMPORTES.map(x => `<code>${esc(x)}</code>`).join(', ')
+    + `. Lisez-le avec <code>donnees &lt;- read.csv2("${esc(n)}")</code> si le séparateur est un point-virgule, ou <code>read.csv("${esc(n)}")</code> s’il est une virgule, puis <code>str(donnees)</code>.`;
+}
+
+/* Quatre zones : seulement quand une question ou le bac à sable est ouvert. */
+function quitterQuatre() { document.body.classList.remove('quatre', 'liste-ouverte'); }
+function volet(ouvert) { document.body.classList.toggle('liste-ouverte', ouvert); }
+function calerZones() {
+  const w = document.querySelector('#travail .zones');
+  if (!document.body.classList.contains('quatre') || !w) return;
+  const haut = w.getBoundingClientRect().top + window.scrollY;
+  document.documentElement.style.setProperty('--h-zones', Math.max(560, window.innerHeight - haut - 14) + 'px');
+  editeur.refresh();
+}
+window.addEventListener('resize', calerZones);
+$('#voileListe').onclick = () => volet(false);
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') volet(false); });
+$('#ouvrirListe').onclick = () => volet(true);
+function majBarre() {
+  const l = retenues(), rang = Q ? l.findIndex(q => q.id === Q.id) : -1;
+  $('#exoPrec').disabled = !(rang > 0);
+  $('#exoSuiv').disabled = !(rang >= 0 && rang < l.length - 1);
+  $('#exoPrec').onclick = () => rang > 0 && ouvrirQuestion(l[rang - 1].id);
+  $('#exoSuiv').onclick = () => rang < l.length - 1 && ouvrirQuestion(l[rang + 1].id);
+  const c = Q ? CHAPITRES[Q.chapitre] || {} : {};
+  $('#posQ').textContent = (rang >= 0 ? `${rang + 1} / ${l.length} · ` : '') + (c.nom || '');
+}
+/* Aperçu du tableau en mémoire : ses colonnes et ses premières lignes, sous les
+   yeux pendant qu'on écrit. Calculé une fois par jeu de données. */
+const APERCUS = {};
+async function montrerApercu() {
+  const zone = $('#apercu'), j = Q && JEUX[Q.jeu];
+  zone.hidden = true;
+  if (!Q || !Q.prelude || !j || !j.tableau) return;
+  if (!pret) { setTimeout(montrerApercu, 500); return; }
+  const cle = Q.jeu + '|' + Q.prelude.length;
+  if (!(cle in APERCUS)) {
+    try {
+      APERCUS[cle] = await webR.evalRString(
+        `paste(capture.output(.codex_run(${litteral(Q.prelude)}, ${litteral('str(' + j.tableau + ', give.attr = FALSE)')})), collapse = "\\n")`);
+    } catch (e) { APERCUS[cle] = ''; }
+  }
+  if (APERCUS[cle]) { zone.textContent = APERCUS[cle]; zone.hidden = false; }
 }
 
 function ouvrirQuestion(id) {
   Q = BANQUE.find(q => q.id === id);
   if (!Q) return;
+  $('#bacDonnees').innerHTML = '';
   document.body.classList.remove('bac');
+  document.body.classList.add('quatre');
+  volet(false);
   $('#accueil').hidden = true;
   $('#travail').hidden = false;
   $('#titreQ').textContent = Q.titre;
@@ -967,7 +1134,10 @@ function ouvrirQuestion(id) {
   } else if (Q.prelude) {
     d.hidden = false;
     d.innerHTML = 'Le fichier de données est déjà déposé dans le dossier de travail.';
-  } else { d.hidden = true; }
+  } else {
+    d.hidden = false;
+    d.innerHTML = 'Pas de données à charger : tout ce qu’il faut est dans l’énoncé.';
+  }
 
   $('#sortie').innerHTML = '<span class="cmt">Exécutez votre code pour voir ce qu’il renvoie.</span>';
   $('#trace').classList.remove('actif');
@@ -979,25 +1149,20 @@ function ouvrirQuestion(id) {
   bloc.classList.toggle('verrouille', !(progression[id] && progression[id].essai));
   remplirNotions();
   dessinerListe();
+  majBarre();
+  montrerApercu();
+  setTimeout(calerZones, 0);
   /* CodeMirror mesure sa gouttière à la construction — or la colonne de travail
      est alors masquée, et tout est mesuré à zéro : les numéros de ligne se
      superposent au code. Un refresh une fois la colonne visible remet les
      largeurs d'aplomb. Même remède que sur la page SQL. */
   requestAnimationFrame(() => editeur.refresh());
-  majBoutonArene();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-/* Mode arène : le bouton de la question lance une arène, ou relance la manche
-   suivante quand le lanceur en a une ouverte. Voir session.js. */
-function majBoutonArene() {
-  const b = $('#sessLancer');
-  if (!window.Session) { b.hidden = true; return; }
-  const relance = Session.active && Session.peutRelancer();
-  b.hidden = !(relance || !Session.active);
-  b.textContent = relance ? '⚔️ Relancer l’arène sur cette question' : '⚔️ Lancer une arène';
-  b.onclick = () => Session.active ? Session.relancer() : Session.lancer();
-}
+/* Mode arène : « ⚔️ Arène » dans l'en-tête crée ou rejoint une arène ; la
+   manche suivante se lance depuis la barre de l'arène (4 novembre 2026). */
+function majBoutonArene() {}
 
 function remplirNotions() {
   const l = Q.notions || [];
@@ -1261,7 +1426,7 @@ $('#reset').onclick = () => { editeur.setValue(Q ? (Q.depart || '') : ''); edite
 $('#copier-solution').onclick = () => { editeur.setValue(Q.reference); editeur.focus(); };
 $('#versBac').onclick = () => ouvrirBac();
 $('#retour').onclick = () => {
-  Q = null; document.body.classList.remove('bac'); $('#travail').hidden = true; $('#accueil').hidden = false;
+  Q = null; document.body.classList.remove('bac'); quitterQuatre(); $('#travail').hidden = true; $('#accueil').hidden = false;
   dessinerListe(); window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 $('#hasard').onclick = () => {
@@ -1342,6 +1507,7 @@ const attendreBanque = () => new Promise(r => { const t = () => BANQUE.length ? 
 const minutesNombre = d => { const m = /^(\d+):(\d+):/.exec(d || ''); return m ? +m[1] * 60 + +m[2] : 0; };
 Session.init({
   page: 'r',
+  relanceDansBarre: true,   // « Nouvelle manche » dans la barre de l'arène (4 novembre 2026)
   courant: () => Q && !Q.bac ? { niveau: 'r', exo: Q.id, titre: Q.titre, points: Q.points || 0, duree: minutesNombre(Q.duree) || 5 } : null,
   ouvrir: async (niveau, exo, depart) => {
     await attendreBanque();
@@ -1383,6 +1549,12 @@ Session.init({
   // le verrou tombe : la solution s'ouvre comme après une exécution
   deverrouiller: () => { if (Q && !Q.bac) { progression[Q.id] = Object.assign({}, progression[Q.id], { essai: true }); enregistrer(); $('#bloc-solution').classList.remove('verrouille'); } majBoutonArene(); },
 });
+
+/* La hauteur des quatre zones suit l'en-tête et la barre de l'arène. */
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => calerZones());
+  ['header', '#sessBar'].forEach(s => { const el = document.querySelector(s); if (el) ro.observe(el); });
+}
 
 /* Cache hors ligne : le même service worker que les autres pages. */
 if ('serviceWorker' in navigator && location.protocol !== 'file:')
