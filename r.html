@@ -489,8 +489,10 @@ footer a:hover{text-decoration:underline}
 /* ── propre au Codex R ─────────────────────────────────────────────────── */
 .console-r{margin:12px 0 0;background:var(--term);color:#EBDBB2;border-radius:6px;
    padding:11px 13px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
-   white-space:pre-wrap;overflow-x:auto;min-height:26px}
-.console-r .err{color:#EA6962}
+   white-space:pre;overflow-x:auto;min-height:26px}
+/* R met lui-même ses retours à la ligne, à 80 colonnes : la console ne replie
+   pas, elle défile. Signalé par Julien le 5 novembre 2026, sur la page SQL. */
+.console-r .err{color:#EA6962;white-space:pre-wrap}
 .console-r .cmt{color:#7C6F64}
 canvas.trace{display:none;margin:12px auto 0;max-width:100%;height:auto;background:#fff;
    border:1px solid var(--line);border-radius:6px}
@@ -822,7 +824,7 @@ pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px s
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
         <span style="color:var(--muted)">R exécuté par WebR (r-wasm.org)</span><br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1ce451b</span>
+        <span id="tampon" style="opacity:.65">Version du 5 novembre 2026 · aae979a</span>
       </div>
     </div>
   </div>

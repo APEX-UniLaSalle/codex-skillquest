@@ -536,6 +536,10 @@ pre.apercu{margin:6px 0 0;padding:8px 10px;background:var(--panel2);border:1px s
 .z-console{background:var(--panel)}
 .z-console .console-head{flex:none}
 .z-console .console-body{flex:1;min-height:0;max-height:none;overflow:auto;border-radius:0}
+/* Un résultat en colonnes alignées ne se replie pas : chaque ligne reste une
+   ligne, et la console défile horizontalement. Les messages d'erreur, eux,
+   restent repliés. Signalé par Julien le 5 novembre 2026. */
+.console-body .tableau{white-space:pre;word-break:normal;display:block}
 .z-editeur .syntaxe{flex:none;padding:4px 14px;font-size:13.5px}
 .z-editeur .syntaxe:empty{display:none}
 .z-enonce details.section{margin:16px 0 0}
@@ -795,7 +799,7 @@ FROM CONCERT;</textarea>
         <strong>Conception</strong><br>
         Julien Duquennoy<br>
         APEX — UniLaSalle Beauvais, 2026<br>
-        <span id="tampon" style="opacity:.65">Version du 4 novembre 2026 · 1ce451b</span>
+        <span id="tampon" style="opacity:.65">Version du 5 novembre 2026 · aae979a</span>
       </div>
     </div>
   </div>
@@ -809,7 +813,7 @@ FROM CONCERT;</textarea>
    SCHEMA et DATA reflètent la base de la question ouverte. */
 let SCHEMA = '', DATA = '', BASES = {}, BANQUE = [], NOTIONS_BANQUE = [], Q = null;
 let REFERENCE = '', JEUX = [], TAGS = [], NOTIONS = [], DEPART = '';
-let TITRE_EXERCICE = '', ORDRE_LIGNES = true;
+let TITRE_EXERCICE = '', ORDRE_LIGNES = true, COLONNES_EXIGEES = [];
 /* Trois rangs, calés sur la progression du cours. Une fiche ne porte qu'un rang :
    le nom de la compétence vit ici seul, et suivra sans douleur la renumérotation
    des compétences SQL si elle est décidée. Le rang d'une question est contrôlé à
@@ -993,6 +997,17 @@ function comparer(attendu, obtenu) {
   const a = normaliser(attendu), b = normaliser(obtenu);
   if (attendu && obtenu && attendu.columns.length !== obtenu.columns.length)
     return { ok:false, msg:`${obtenu.columns.length} colonne(s) au lieu de ${attendu.columns.length}` };
+  /* Les noms que l'énoncé impose doivent être reproduits, à la casse près,
+     comme MySQL accepte un alias. Les autres colonnes gardent un nom libre.
+     Décision de Julien du 5 novembre 2026. */
+  if (attendu && obtenu) {
+    for (let i = 0; i < attendu.columns.length; i++) {
+      const voulu = attendu.columns[i];
+      if (!COLONNES_EXIGEES.some(c => c.toLowerCase() === voulu.toLowerCase())) continue;
+      if (String(obtenu.columns[i]).toLowerCase() !== voulu.toLowerCase())
+        return { ok:false, msg:`colonne ${i + 1} : « ${obtenu.columns[i]} » au lieu de « ${voulu} »` };
+    }
+  }
   if (a.length !== b.length)
     return { ok:false, msg:`${b.length} ligne(s) au lieu de ${a.length}` };
   for (let i = 0; i < a.length; i++)
@@ -1156,9 +1171,9 @@ function rendreDansConsole(b, req, titre) {
   const corps = vals.slice(0, 50).map(l => esc(ligne(l))).join('\n');
   const reste = vals.length > 50 ? `\n<span class="cmt">… ${vals.length - 50} ligne(s) de plus</span>` : '';
   out.innerHTML = entete
-    + `<span class="lbl">${esc(ligne(cols))}</span>\n<span class="cmt">${esc(trait)}</span>\n`
+    + `<span class="tableau"><span class="lbl">${esc(ligne(cols))}</span>\n<span class="cmt">${esc(trait)}</span>\n`
     + corps + reste
-    + `\n<span class="cmt">${vals.length} ligne(s)</span>`;
+    + `\n<span class="cmt">${vals.length} ligne(s)</span></span>`;
 }
 
 function afficherJeux() {
@@ -2104,6 +2119,7 @@ function ouvrirQuestion(id) {
   NOTIONS = Q.notions || []; DEPART = Q.depart || 'SELECT *\nFROM CONCERT;';
   TITRE_EXERCICE = Q.titre;
   ORDRE_LIGNES = Q.ordre_lignes !== false;
+  COLONNES_EXIGEES = Q.colonnes_exigees || [];
   fermerApercu();   // la base ouverte pour la présentation ne sert plus
 
   document.getElementById('accueil').hidden = true;
