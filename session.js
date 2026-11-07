@@ -14,6 +14,9 @@
        tester:  async () => ({ok, total, source}),      // joue tous les tests sur le code en cours
        pret:    () => true,                              // facultatif : le moteur est chargé
        competence: () => 'Programmation II',              // facultatif : nom de la compétence pour le fichier d'import
+       catalogue: async () => [{ cle, libelle, exercices: [{ exo, titre, theme, duree, points }] }],
+                                                          // les groupes d'exercices (niveaux, ou chapitres pour R) : la création
+                                                          // d'arène choisit dedans, au hasard ou dans une liste (7 novembre 2026)
    ouvrir() reçoit depart vrai au départ d'une manche et pour qui arrive en cours de
    manche : l'éditeur repart de l'amorce. À la reprise après rechargement, le code
    en cours reste.
@@ -164,6 +167,12 @@ window.Session = (() => {
   dialog.sessDlg .sess-exo{background:var(--code);border-radius:5px;padding:8px 10px;font-size:14.5px}
   dialog.sessDlg .sess-exo b{font-weight:600}
   dialog.sessDlg input[type=checkbox]{accent-color:var(--accent)}
+  dialog.sessDlg select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:5px;font:inherit;background:var(--bg);color:var(--ink)}
+  dialog.sessDlg .sess-liste{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:5px;padding:4px 8px;margin-top:6px;font-size:14px}
+  dialog.sessDlg .sess-liste label{display:flex;gap:8px;align-items:center;font-weight:400;margin:0;padding:3px 0}
+  dialog.sessDlg .sess-liste input{width:auto;margin:0}
+  dialog.sessDlg .sess-liste .th{color:var(--muted);font-size:12.5px;margin-left:auto;white-space:nowrap}
+  dialog.sessDlg .sess-nb{width:64px!important;display:inline-block;margin:0 6px}
   dialog#sessSol{max-width:960px}
   #sessSol .corps{max-height:70vh;overflow:auto}
   #sessSol table{width:100%;border-collapse:collapse;font-size:14.5px}
@@ -219,7 +228,20 @@ window.Session = (() => {
     <div class="corps" id="sessPanL" style="display:none">
       <p class="bascule" id="sessVersJ"><a href="#" id="sessVersJLien">← Rejoindre une arène avec un code</a></p>
       <div class="sess-exo" id="sessExo"></div>
-      <label for="sessInDuree">Durée, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée de l'exercice</span></label>
+      <div id="sessChoix">
+        <label for="sessCGroupe" id="sessCGroupeLbl">Niveau</label>
+        <select id="sessCGroupe"></select>
+        <div class="modes" style="margin-top:8px">
+          <label style="font-weight:400;margin:0"><input type="radio" name="sessCTirage" value="hasard" checked style="width:auto;margin-right:6px">Exercices tirés au hasard, <input type="number" class="sess-nb" id="sessCNb" min="1" max="20" step="1" value="3"> manche(s)</label>
+          <label style="font-weight:400;margin:6px 0 0"><input type="radio" name="sessCTirage" value="liste" style="width:auto;margin-right:6px">Exercices choisis dans la liste, dans l'ordre coché</label>
+        </div>
+        <div id="sessCListeBloc" style="display:none">
+          <input type="search" id="sessCFiltre" placeholder="Filtrer les titres…" style="margin-top:6px">
+          <div class="sess-liste" id="sessCListe"></div>
+          <p class="aide" id="sessCCompte"></p>
+        </div>
+      </div>
+      <label for="sessInDuree">Durée par manche, en minutes <span style="font-weight:400;color:var(--muted)">préremplie avec la durée conseillée du niveau</span></label>
       <input id="sessInDuree" type="number" min="1" max="180" step="1">
       <div class="deux">
         <div><label for="sessInPrenomL">Pseudo</label><input id="sessInPrenomL" maxlength="24" autocomplete="nickname"></div>
@@ -236,6 +258,7 @@ window.Session = (() => {
     </div>
     <div class="pied">
       <button class="primary" id="sessOk">Rejoindre</button>
+      <button id="sessCreer" title="Choisir un niveau et des exercices, puis ouvrir une arène">⚔️ Créer une arène</button>
       <button id="sessAnnul">Annuler</button>
       <span class="etat" id="sessEtat" aria-live="polite"></span>
       <a class="aide-arene" href="arene.html" target="_blank" rel="noopener">Comment fonctionne l'arène ?</a>
@@ -393,7 +416,7 @@ window.Session = (() => {
   function rendre() {
     const bar = $('#sessBar');
     $('#sessBtn').style.display = S ? 'none' : '';
-    $('#sessRelance').style.display = S && H.relanceDansBarre && peutRelancer() && H.courant() ? '' : 'none';
+    $('#sessRelance').style.display = S && H.relanceDansBarre && peutRelancer() && (prochain() || H.courant()) ? '' : 'none';
     if (!S || !vue) { bar.classList.remove('on'); document.body.classList.remove('arene-verrou'); $('#sessAttente').classList.remove('on'); return; }
     bar.classList.add('on');
     const n = vue.participants.length, ns = vue.soumis.length;
@@ -729,11 +752,16 @@ window.Session = (() => {
   let onglet = 'J';
   const EMAIL = /^[a-z0-9][a-z0-9._-]*@etu\.unilasalle\.fr$/;
   const nomSaisi = suffixe => {
+    if (connecte()) { const m = Compte.moi(); return (m.pseudo || m.nom || '').trim().slice(0, 24); }   // le pseudo du profil
     const p = $('#sessInPrenom' + suffixe).value.trim();
     if (p.length < 2) throw new Error('Un pseudo de deux caractères au moins.');
     return p;
   };
+  // Sur le serveur du Codex (lot 3, 6 novembre 2026), l'adresse vient du compte :
+  // connecté, on n'en saisit pas ; l'évaluation demande d'être connecté.
+  const connecte = () => !!(window.Compte && Compte.connecte());
   const emailSaisi = (suffixe, exige) => {
+    if (connecte()) return '';
     const e = $('#sessInNom' + suffixe).value.trim().toLowerCase();
     if (!e && !exige) return '';
     if (!EMAIL.test(e)) throw new Error('Adresse attendue : prenom.nom@etu.unilasalle.fr.');
@@ -743,31 +771,112 @@ window.Session = (() => {
   function montrerOnglet(o) {
     onglet = o;
     // une seule fenêtre « Arène » : rejoindre avec un code, ou créer sur l'exercice ouvert (3 novembre 2026)
-    $('#sessDlgTitre').textContent = o === 'L' ? 'Créer une arène sur cet exercice' : o === 'R' ? 'Nouvelle manche sur cet exercice' : 'Rejoindre une arène';
-    $('#sessVersL').innerHTML = H.courant()
-      ? 'Ou <a href="#" id="sessVersLLien">créer une arène sur l’exercice ouvert →</a>'
-      : 'Pour créer une arène, ouvrez d’abord un exercice, puis revenez ici.';
+    $('#sessDlgTitre').textContent = o === 'L' ? 'Créer une arène' : o === 'R' ? 'Nouvelle manche' : 'Rejoindre une arène';
+    $('#sessVersL').style.display = 'none';   // remplacé par le bouton « Créer une arène » du pied (7 novembre 2026)
+    $('#sessCreer').style.display = o === 'J' ? '' : 'none';
     $('#sessVersJ').style.display = o === 'L' ? '' : 'none';
     $('#sessPanJ').style.display = o === 'J' ? '' : 'none'; $('#sessPanL').style.display = o === 'J' ? 'none' : '';
     $('#sessEtat').textContent = '';
+    adapterCompte();
     // relance : seuls l'exercice et la durée changent, le reste appartient à l'arène
-    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide'))
+    for (const el of $('#sessPanL').querySelectorAll('.deux, label:has(input[type=checkbox]), .modes, .aide, #sessChoix'))
       el.style.display = o === 'R' ? 'none' : '';
+    $('#sessExo').style.display = o === 'R' ? '' : 'none';
     if (o === 'R') {
-      const c = H.courant();
-      $('#sessExo').innerHTML = `Manche suivante sur : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">Les participants restent dans l’arène. Le code ne change pas.${vue && vue.mode === 'eval' ? ' En évaluation, tous les exercices sont du même niveau.' : ''}</span>`;
+      const c = prochain() || H.courant();
+      $('#sessExo').innerHTML = `Manche suivante sur : <b>${esc(c.titre)}</b>${S.file && S.file.length > 1 ? ` <span style="color:var(--muted)">(puis ${S.file.length - 1} manche${S.file.length > 2 ? 's' : ''} encore dans la file)</span>` : ''}<br><span style="color:var(--muted)">Les participants restent dans l’arène. Le code ne change pas.${vue && vue.mode === 'eval' ? ' En évaluation, tous les exercices sont du même niveau.' : ''}</span>`;
       $('#sessInDuree').value = c.duree || 10;
       $('#sessOk').textContent = 'Relancer l’arène'; $('#sessOk').disabled = false;
       return;
     }
     if (o === 'L') {
-      const c = H.courant();
-      $('#sessExo').innerHTML = `Exercice : <b>${esc(c.titre)}</b><br><span style="color:var(--muted)">C'est lui que le groupe fera. Pour en changer, fermez cette fenêtre et ouvrez-en un autre, au choix ou 🎲 au hasard avec les filtres.</span>`;
-      if (c) $('#sessInDuree').value = c.duree || 10;   // la durée conseillée de l'exercice, qui dépend de son niveau
-      $('#sessOk').textContent = 'Ouvrir l’arène'; $('#sessOk').disabled = !c;
+      $('#sessOk').textContent = 'Ouvrir l’arène'; $('#sessOk').disabled = true;
+      preparerChoix().then(() => { $('#sessOk').disabled = false; });
     } else {
       $('#sessOk').textContent = 'Rejoindre'; $('#sessOk').disabled = false;
     }
+  }
+
+  /* ───── choix des exercices à la création (7 novembre 2026) ─────
+     Le lanceur choisit un niveau (un chapitre pour R), puis des exercices tirés au
+     hasard, avec le nombre de manches, ou cochés dans une liste. Le premier ouvre
+     l'arène ; les autres attendent dans S.file, que « Nouvelle manche » enchaîne.
+     Le tirage prend tout le niveau : en séance, le lanceur n'est pas le joueur. */
+  let catalogue = null;
+  const prochain = () => (S && S.file && S.file.length) ? S.file[0] : null;
+  async function preparerChoix() {
+    if (!H.catalogue) {   // page sans catalogue : l'exercice ouvert, comme avant
+      const c = H.courant();
+      $('#sessChoix').style.display = 'none'; $('#sessExo').style.display = '';
+      $('#sessExo').innerHTML = c ? `Exercice : <b>${esc(c.titre)}</b>` : 'Ouvrez d’abord un exercice.';
+      if (c) $('#sessInDuree').value = c.duree || 10;
+      return;
+    }
+    catalogue = catalogue || await H.catalogue();
+    const sel = $('#sessCGroupe');
+    $('#sessCGroupeLbl').textContent = H.page === 'r' ? 'Chapitre' : 'Niveau';
+    sel.innerHTML = catalogue.map(g => `<option value="${esc(String(g.cle))}">${esc(g.libelle)} · ${g.exercices.length} exercice${g.exercices.length > 1 ? 's' : ''}</option>`).join('');
+    const c = H.courant();
+    const gc = c && catalogue.find(g => g.exercices.some(e => String(e.exo) === String(c.exo)));
+    if (gc) sel.value = String(gc.cle);
+    sel.onchange = () => { ordre = []; dessinerListe(); dureeConseillee(); };
+    $('#sessCFiltre').oninput = dessinerListe;
+    for (const r of document.querySelectorAll('input[name=sessCTirage]'))
+      r.onchange = () => { $('#sessCListeBloc').style.display = tirage() === 'liste' ? '' : 'none'; };
+    $('#sessCListeBloc').style.display = tirage() === 'liste' ? '' : 'none';
+    ordre = c && gc ? [String(c.exo)] : [];   // l'exercice ouvert est coché d'office : il sera le premier
+    dessinerListe(); dureeConseillee();
+  }
+  const tirage = () => (document.querySelector('input[name=sessCTirage]:checked') || {}).value || 'hasard';
+  const groupe = () => catalogue.find(g => String(g.cle) === $('#sessCGroupe').value) || catalogue[0];
+  let ordre = [];   // les exercices cochés, dans l'ordre du clic
+  function dessinerListe() {
+    const g = groupe(), f = $('#sessCFiltre').value.trim().toLowerCase();
+    const coches = new Set(ordre);
+    $('#sessCListe').innerHTML = g.exercices.filter(e => !f || e.titre.toLowerCase().includes(f)).map(e =>
+      `<label><input type="checkbox" value="${esc(String(e.exo))}"${coches.has(String(e.exo)) ? ' checked' : ''}>${esc(e.titre)}${e.theme ? `<span class="th">${esc(e.theme)}</span>` : ''}</label>`).join('') || '<p class="aide">Aucun titre ne correspond.</p>';
+    for (const k of $('#sessCListe').querySelectorAll('input')) k.onchange = () => {
+      ordre = ordre.filter(x => x !== k.value); if (k.checked) ordre.push(k.value); compterChoix();
+    };
+    compterChoix();
+  }
+  function compterChoix() {
+    const g = groupe(); ordre = ordre.filter(x => g.exercices.some(e => String(e.exo) === x));
+    $('#sessCCompte').textContent = ordre.length ? `${ordre.length} manche${ordre.length > 1 ? 's' : ''}, dans l’ordre coché.` : 'Cochez les exercices, dans l’ordre des manches.';
+  }
+  function dureeConseillee() {
+    const g = groupe(), c = H.courant();
+    const d = (c && g.exercices.some(e => String(e.exo) === String(c.exo)) && c.duree) || (g.exercices[0] && g.exercices[0].duree) || 10;
+    $('#sessInDuree').value = d;
+  }
+  /* La file de l'arène : [{niveau, exo, titre, duree, points}], le premier ouvre l'arène. */
+  function choisis() {
+    if (!H.catalogue) { const c = H.courant(); return c ? [c] : []; }
+    const g = groupe();
+    const vers = e => ({ niveau: g.niveau !== undefined ? g.niveau : g.cle, exo: e.exo, titre: e.titre, duree: e.duree, points: e.points || 0 });
+    if (tirage() === 'liste') return ordre.map(x => g.exercices.find(e => String(e.exo) === x)).filter(Boolean).map(vers);
+    const n = Math.min(20, Math.max(1, Math.round(Number($('#sessCNb').value) || 1)));
+    const tas = g.exercices.slice();
+    for (let i = tas.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [tas[i], tas[j]] = [tas[j], tas[i]]; }
+    return tas.slice(0, n).map(vers);
+  }
+
+  /* Connecté : les champs d'adresse disparaissent, l'adresse vient du compte.
+     Sur le serveur sans être connecté : un mot dit que l'évaluation demande le compte. */
+  function adapterCompte() {
+    // la réponse de /api/moi peut arriver après l'ouverture de la fenêtre : on repasse alors
+    if (window.Compte && !Compte.present()) Compte.qui().then(m => { if (m) adapterCompte(); });
+    const surServeur = !!(window.Compte && Compte.present());
+    const c = connecte();
+    // connecté : ni adresse ni pseudo à saisir, les deux viennent du profil
+    for (const id of ['sessInNom', 'sessInNomL', 'sessInPrenom', 'sessInPrenomL']) { const el = $('#' + id); if (el) el.parentElement.style.display = c ? 'none' : ''; }
+    let p = $('#sessCompteAide');
+    if (!p) { p = document.createElement('p'); p.className = 'aide'; p.id = 'sessCompteAide'; $('#sessPanJ').appendChild(p); }
+    const aideJ = $('#sessPanJ .aide'); if (aideJ && aideJ !== p) aideJ.style.display = c ? 'none' : '';
+    if (c) { const m = Compte.moi(); p.innerHTML = `Vous jouez sous le pseudo <b>${esc(m.pseudo || m.nom)}</b>, celui de votre <a href="/compte">profil</a>. L’arène s’efface au bout de 24 heures.`; }
+    else if (surServeur) p.innerHTML = 'Pour jouer en évaluation, <a href="/auth/login?suite=' + encodeURIComponent(location.pathname) + '">connectez-vous avec le compte UniLaSalle</a>. Sans compte, vous pouvez rejoindre une arène d’entraînement, ou une arène d’évaluation hors évaluation.';
+    else p.textContent = '';
+    p.style.display = p.textContent || p.innerHTML ? '' : 'none';
   }
 
   /* Une entrée, « ⚔️ Arène » dans l'en-tête, depuis le 3 novembre 2026 : la
@@ -804,9 +913,9 @@ window.Session = (() => {
   }
 
   function ouvrirDialogue(codePrerempli, mode = 'J') {
-    if (mode === 'R') { if (!peutRelancer() || !H.courant()) return; }
+    if (mode === 'R') { if (!peutRelancer() || !(prochain() || H.courant())) return; }
     else if (S) { $('#sessBar').scrollIntoView({ behavior: 'smooth' }); return; }
-    if (mode === 'L' && !H.courant()) return;
+    if (mode === 'L' && !H.catalogue && !H.courant()) return;
     if (codePrerempli) { $('#sessInCode').value = codePrerempli; verifierModeArene(); }
     montrerOnglet(mode);
     const d = $('#sessDlg'); if (!d.open) d.showModal();
@@ -819,10 +928,12 @@ window.Session = (() => {
     const ok = $('#sessOk'); ok.disabled = true;
     try {
       if (onglet === 'R') {
-        const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
+        const deFile = prochain();
+        const c = deFile || H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
         await appel('POST', { action: 'relancer', code: S.code, cle: S.cle, niveau: c.niveau, exo: c.exo, titre: c.titre, duree: Math.round(min * 60), points: c.points || 0 });
+        if (deFile) { S.file = S.file.slice(1); stocker(); }
         $('#sessDlg').close();
         finVue = null; dernierEtat = null;
         await rafraichir();
@@ -847,7 +958,9 @@ window.Session = (() => {
         suivre({ code, nom: d.nom || nom, jeton: d.jeton, eval: evalOui, frais: true });   // le serveur rend le pseudo connu
         if (vue.pleinEcran && evalOui) pleinEcran();   // encore dans le geste du clic : le navigateur l'accepte
       } else {
-        const c = H.courant(); if (!c) throw new Error('Aucun exercice ouvert.');
+        const file = choisis();
+        if (!file.length) throw new Error('Choisissez au moins un exercice.');
+        const c = file[0];
         const min = Number($('#sessInDuree').value);
         if (!(min >= 1 && min <= 180)) throw new Error('Durée entre 1 et 180 minutes.');
         const joue = $('#sessInJoue').checked, indices = $('#sessInIndices').checked;
@@ -857,7 +970,8 @@ window.Session = (() => {
         let jeton = null;
         if (joue) jeton = (await appel('POST', { action: 'rejoindre', code: d.code, nom, email })).jeton;
         $('#sessDlg').close();
-        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices, frais: true });
+        // les manches suivantes attendent dans la file : « Nouvelle manche » les enchaîne
+        suivre({ code: d.code, cle: d.cle, nom: joue ? nom : null, jeton, indices, frais: true, file: file.slice(1) });
         montrerGrand(true);
       }
     } catch (e) { if (onglet !== 'R') S = null; etat.textContent = e.message; }
@@ -985,6 +1099,7 @@ window.Session = (() => {
     zone.insertBefore(btn, zone.firstChild);
 
     $('#sessOk').onclick = valider; $('#sessAnnul').onclick = () => $('#sessDlg').close();
+    $('#sessCreer').onclick = () => { montrerOnglet('L'); $('#sessInDuree').focus(); };
     $('#sessInCode').addEventListener('input', verifierModeArene);
     $('#sessDlg').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); valider(); } });
     $('#sessGo').onclick = demarrer; $('#sessLien').onclick = lien;
@@ -1033,6 +1148,7 @@ window.Session = (() => {
       if (!versPage) setTimeout(() => { if (moiEnEval() && vue && vue.pleinEcran && enEpreuve(vue.etat)) signalerSortie(); }, 2500);
     }
     else if (code && st0 && st0.code) { avis = `Vous êtes déjà dans l’arène ${st0.code} : quittez-la pour rejoindre ${code.toUpperCase()}.`; suivre(st0); }
+    else if (code && code.toLowerCase() === 'creer') { history.replaceState(null, '', location.pathname); ouvrirDialogue(null, 'L'); }
     else if (code) ouvrirDialogue(code.toUpperCase());
   }
 

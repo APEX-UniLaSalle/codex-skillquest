@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="theme.js"></script>
+<script src="icones.js" defer></script>
 <script src="saisie-python.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Codex — Débuter : input() et print()</title>
@@ -32,10 +33,10 @@ ul.regles li{margin:5px 0}
 .duo>div>h3,.trio>div>h3{margin:0 0 6px;font-size:14px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux)}
 @media (max-width:760px){.duo,.trio{grid-template-columns:1fr}}
-pre{margin:0;background:var(--sombre);color:#F4EDDC;padding:12px 14px;
+pre{margin:0;background:var(--sombre);color:#F5F7FA;padding:12px 14px;
    border-radius:8px;font:14.5px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
    overflow-x:auto;white-space:pre}
-pre .c{color:#9C8F9A}
+pre .c{color:#A4B7CD}
 table.lignes{border-collapse:collapse;font-size:16px;margin:10px 0}
 table.lignes th{text-align:left;font-size:13px;text-transform:uppercase;letter-spacing:.05em;
    color:var(--doux);padding:5px 14px 5px 0;border-bottom:1px solid var(--bord)}
@@ -53,7 +54,7 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;
 .ex h3{margin:0 0 4px;font-size:18px}
 .ex .cons{margin:0 0 10px;font-size:17px}
 .ex .jeux{color:var(--doux);font-size:14.5px;margin:0 0 10px}
-textarea{width:100%;min-height:120px;background:var(--sombre);color:#F4EDDC;
+textarea{width:100%;min-height:120px;background:var(--sombre);color:#F5F7FA;
    border:1px solid var(--bord);border-radius:8px;padding:12px 14px;
    font:14.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;resize:vertical;tab-size:4}
 .actions{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
@@ -61,11 +62,11 @@ button{padding:8px 15px;border-radius:7px;border:1px solid var(--bord);
    background:var(--fond2);color:var(--texte);cursor:pointer;font-size:16px}
 button.principal{background:var(--bleu);color:#fff;border-color:var(--bleu);font-weight:600}
 button:disabled{opacity:.5;cursor:default}
-.sortie{margin-top:10px;background:var(--sombre);color:#F4EDDC;border-radius:8px;
+.sortie{margin-top:10px;background:var(--sombre);color:#F5F7FA;border-radius:8px;
    padding:11px 14px;font:14px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;
    white-space:pre-wrap;display:none}
 .sortie.visible{display:block}
-.ok{color:#9CC5A4}.ko{color:#E89A86}
+.ok{color:#8FB3D9}.ko{color:#FF7A7D}
 details{margin-top:10px}
 summary{cursor:pointer;color:var(--bleu);font-size:16px}
 details pre{margin-top:8px}
@@ -246,14 +247,12 @@ print(total)               <span class="c"># 24</span></pre>
       <div class="carte"><div class="num">Exercices du Codex</div><h3>Niveaux I à IV</h3>
       <p>Les exercices du Codex, du plus simple au plus difficile. Commencez par Programmation I.</p>
       <div class="niveaux"><a href="python.html?niveau=I">Programmation I</a><a href="python.html?niveau=II">Programmation II</a><a href="python.html?niveau=III">Programmation III</a><a href="python.html?niveau=IV">Programmation IV</a></div></div>
-      <a class="carte examen" href="coderpad.html"><div class="num">Avant l'examen</div><h3>Préparation au test CoderPad</h3>
-      <p>À l'examen, les données arrivent en paramètres et le résultat se rend avec <code>return</code>. Six exercices pour prendre le pli.</p></a>
   </div>
 </main>
 
 <footer>
   Le Codex · UniLaSalle — Python s'exécute dans votre navigateur, rien n'est envoyé.
-  <span id="tampon" style="opacity:.65">Version du 5 novembre 2026 · aae979a</span>
+  <span id="tampon" style="opacity:.65">Version du 7 novembre 2026 · 5ce3387</span>
 </footer>
 
 <script>

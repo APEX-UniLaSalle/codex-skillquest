@@ -2,7 +2,7 @@
    Objectif : après une première visite, l'app démarre instantanément
    et fonctionne sans connexion. */
 
-const VERSION = 'skillquest-entrainement-v189';
+const VERSION = 'skillquest-entrainement-v206';
 const SHELL   = VERSION + '-shell';   // app + données (peuvent changer)
 // Les moteurs ne dépendent pas de VERSION : avant le 1er octobre 2026, chaque
 // mise en ligne d'une banque faisait retélécharger les 10 Mo de Pyodide à tous.
@@ -12,7 +12,6 @@ const A_PRECHARGER = [
   './',
   './index.html',
   './python.html',
-  './coderpad.html',
   './debuter.html',
   './prise-en-main.html',
   './arene.html',
@@ -23,6 +22,9 @@ const A_PRECHARGER = [
   './r-td2.html',
   './r-exercices.js',
   './session.js',
+  './compte.js',
+  './icones.js',
+  './evaluation.js',
   './mysql.js',
   './theme.css',
   './theme.js',
@@ -85,6 +87,9 @@ self.addEventListener('fetch', ev => {
   // réponse porte l'heure du serveur et l'état du groupe.
   const chemin = new URL(url).pathname;
   if (chemin.startsWith('/api/')) return;
+  // 0 bis. Les pages du serveur, compte, connexion, administration (7 novembre 2026) :
+  // jamais en cache, elles changent à chaque enregistrement du profil ou des rôles.
+  if (/^\/(compte|auth|admin|enseignant|classement)(\/|$)/.test(chemin)) return;
 
   // 1. Pyodide et CodeMirror : cache d'abord (URLs versionnées, ~10 Mo au total)
   //
@@ -139,7 +144,7 @@ self.addEventListener('fetch', ev => {
   // d'abord. Le cache prend le relais dès que le réseau manque.
   // le test porte sur le chemin : python.html?arene=ABC234 est une page comme une autre
   const estContenu = c => /\/data\/[^/]+\.json$/.test(c) || /\.html$/.test(c)
-    || /\/(session|theme)\.(js|css)$/.test(c) || url === self.registration.scope || c.endsWith('/');
+    || /\/(session|theme|compte|evaluation|icones)\.(js|css)$/.test(c) || url === self.registration.scope || c.endsWith('/');
   if (url.startsWith(self.registration.scope) && estContenu(chemin)) {
     ev.respondWith((async () => {
       const cache = await caches.open(SHELL);

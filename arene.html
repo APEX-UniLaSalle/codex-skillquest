@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <script src="theme.js"></script>
+<script src="icones.js" defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Codex — Le mode arène</title>
 <style>
@@ -111,11 +112,11 @@ a{color:var(--orange)}
         <li>S'entraîner aux conditions d'une évaluation de programmation.</li>
       </ul>
       <div class="actions">
-        <a class="btn" href="python.html">Lancer en Python</a>
-        <a class="btn sec" href="sql.html">En SQL</a>
-        <a class="btn sec" href="r.html">En R</a>
+        <a class="btn" href="python.html?arene=creer">Lancer en Python</a>
+        <a class="btn sec" href="sql.html?arene=creer">En SQL</a>
+        <a class="btn sec" href="r.html?arene=creer">En R</a>
       </div>
-      <p class="mini">Aucun compte ni mot de passe. Python, SQL et R.</p>
+      <p class="mini">Compte UniLaSalle pour l'évaluation, pseudo seul pour l'entraînement. Python, SQL et R.</p>
     </div>
     <div class="ecran" aria-label="Exemple d'écran projeté avant le départ d'une arène">
       <div class="bandeau">Arène de 5 min · <b>démarre dans 00:08</b></div>
@@ -135,7 +136,7 @@ a{color:var(--orange)}
     </div>
   </div>
   <div class="etapes3">
-    <div><span class="ic">📣</span><b>1. Lancer</b><span>Ouvrez un exercice, cliquez sur ⚔️ Arène, puis sur « créer une arène sur l'exercice ouvert ». Le code s'affiche en grand pour le vidéoprojecteur.</span></div>
+    <div><span class="ic">📣</span><b>1. Lancer</b><span>Cliquez sur ⚔️ Arène, puis « créer une arène » : choisissez le niveau, puis des exercices au hasard ou dans la liste. Le code s'affiche en grand pour le vidéoprojecteur.</span></div>
     <div><span class="ic">💻</span><b>2. Coder</b><span>Chacun rejoint avec le code et un pseudo. Au départ, le même exercice s'ouvre sur tous les postes.</span></div>
     <div><span class="ic">🏆</span><b>3. Comparer</b><span>Le classement suit les tests réussis, puis le temps. Le lanceur enchaîne une autre manche.</span></div>
   </div>
@@ -165,16 +166,17 @@ a{color:var(--orange)}
 
   <h2 id="lancer">Lancer une arène</h2>
   <ol class="etapes">
-    <li>Ouvrez un exercice : choisi dans la liste, ou tiré au hasard avec les filtres.</li>
-    <li>Cliquez sur <b>⚔️ Arène</b>, dans l'en-tête, puis sur <b>créer une arène sur l'exercice ouvert</b>. Sur les pages SQL et R, le bouton <b>⚔️ Lancer une arène</b>, sous la question, fait de même.</li>
-    <li>Réglez la durée. Elle est préremplie avec la durée conseillée de l'exercice.</li>
-    <li>Entrez un pseudo. L'adresse <code>@etu.unilasalle.fr</code> est demandée si vous jouez vous-même en évaluation.</li>
+    <li>Cliquez sur <b>⚔️ Arène</b>, dans l'en-tête, puis sur <b>créer une arène</b>. Depuis cette page, les boutons ci-dessus y mènent directement.</li>
+    <li>Choisissez le niveau, ou le chapitre pour R.</li>
+    <li>Choisissez les exercices : tirés au hasard, avec le nombre de manches, ou cochés dans la liste, dans l'ordre des manches. Si un exercice est ouvert, il est coché d'office.</li>
+    <li>Réglez la durée par manche. Elle est préremplie avec la durée conseillée du niveau.</li>
+    <li>Entrez un pseudo. En évaluation, l'identité vient de votre compte UniLaSalle : connectez-vous d'abord.</li>
     <li>Deux cases sont cochées par défaut : <b>Je participe aussi</b> et <b>Je garde l'accès aux indices et aux solutions</b>. Un enseignant qui ne joue pas décoche la première.</li>
     <li>Choisissez le mode : <b>Évaluation</b>, par défaut, ou <b>Entraînement</b>.</li>
   </ol>
   <p>Le Codex affiche un code de six caractères en grand, pour le vidéoprojecteur, avec la liste de ceux qui ont rejoint.
   « 🔗 Lien » copie une adresse qui ouvre directement la fenêtre pour rejoindre. Le chrono démarre quand le lanceur clique sur <b>Démarrer</b>.</p>
-  <p>Aucun compte ni mot de passe n'est nécessaire.</p>
+  <p>Les manches suivantes s'enchaînent avec <b>⚔️ Nouvelle manche</b>, dans l'ordre choisi. Une arène d'entraînement se crée et se rejoint sans compte ; une arène d'évaluation demande le compte UniLaSalle pour la créer et pour y jouer en évaluation.</p>
 
   <h2 id="rejoindre">Rejoindre une arène</h2>
   <ol class="etapes">
@@ -281,7 +283,7 @@ a{color:var(--orange)}
 
 <footer>
   Le Codex · UniLaSalle — Mode arène.
-  <span id="tampon" style="opacity:.65">Version du 5 novembre 2026 · aae979a</span>
+  <span id="tampon" style="opacity:.65">Version du 7 novembre 2026 · 5ce3387</span>
 </footer>
 </body>
 </html>

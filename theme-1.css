@@ -1,0 +1,186 @@
+/* Le Codex — habillage, refonte du 7 novembre 2026.
+
+   Esprit des pages du serveur et de la synthèse SkillQuest : sobre, sans
+   ornement, cartes à angles doux, typographie système. Palette donnée par
+   Julien le 7 novembre 2026, sans vert : la réussite se dit en bleu : corail FF595D, bleu nuit 00395C, ardoise 4D6386,
+   bleu gris A4B7CD, lilas EBD5ED. Le reste en découle : fonds, traits et
+   teintes claires sont des mélanges de ces cinq couleurs.
+
+   Cette feuille se charge après le style de chaque page et ne fait que redéfinir
+   les variables et quelques traits communs. Le mode nuit garde la même palette
+   sur un fond bleu nuit. theme.js pose data-theme sur <html> et le bouton
+   ☀ / ☾ de l'en-tête. */
+
+:root{
+  --corail:#FF595D; --nuit:#00395C; --ardoise:#4D6386; --bleugris:#A4B7CD; --lilas:#EBD5ED;
+
+  --bg:#F5F7FA;          /* presque blanc, teinté bleu gris */
+  --panel:#FFFFFF;
+  --panel2:#F0F3F7;
+  --code:#E9EEF4;
+  --sunk:#DDE4EC;
+  --ink:#00395C;         /* bleu nuit : le texte */
+  --muted:#4D6386;       /* ardoise : le texte secondaire, 5,6:1 sur blanc */
+  --line:#CFD9E5;        /* bleu gris éclairci */
+  --accent:#FF595D;      /* corail : actions, identité */
+  --accent-fort:#E84448; /* corail au survol, 4,6:1 en texte sur blanc */
+  --accent-soft:#FFE3E4;
+  --link:#4D6386;
+  --link-txt:#2F4A6E;
+  --ok:#2F5E88;          /* réussite : bleu ardoise foncé, pas de vert dans la palette */
+  --ok-soft:#DCE6F2;
+  --ko:#D8373B;
+  --ko-soft:#FFE3E4;
+  --warn:#2F4A6E;        /* avertissements : bleu ardoise sur fond lilas */
+  --warn-soft:#EBD5ED;
+  --violet:#2F4A6E;      /* « violet » des notions et indices : bleu ardoise, plus de violet */
+  --bleu:#4D6386;
+  --lavande:#EBD5ED;     /* lilas : fonds doux, étiquettes */
+  --term:#0B2235;        /* consoles et éditeurs, bleu nuit profond */
+  --or:#4D6386;          /* ancien « or » des filets : ardoise désormais */
+  --or-texte:#2F4A6E;
+  --blanc:#FFFFFF;
+  --fond:var(--bg); --fond2:var(--panel2); --carte:var(--panel); --bord:var(--line);
+  --texte:var(--ink); --doux:var(--muted); --rouge:var(--accent); --vert:var(--ok);
+  --orange:var(--link-txt); --sombre:var(--term);
+  --serif:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --prose:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --rayon:10px;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0B2235;          /* bleu nuit profond */
+  --panel:#0F2D47;       /* bleu nuit */
+  --panel2:#0D2840;
+  --code:#17395A;
+  --sunk:#07192A;
+  --ink:#EEF3F8;
+  --muted:#A4B7CD;       /* bleu gris : le texte secondaire */
+  --line:#27496A;
+  --accent:#FF595D;
+  --accent-fort:#FF7A7D;
+  --accent-soft:#4A2630;
+  --link:#A4B7CD;
+  --link-txt:#C9D6E5;
+  --ok:#8FB3D9;          /* réussite en nuit : bleu clair */
+  --ok-soft:#1C3D5C;
+  --ko:#FF7A7D;
+  --ko-soft:#4A2630;
+  --warn:#A4B7CD;
+  --warn-soft:#1C3D5C;
+  --violet:#A4B7CD;
+  --bleu:#A4B7CD;
+  --lavande:#17395A;     /* la nuit, les fonds doux restent bleus, pas violets */
+  --term:#07192A;
+  --or:#A4B7CD;
+  --or-texte:#C9D6E5;
+  --blanc:#0F2D47;
+  color-scheme:dark;
+}
+
+/* ── fond et typographie ── */
+body{font-family:var(--ui);font-size:16px;background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,.card h2,.hero h2,.parc h3,.niv h3,.theme h3,.intro h2,#titreQ{font-family:var(--ui);font-weight:650;letter-spacing:-.01em}
+header h1{font-variant:normal;letter-spacing:-.01em;font-size:19px;font-weight:700}
+header h1::before{content:none}
+.hero h2,.intro h2{font-variant:normal;letter-spacing:-.02em;font-weight:700;font-size:30px}
+.statement,.enonce,#enonce,.hero p,.intro .texte p{font-family:var(--prose);font-size:16.5px;line-height:1.6}
+.etiq,.num,.sub-h,.bloc h3,.intro .texte h3,.exo .num,.qst .num,table.tests th,table.jeux th,table.res th,th,
+.bac-carte .num,.examen .num,.niv .num,footer h2{font-family:var(--ui);letter-spacing:.06em;text-transform:uppercase;font-weight:600;font-size:12px}
+.exo .num,.qst .num{letter-spacing:0;text-transform:none;font-size:inherit}
+.parc .etiq,.theme .etiq,.intro .etiq,.niv .num,.bac-carte .num,.examen .num{color:var(--muted)}
+.parc.actif .etiq,.examen .num{color:var(--accent-fort)}
+:root[data-theme="dark"] .parc.actif .etiq,:root[data-theme="dark"] .examen .num{color:var(--accent)}
+
+/* ── les titres en bleu nuit ; le corail reste aux actions et à l'identité ── */
+h1,h2,h3,.card h2,.hero h2,.parc h3,.niv h3,.theme h3,.intro h2,.bloc h3,#titreQ,.demarre-tete h3,.bac-carte h3,.examen h3{color:var(--ink)}
+.compteurs b,.compteurs div>b,.kpi .val{color:var(--ink)}
+header h1{color:var(--accent-fort)}
+:root[data-theme="dark"] header h1{color:var(--accent)}
+.parc.actif{border-color:var(--ardoise)}
+.parc.actif h3,.niv:hover h3{color:var(--ink)}
+
+/* ── plus d'ornement sous les titres : un titre, un espace ── */
+.card h2::after,.hero h2::after,.intro h2::after{content:none}
+.card h2,.hero h2,.intro h2{position:relative;padding-bottom:0}
+
+/* ── en-tête : une barre fine, collée au fond ── */
+header{background:var(--panel);border-bottom:1px solid var(--line)}
+
+/* ── cartes et boutons ── */
+.panel,.card,.hero,.niv,.parc,.theme,.bloc,.bac-carte,.examen,aside.panel,aside.liste,dialog{border-color:var(--line);border-radius:var(--rayon);box-shadow:none}
+.niv:hover,.parc:hover,.theme:hover,.bac-carte:hover,.examen:hover{border-color:var(--ardoise);box-shadow:0 2px 10px rgba(0,57,92,.08)}
+:root[data-theme="dark"] .niv:hover,:root[data-theme="dark"] .parc:hover,:root[data-theme="dark"] .theme:hover,:root[data-theme="dark"] .bac-carte:hover,:root[data-theme="dark"] .examen:hover{border-color:var(--bleugris);box-shadow:none}
+button,.fiche,select,input[type=search],input[type=text],input[type=number]{font-family:var(--ui);border-radius:8px}
+button.primary,button.principal{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover:not(:disabled),button.principal:hover:not(:disabled){background:var(--accent-fort);border-color:var(--accent-fort);color:#fff}
+button:hover:not(:disabled){border-color:var(--ardoise);color:var(--ink)}
+:root[data-theme="dark"] button:hover:not(:disabled){border-color:var(--bleugris)}
+.chip,.tag{background:var(--lavande);color:var(--ink);border-radius:999px}
+:root[data-theme="dark"] .chip,:root[data-theme="dark"] .tag{color:var(--ink)}
+#marque:hover h1{color:var(--accent-fort)}
+.fiche{background:transparent;border-color:var(--line);color:var(--ink)}
+.fiche:hover{background:var(--panel2);border-color:var(--ardoise);color:var(--ink)}
+:root[data-theme="dark"] .fiche{background:transparent;border-color:var(--line);color:var(--ink)}
+:root[data-theme="dark"] .fiche:hover{background:var(--code);border-color:var(--bleugris);color:var(--ink)}
+a{color:var(--link-txt)}
+:root[data-theme="dark"] a{color:var(--link-txt)}
+
+/* ── consoles et éditeurs : bleu nuit profond dans les deux modes, texte clair ── */
+textarea:not(dialog textarea),.console-body,.console-r,details.solution pre,.notion .syn,.CodeMirror{background:var(--term) !important;color:#EEF3F8;border-radius:8px}
+textarea:not(dialog textarea){color:#EEF3F8 !important}
+textarea:not(dialog textarea)::placeholder{color:#8FA3BA}
+.CodeMirror-gutters{background:#06141F !important;border-right:1px solid #17395A !important}
+.CodeMirror-linenumber{color:#6E86A3 !important}
+
+/* ── mode nuit : ce que les pages écrivaient en dur ── */
+:root[data-theme="dark"] .tbl,:root[data-theme="dark"] table.jeux td,:root[data-theme="dark"] table.res td,
+:root[data-theme="dark"] .notion,:root[data-theme="dark"] .intro .entite{background:var(--blanc)}
+:root[data-theme="dark"] img.logo-unilasalle,:root[data-theme="dark"] footer .logos img{filter:brightness(0) invert(.9)}
+
+/* ── schémas SQL et R : les types de colonnes en texte secondaire, lisibles la nuit (7 novembre 2026) ── */
+.tbl li .type,.intro .entite li .type{color:var(--muted)}
+.tbl li,.intro .entite li{color:var(--ink)}
+.marque.pk{background:var(--accent);color:#fff}
+.marque.fk{background:var(--ardoise);color:#fff}
+.intro .cadre-mcd{background:var(--panel);border-color:var(--line)}
+
+/* ── code en ligne ── */
+code,.statement code,.enonce code,#enonce code,.notion h4 code{background:var(--code);color:var(--ink);border-radius:4px;padding:1px 5px}
+pre code,.console-body code,textarea code,.CodeMirror code{background:transparent;color:inherit;padding:0}
+
+/* ── en-tête et boutons, tailles ── */
+header{padding:12px 22px;gap:12px 16px}
+header button,header .fiche,header a.fiche{padding:8px 14px;line-height:1.2;white-space:nowrap}
+.editor-head strong,.editor-head a{white-space:nowrap}
+#themeBtn{font-size:14px;padding:8px 12px;line-height:1.2;border-radius:8px;border:1px solid var(--line);
+  background:var(--panel);color:var(--ink);cursor:pointer}
+#themeBtn:hover{border-color:var(--ardoise)}
+#compteLien img{border:1px solid var(--line)}
+.CodeMirror{font-size:15px;line-height:1.55}
+main>*{min-width:0}
+.constraint,.statement,.enonce,#enonce,pre.io,table.tests td{overflow-wrap:anywhere}
+
+/* ── boutons : jamais de retour à la ligne, l'icône et le texte restent ensemble (7 novembre 2026) ── */
+header button,dialog button,.pied button,#sessBar button,#evalBar button,.barre-exo button,.filters button,.filtres button,.actions button,.fiche,a.fiche,dialog .pied a{white-space:nowrap}
+.theme,.niv,.parc,.bac-carte,.chap,.carte{white-space:normal}
+dialog .pied{flex-wrap:wrap}
+svg.ic{display:inline-block;vertical-align:-.15em;margin:0 .1em;width:1em;height:1em;flex:none}
+
+/* ── barres d'arène et d'épreuve : même ton que l'en-tête ── */
+#sessBar,#evalBar{background:var(--panel);border-bottom:1px solid var(--line)}
+#sessBar .code,#sessBar .chrono,#evalBar .chrono{color:var(--accent-fort)}
+:root[data-theme="dark"] #sessBar .code,:root[data-theme="dark"] #sessBar .chrono,:root[data-theme="dark"] #evalBar .chrono{color:var(--accent)}
+
+/* ── barres de progression des accueils ── */
+.barre{background:var(--sunk);border-radius:999px;overflow:hidden}
+.barre i{background:var(--accent);border-radius:999px}
+
+@media (max-width:640px){
+  header{padding:10px 14px}
+  header .sub{display:none}
+  #status{flex-basis:100%;margin-left:0;flex-wrap:wrap;gap:8px;font-size:13px}
+  #status #statusTxt{flex:1 1 60%;min-width:0}
+  header button,header .fiche,header a.fiche{padding:7px 10px}
+}
